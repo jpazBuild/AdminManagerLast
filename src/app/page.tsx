@@ -1,101 +1,183 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { FaChevronDown, FaChevronUp } from "react-icons/fa";
+import InteractionItem from "./components/Interaction";
+import Skeleton from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
+import { Dashboard } from "./Layouts/dashboard";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [darkMode,setDarkMode] = useState(false);
+  const [filters, setFilters] = useState({
+    name: "",
+    module: "",
+    tags: "",
+    submodule: "",
+  });
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [dropdownState, setDropdownState] = useState<Record<number, boolean>>({});
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const toggleDropdown = (id: number) => {
+    setDropdownState((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFilters((prevFilters) => ({ ...prevFilters, [name]: value }));
+  };
+
+  const buildQuery = () => {
+    const activeFilters = Object.entries(filters).reduce((acc, [key, value]) => {
+      if (value.trim()) {
+        acc[key] = key === "tags" || key === "submodule" ? [value.trim()] : value.trim();
+      }
+      return acc;
+    }, {} as Record<string, any>);
+    return encodeURIComponent(JSON.stringify(activeFilters));
+  };
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const query = buildQuery();
+      const apiUrl = `${process.env.URL_API_INTEGRATION}retrieveAutomationFlow?filters=${query}`;
+
+      const response = await fetch(apiUrl, {
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${process.env.TOKEN_API}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      setData(result);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleDarkMode = (darkMode: boolean) => {
+   setDarkMode(darkMode)
+  };
+
+  return (
+    <Dashboard onToggleDarkMode={handleToggleDarkMode}
+    >
+
+      <main className="flex-1 ml-0 lg:ml-[25%] h-screen overflow-y-auto p-4 ">
+
+        <section className="mb-8">
+          <h3 className="text-xl font-bold mb-4">Searching Filters</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {Object.keys(filters).map((field) => (
+              <input
+                key={field}
+                type="text"
+                name={field}
+                value={filters[field as keyof typeof filters]}
+                onChange={handleInputChange}
+                placeholder={`Filter by ${field}`}
+                className={`p-3 border rounded-md focus:ring-2 transition-colors duration-300 ${darkMode ? "bg-gray-700 text-gray-100 border-gray-600 focus:ring-gray-500" : "bg-white text-gray-900 border-gray-300 focus:ring-blue-500"}`}
+              />
+            ))}
+          </div>
+          <button
+            onClick={fetchData}
+            className={`mt-4 px-6 py-2 rounded-md font-semibold transition-colors duration-300 ${darkMode ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-blue-500 text-white hover:bg-blue-600"}`}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+            {loading ? "Searching..." : "Search"}
+          </button>
+        </section>
+
+        {loading && (
+          <section className="mt-8">
+            <div className="grid grid-cols-1 gap-4 animate-pulse">
+              <Skeleton height={40} count={5} baseColor="gray" enableAnimation={false} />
+            </div>
+          </section>
+        )}
+
+        {!loading && error && <p className="text-red-500">Error: {error}</p>}
+
+        {!loading && data && data.data && data.data.length > 0 ? (
+          <section className="mt-8">
+            <h3 className="text-lg font-bold mb-4">Results</h3>
+            <div className="grid grid-cols-1 gap-4">
+              {data.data.map((item: any, index: number) => {
+                return (
+                  <div key={index}>
+                    <button
+                      className={`w-full flex justify-between p-4 rounded-md shadow-md transition-colors duration-300 ${darkMode ? "bg-gray-800 text-gray-100 border-gray-700" : "bg-white text-gray-900 border-gray-300"}`}
+                      onClick={() => toggleDropdown(index)}
+                    >
+                      <p className="font-semibold">{item.name}</p>
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleDropdown(index);
+                        }}
+                        className="flex items-center p-2 justify-between font-semibold rounded-md gap-2"
+                      >
+                        {dropdownState[index] ? (
+                          <FaChevronUp />
+                        ) : (
+                          <FaChevronDown />
+                        )}
+                      </span>
+                    </button>
+
+                    {Array.isArray(item.jsonSteps) && item.jsonSteps.length > 0 && dropdownState[index] && (
+                      <div className="flex flex-col gap-2 mt-2">
+                        {item.jsonSteps.map((step: any, index: any) => (
+                          <InteractionItem
+                            key={index}
+                            data={step as any}
+                            index={index}
+                            isContext={false}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ) : !loading && data && data.data && data.data.length === 0 ? (
+          <section className="mt-8 flex justify-center items-center  p-8 rounded-md shadow-md">
+            <div className="text-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 64 64"
+                fill="none"
+                className="w-16 h-16 mx-auto text-gray-500"
+              >
+                <path
+                  d="M32 8C17.664 8 8 17.664 8 32s9.664 24 24 24 24-9.664 24-24S46.336 8 32 8zm0 44c-11.046 0-20-8.954-20-20s8.954-20 20-20 20 8.954 20 20-8.954 20-20 20zm0-16a4 4 0 110-8 4 4 0 010 8zm0-12a8 8 0 10-16 0 8 8 0 0016 0z"
+                  fill="currentColor"
+                />
+              </svg>
+
+              <h3 className="text-xl font-semibold text-gray-600">No Results Found</h3>
+              <p className="text-gray-500 mt-2">We couldn't find any matching data. Please try adjusting your search filters or check back later.</p>
+            </div>
+          </section>
+        ) : null}
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+    </Dashboard>
   );
 }
