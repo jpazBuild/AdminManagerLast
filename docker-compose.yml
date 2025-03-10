@@ -1,0 +1,119 @@
+# version: '3.8'
+
+# services:
+#   backend:
+#     image: lscr.io/linuxserver/webtop:latest
+#     build: ./runner
+#     container_name: backend-admin-manager
+#     security_opt:
+#       - seccomp:unconfined #optional
+#     environment:
+#       - PUID=1000
+#       - PGID=1000
+#       - TZ=Etc/UTC
+#       - SUBFOLDER=/ #optional
+#       - TITLE=Webtop #optional
+#     volumes:
+#       - /dev/shm:/dev/shm 
+#     ports:
+#       - 3000:3000
+#       - 3001:3001
+#       - 4000:4000
+#     networks:
+#       - admin-manager
+#     shm_size: "2gb" #optional
+#     restart: unless-stopped 
+
+#   frontend:
+#     build: ./frontend
+#     ports:
+#       - "8080:8080"
+#     container_name: frontend-admin-manager
+#     restart: unless-stopped
+#     depends_on:
+#       - backend
+#     networks:
+#       - admin-manager
+
+# networks:
+#   admin-manager:
+#     driver: bridge
+
+
+
+#   backend:
+#     build: ./runner
+#     container_name: backend-admin-manager
+#     ports:
+#       - "3000:3000"  # 📌 Webtop
+#       - "4000:4000"  # 📌 API Backend
+#     shm_size: "2gb"
+#     environment:
+#       - DISPLAY=:99
+#       - PUID=1000
+#       - PGID=1000
+#       - TZ=Etc/UTC
+#       - PORT=4000
+#       - ORIGIN_URL=http://localhost:8080
+#       - service_automation_api=https://alpha-blossom-automatization-api.blossomalpha.com/graphql/automation
+#       - header_automation_apikey=nn8ky6s5Mb5jlYopgNbyc5aiX3RsUWob6zGcVsvI
+#       - CUSTOM_PORT=3000  # 📌 Asegura que Webtop use el puerto correcto
+#       - PASSWORD=admin  # 📌 Si se necesita autenticación
+#     restart: unless-stopped
+#     networks:
+#       - admin-manager
+    # volumes:
+      # - /dev/shm:/dev/shm  # 📌 Necesario para Playwright en modo visual
+#       - ./runner:/app  # 📌 Código del backend dentro de Webtop
+#       - /var/run/docker.sock:/var/run/docker.sock  # 📌 Permite ejecutar contenedores dentro de Webtop
+
+
+version: '3.8'
+
+services:
+  webtop:
+    # build: ./runner  # 📌 Construye la imagen desde el Dockerfile en ./runner
+    image: lscr.io/linuxserver/webtop:ubuntu-xfce
+    container_name: webtop-gui
+    security_opt:
+      - seccomp:unconfined  # Necesario para algunas aplicaciones GUI
+    environment:
+      - PUID=1000  # Ajusta esto si usas otro usuario en tu host
+      - PGID=1000  # Ajusta esto si usas otro grupo en tu host
+      - TZ=Etc/UTC
+      - CUSTOM_PORT=3000  # Asegurar que Webtop se ejecute en el puerto correcto
+      - PASSWORD=admin  # Habilita autenticación en Webtop
+      - DISPLAY=:1  # Necesario para Xvfb y Playwright en modo gráfico
+      - PORT=4000  # API Backend
+      - ORIGIN_URL=http://localhost:8080
+      - service_automation_api=https://alpha-blossom-automatization-api.blossomalpha.com/graphql/automation
+      - header_automation_apikey=nn8ky6s5Mb5jlYopgNbyc5aiX3RsUWob6zGcVsvI
+    volumes:
+      - /dev/shm:/dev/shm  # 📌 Necesario para Playwright en modo visual
+      - /var/run/docker.sock:/var/run/docker.sock  # 📌 Permite ejecutar contenedores dentro de Webtop
+      - ./config:/config  # 📌 Configuración persistente de Webtop
+      - ./data:/data  # 📌 Espacio para almacenar archivos compartidos entre Webtop y el host
+      - ./runner:/app  # 📌 Mapea el código del backend dentro del contenedor
+    ports:
+      - "3000:3000"  # Acceso a Webtop GUI
+      - "3001:3001"  # Acceso HTTPS (opcional)
+      - "4000:4000"  # API Backend
+    shm_size: "2gb"  # Evita problemas con navegadores y aplicaciones gráficas
+    restart: unless-stopped
+    networks:
+      - admin-manager
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:8080"
+    container_name: frontend-admin-manager
+    restart: unless-stopped
+    depends_on:
+      - webtop
+    networks:
+      - admin-manager
+
+networks:
+  admin-manager:
+    driver: bridge
