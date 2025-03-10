@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" className="w-16 h-16 mx-auto text-gray-500">
+<path
+d="M32 8C17.664 8 8 17.664 8 32s9.664 24 24 24 24-9.664 24-24S46.336 8 32 8zm0 44c-11.046 0-20-8.954-20-20s8.954-20 20-20 20 8.954 20 20-8.954 20-20 20zm0-16a4 4 0 110-8 4 4 0 010 8zm0-12a8 8 0 10-16 0 8 8 0 0016 0z"
+fill="currentColor"
+/>
+</svg>
