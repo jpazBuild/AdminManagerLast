@@ -22,25 +22,13 @@ export const useTestExecution = () => {
 
         const runNextTest = async () => {
             if (pendingTests.length === 0) return;
-            if (activeTests >= maxBrowsers) return;
-            console.log("run test api");
-            
+            if (activeTests >= maxBrowsers) return;            
             const testCase = pendingTests.shift();
-            console.log("🚀 ~ runNextTest ~ testCase:", testCase)
             const testId = await testCase?.testCaseId;
             setIdReports(prev => [...prev, testId]);
-            activeTests++;
-
-
-            console.log("testData",testData);
-            
+            activeTests++;            
             try {
-
-
-                testCase.contextGeneral.data.url = await testData.data[testCase.testCaseName].urlSite
-
-                console.log("testCase.contextGeneral.data.url",await testCase.contextGeneral.data.url);
-                
+                testCase.contextGeneral.data.url = await testData.data[testCase.testCaseName].urlSite                
                 const response = await fetch(`${URL_API_RUNNER}/execute-test`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -53,8 +41,6 @@ export const useTestExecution = () => {
                         },
                     }),
                 });
-                console.log("🚀 ~ runNextTest ~ response:", response)
-
                 const reader = response.body?.getReader();
                 const decoder = new TextDecoder();
                 let buffer = "";
@@ -64,7 +50,6 @@ export const useTestExecution = () => {
 
                 let steps: any[] = []
                 while (reader) {
-                    console.log("🚀 ~ runNextTest ~ reader:", reader)
                     const { done, value } = await reader.read();
                     if (done) break;
 
@@ -149,7 +134,6 @@ export const useTestExecution = () => {
                 });
 
             } catch (error: any) {
-                console.log("🚀 ~ runNextTest ~ error:", error)
                 setError(`Error ejecutando prueba: ${error.message}`);
                 setProgress(prev => ({
                     ...prev,

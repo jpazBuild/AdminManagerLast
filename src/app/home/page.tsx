@@ -310,9 +310,7 @@ const Home = () => {
                                 )}
                             </div>
                             <button
-                                onClick={() => {
-                                    console.log("run test");
-                                    
+                                onClick={() => {                                    
                                     const selectedTests: any = responseData.filter((tc: any) =>
                                         selectedCases.includes(tc.testCaseId)
                                     );

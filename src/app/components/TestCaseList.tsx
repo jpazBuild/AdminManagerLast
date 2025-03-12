@@ -149,9 +149,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
             {/* ✅ Renderiza cada testCase con sus campos dinámicos */}
             <Accordion type="multiple" className="space-y-2">
                 {testCases.map((test) => {
-                    const testFields = getDynamicFields(test);
-                    console.log(test.createdBy);
-                    
+                    const testFields = getDynamicFields(test);                    
                     return (
                         <AccordionItem key={test.testCaseId} value={test.testCaseId} className="border rounded-lg">
                             <div className="relative flex items-center gap-2 px-4 py-2 bg-muted/50">
