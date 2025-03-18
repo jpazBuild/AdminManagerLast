@@ -10,7 +10,7 @@ interface TestSettingsProps {
 
 const TestSettings = ({ onBrowserLimitChange, onHeadlessChange }: TestSettingsProps) => {
   const [browserLimit, setBrowserLimit] = useState(1);
-  const [headless, setHeadless] = useState(false);
+  const [headless, setHeadless] = useState(true);
 
   const handleBrowserLimitChange = (value: string) => {
     const numberValue = Number(value);
@@ -24,7 +24,7 @@ const TestSettings = ({ onBrowserLimitChange, onHeadlessChange }: TestSettingsPr
   };
 
   return (
-    <div className="p-6 border rounded-lg shadow-lg bg-white">
+    <div className="p-4 border rounded-lg shadow-lg bg-white">
       <h2 className="text-lg font-semibold mb-4 text-gray-800 flex justify-between">Settings Tests <Settings/></h2>
       <div className="mb-6">
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -42,13 +42,6 @@ const TestSettings = ({ onBrowserLimitChange, onHeadlessChange }: TestSettingsPr
             ))}
           </SelectContent>
         </Select>
-      </div>
-      <div className="flex items-center gap-4">
-        <label className="text-sm font-medium text-gray-700">Execute in Headless mode</label>
-        <Switch
-          checked={headless}
-          onCheckedChange={handleHeadlessChange}
-        />
       </div>
     </div>
   );

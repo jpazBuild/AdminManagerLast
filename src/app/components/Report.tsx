@@ -62,7 +62,7 @@ const ReportUI = ({ report, key, darkMode }: any) => {
                             const isStepSuccess = latestStep.status.toLowerCase() === "completed";
                             const isStepError = latestStep.status.toLowerCase() === "failed";
                             const isProcessing = latestStep.status.toLowerCase() === "processing";
-
+                            const isSkipped = latestStep.status.toLowerCase() === "skipped";
                             return (
                                 <div
                                     key={indexStep}
@@ -73,7 +73,10 @@ const ReportUI = ({ report, key, darkMode }: any) => {
                                                 ? "border-red-500 border-2 border-l-4"
                                                 : isProcessing
                                                     ? "border-yellow-500 border-2 border-l-4"
+                                                : isSkipped 
+                                                    ? "border-blue-500 border-2 border-l-4"
                                                     : "border-gray-300"
+                                                
                                         }`}
                                 >
                                     <div className="absolute top-0 left-0 bg-blue-500 text-white px-3 py-1 text-sm font-semibold rounded-tl-xl rounded-br-full shadow-md">
