@@ -19,7 +19,6 @@ const CreateForm = () => {
         (activeField === "module" && module.length > 0) ||
         (activeField === "submodule" && submodule.length > 3 && module.length > 0);
 
-        console.log("process.env.URL_API_INTEGRATION ",process.env.URL_API_INTEGRATION);
         
     useEffect(() => {
         if (activeField === "submodule") {

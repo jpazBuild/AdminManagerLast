@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Progress } from "../../components/ui/progress";
-import { FaChevronDown, FaChevronUp } from "react-icons/fa";
+import { FaChevronDown, FaChevronUp, FaClock } from "react-icons/fa";
 import { ExecutionSummary } from "./ExecutionSummary";
 import ReportUI from "./Report";
+import { Clock } from "lucide-react";
 
 const TestReports = ({ reports, idReports, progress, selectedCases }: any) => {
     const [expandedReports, setExpandedReports] = useState<Record<string, boolean>>({});
@@ -22,7 +23,7 @@ const TestReports = ({ reports, idReports, progress, selectedCases }: any) => {
             if (!acc[indexStep]) {
                 acc[indexStep] = { success: 0, failed: 0 };
             }
-    
+
             if (item.status === "completed" || item.finalStatus === "sucess") {
                 acc[indexStep].success += 1;
             } else if (item.status === "failed" || item.finalStatus === "failed") {
@@ -31,13 +32,13 @@ const TestReports = ({ reports, idReports, progress, selectedCases }: any) => {
         });
         return acc;
     }, {});
-    
-    let steps:any[] = [];
 
-    reports[0]?.data.map((ev:any)=>{
+    let steps: any[] = [];
+
+    reports[0]?.data.map((ev: any) => {
         const existingIndex = steps.findIndex(step => step.indexStep === ev.indexStep);
 
-        if(!ev.finalStatus){
+        if (!ev.finalStatus) {
             if (existingIndex !== -1) {
                 steps[existingIndex] = { indexStep: ev.indexStep, ev };
             } else {
@@ -45,11 +46,19 @@ const TestReports = ({ reports, idReports, progress, selectedCases }: any) => {
             }
         }
         return ev
-    })    
+    })
+
+    const formatExecutionTime = (ms: number) => {
+        const minutes = Math.floor(ms / 60000);
+        const seconds = ((ms % 60000) / 1000).toFixed(0);
+        return minutes > 0
+            ? `${minutes} min ${seconds} sec`
+            : `${seconds} sec`;
+    };
 
     const totalSuccess = steps.filter(step => step.status === "completed").length;
     const totalFailed = steps.filter(step => step.status === "failed").length;
-    
+
 
     const totalTests = steps.length;
     const successRate = totalTests > 0 ? (totalSuccess / totalTests) * 100 : 0;
@@ -69,15 +78,24 @@ const TestReports = ({ reports, idReports, progress, selectedCases }: any) => {
                     const isFailed = finalStatus === "failed";
                     const isCompleted = progressValue === 100;
 
+                    const closeBroser = report?.data.find((step: any) => step.action === 'Closing browser')
+
                     return (
                         <div key={reportId} className="space-y-2">
                             <Card
-                                className={`cursor-pointer transition-shadow hover:shadow-lg border-2 border-l-4 ${
-                                    isFailed ? "border-red-500" : "border-green-500"
-                                }`}
+                                className={`relative cursor-pointer transition-shadow hover:shadow-lg border-2 border-l-4 ${isFailed ? "border-red-500" : "border-green-500"
+                                    }`}
                                 onClick={() => toggleReport(reportId)}
                             >
-                                <CardHeader className="flex flex-col items-center gap-2 justify-between p-4">
+                                {closeBroser && (
+                                    <div className="absolute top-2 right-2 flex items-center gap-1 rounded-md shadow-sm ">
+                                        <Clock className="w-4 h-4 mr-1" />
+                                        <span className="text-xs font-medium">
+                                          {formatExecutionTime(Number(closeBroser.executionTime))}
+                                        </span>
+                                    </div>
+                                )}
+                                <CardHeader className="flex flex-col items-center gap-2 justify-between p-4 mt-4">
                                     <div className="flex justify-between w-full">
                                         <CardTitle className="text-base font-semibold tracking-wider">
                                             {report.testCaseName}
