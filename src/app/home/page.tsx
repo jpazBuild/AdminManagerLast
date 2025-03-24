@@ -25,7 +25,7 @@ const Home = () => {
     const [selectedTag, setSelectedTag] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [maxBrowsers, setMaxBrowsers] = useState<number>(1)
-    const [isHeadless, setIsHeadless] = useState<boolean>(false)
+    const [isHeadless, setIsHeadless] = useState<boolean>(true)
     const [isDropdownOpenTC, setIsDropdownOpenTC] = useState(true);
     const [testData, setTestData] = useState<{ [fieldName: string]: string }>({});
     const [responseData, setResponseData] = useState<TestCase[]>([]);
@@ -163,7 +163,7 @@ const Home = () => {
     };
 
     const handleHeadlessChange = (value: boolean) => {
-        setIsHeadless(value);
+        setIsHeadless(true);
     };
 
     const onDataChangeRead = (data: any) => {
@@ -172,7 +172,6 @@ const Home = () => {
     const selectAllChecked = responseData.length > 0 && selectedCases.length === responseData.length;
 
     const isSearchButtonDisabled = !(selectedTag || selectedModule);
-
 
     return (
         <DashboardHeader onToggleDarkMode={handleToggleDarkMode}>
@@ -240,8 +239,23 @@ const Home = () => {
                             Clear Filters
                         </Button>
                         <div className="flex flex-wrap gap-2">
+                        {selectedTag && (
+                                <div className="bg-[#021d3d]/20 text-[#021d3d]/80 px-2 py-1 rounded-full text-sm flex items-center gap-2">
+                                    <span>{selectedTag}</span>
+                                    <button
+                                        onClick={() => {
+                                            setSelectedTag("")
+                                        }
+                                        }
+                                        className="text-[#021d3d]/80 hover:text-[#021d3d]/80"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            )}
                             {selectedModule && (
                                 <div className="bg-[#021d3d]/10 text-[#021d3d]/80 px-2 py-1 rounded-full text-sm flex items-center gap-1">
+                                    <span>{selectedModule}</span>
                                     <button
                                         onClick={() => {
                                             setSelectedModule("")
@@ -256,7 +270,7 @@ const Home = () => {
 
                             {selectedSubmodule && (
                                 <div className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm flex items-center gap-1">
-                                    {/* <span>Submodule: {getFilterName('submodule', selectedSubmodule)}</span> */}
+                                    <span>{selectedSubmodule}</span>
                                     <button
                                         onClick={() => {
                                             setSelectedSubmodule("");
@@ -298,10 +312,10 @@ const Home = () => {
                                                     : "bg-[#1f2937] border-gray-600 text-white focus:ring-white hover:bg-gray-700 "}`}
                                             />
                                             <label htmlFor="select-all" className="cursor-pointer">
-                                                Select All ({selectedCases.length}/{testCases.length})
+                                                Select All
                                             </label>
                                         </div>
-                                        <TestCaseList testCases={responseData} darkMode={darkMode} selectedCases={selectedCases} toggleSelect={toggleSelect} onDataChange={onDataChangeRead} />
+                                        <TestCaseList testCases={responseData} selectedCases={selectedCases} toggleSelect={toggleSelect} onDataChange={onDataChangeRead}/>
                                         <TestSettings
                                             onBrowserLimitChange={handleBrowserLimitChange}
                                             onHeadlessChange={handleHeadlessChange}

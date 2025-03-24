@@ -109,9 +109,10 @@ const ReportUI = ({ report, key, darkMode }: any) => {
                                     )}
 
                                     {latestStep.action && (
-                                        <p className="text-sm">
-                                            <strong>Action:</strong> <p className="break-words">{latestStep.action}</p>
-                                        </p>
+                                       <p className="text-sm">
+                                          <strong>Action:</strong> <span className="break-words">{latestStep.action}</span>
+                                       </p>
+                                   
                                     )}
 
                                     {latestStep.error && (
