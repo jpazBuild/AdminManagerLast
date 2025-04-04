@@ -26,15 +26,16 @@ export const useTestExecution = () => {
             const testCase = pendingTests.shift();
             const testId = await testCase?.testCaseId;
             setIdReports(prev => [...prev, testId]);
-            activeTests++;            
+            activeTests++;
+
             try {
-                testCase.contextGeneral.data.url = await testData.data[testCase.testCaseName].urlSite                
-                const response = await fetch(`${URL_API_RUNNER}/execute-test`, {
+                testCase.contextGeneral.data.url = await testData.data[testCase.testCaseId].urlSite;             
+                const response = await fetch(`${URL_API_RUNNER}/executeTest`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         isHeadless: isHeadless,
-                        testData: testData?.data[testCase.testCaseName],
+                        testData: testData?.data[testCase.testCaseId],
                         dataScenario: {
                             contextGeneral: testCase.contextGeneral,
                             jsonSteps: testCase.stepsData,
@@ -44,11 +45,11 @@ export const useTestExecution = () => {
                 const reader = response.body?.getReader();
                 const decoder = new TextDecoder();
                 let buffer = "";
-                let stepCount = testCase.stepsData.length + 2;
+                const stepCount = testCase.stepsData.length + 2;
                 let completedSteps = 0;
-                let testResults: any[] = [];
+                const testResults: { finalStatus?: string }[] = [];
 
-                let steps: any[] = []
+                const steps: { indexStep: number; jsonData: any }[] = []
                 while (reader) {
                     const { done, value } = await reader.read();
                     if (done) break;
@@ -71,12 +72,10 @@ export const useTestExecution = () => {
                         }
                         return jsonData
                     })
-                    let counter=0;
                     for (const event of events) {
                         if (event.startsWith("data: ")) {
                             const jsonData = JSON.parse(event.slice(6));
                             testResults.push(jsonData);
-                            counter++
                             if (jsonData.status?.toLowerCase() === "completed") {
                                 completedSteps++;
                             }
@@ -144,7 +143,7 @@ export const useTestExecution = () => {
             activeTests--;
 
             if (pendingTests.length > 0) {
-                runNextTest();
+                await runNextTest();
             }
         };
 
@@ -166,6 +165,3 @@ export const useTestExecution = () => {
         executeTests,
     };
 };
-
-
-
