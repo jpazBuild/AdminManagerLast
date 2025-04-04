@@ -34,6 +34,13 @@ export const DashboardHeader = ({ children, onToggleDarkMode }: any) => {
                         </button>
                     </div>
                     <Image src={Logo} alt="Blossom Logo" className="h-10 w-auto bg-white/90 rounded-md p-2 shadow-md" />
+                    
+                    {mobileMenuOpen ? "" : <Link
+                        href="/home/create"
+                        className="inline-block px-4 py-2 rounded-xl bg-[#223853] text-white font-medium shadow-sm transition hover:bg-[#1a2f44] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#223853]"
+                    >
+                        Create
+                    </Link>}                    
                     <h1 className="text-xl hidden sm:block font-bold">Admin Manager</h1>
                     {/* <button
                         onClick={toggleDarkMode}
@@ -60,14 +67,20 @@ export const DashboardHeader = ({ children, onToggleDarkMode }: any) => {
                             >
                                 ✕
                             </button>
-                            <Link href="/" className={`flex items-center gap-2 text-lg transition-all ${darkMode ? "hover:text-white/90" : "hover:text-[#021d3d]"
+                            <Link
+                                href="/home/create"
+                                className="inline-block px-4 py-2 rounded-xl bg-[#223853] text-white font-medium shadow-sm transition hover:bg-[#1a2f44] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#223853]"
+                            >
+                                Create
+                            </Link>
+                            {/* <Link href="/" className={`flex items-center gap-2 text-lg transition-all ${darkMode ? "hover:text-white/90" : "hover:text-[#021d3d]"
                                 }`}>
                                 <AiOutlineDashboard className="text-2xl" /> Dashboard
                             </Link>
                             <Link href="/reports" className={`flex items-center gap-2 text-lg transition-all ${darkMode ? "hover:text-white/95" : "hover:text-[#021d3d]"
                                 }`}>
                                 <AiOutlineFileText className="text-2xl" /> Reports
-                            </Link>
+                            </Link> */}
                         </nav>
                     </div>
                 )}

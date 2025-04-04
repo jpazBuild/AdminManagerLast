@@ -1,9 +1,7 @@
 "use client"
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "../../components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Checkbox } from "../../components/ui/checkbox";
-import JsonViewer from './components/JsonViewer';
 import { Submodule, Tag, TestCase, Module } from "./types";
 import { DashboardHeader } from "../Layouts/main";
 import TestSettings from "../components/TestSettings";
@@ -12,13 +10,15 @@ import TestReports from "../components/TestReports";
 import TestCaseList from "../components/TestCaseList";
 import { FiPlay } from "react-icons/fi";
 import { useTestExecution } from "../hooks/useTestExecution";
+import NoData from "../components/NoData";
+import { toast } from "sonner";
+import { SelectField } from "../components/SelectField";
 
 const Home = () => {
     const [darkMode, setDarkMode] = useState(false);
     const [modules, setModules] = useState<Module[]>([]);
     const [submodules, setSubmodules] = useState<Submodule[]>([]);
     const [tags, setTags] = useState<Tag[]>([]);
-    const [testCases] = useState<TestCase[]>([]);
     const [selectedCases, setSelectedCases] = useState<string[]>([]);
     const [selectedModule, setSelectedModule] = useState<string>("");
     const [selectedSubmodule, setSelectedSubmodule] = useState<string>("");
@@ -27,9 +27,18 @@ const Home = () => {
     const [maxBrowsers, setMaxBrowsers] = useState<number>(1)
     const [isHeadless, setIsHeadless] = useState<boolean>(true)
     const [isDropdownOpenTC, setIsDropdownOpenTC] = useState(true);
-    const [testData, setTestData] = useState<{ [fieldName: string]: string }>({});
+    const [testData, setTestData] = useState<any>();
     const [responseData, setResponseData] = useState<TestCase[]>([]);
+    const [selectedCreatedBy, setSelectedCreatedBy] = useState("");
+    const [availableCreators, setAvailableCreators] = useState<string[]>([]);
+    const [testCasesUpdated, setTestCasesUpdated] = useState<TestCase[]>([]);
 
+    useEffect(() => {
+        if (Array.isArray(responseData)) {
+            const uniqueCreators = Array.from(new Set(responseData.map((tc: any) => tc.createdBy).filter(Boolean)));
+            setAvailableCreators(uniqueCreators);
+        }
+    }, [responseData]);
     const handleToggleDarkMode = (darkMode: boolean) => {
         setDarkMode(darkMode);
     };
@@ -141,8 +150,10 @@ const Home = () => {
 
             setResponseData(data.response);
 
+
         } catch (error) {
             console.error('Error al obtener los datos', error);
+            toast.error('Error al obtener los datos')
             setResponseData([]);
         } finally {
             setIsLoading(false);
@@ -167,53 +178,64 @@ const Home = () => {
     };
 
     const onDataChangeRead = (data: any) => {
+        console.log("🚀 ~ onDataChangeRead ~ data:", data)
         setTestData(data)
     }
+
+    const onTestCasesDataChange = (data: any) => {
+        setTestCasesUpdated(data)
+    }
+
+    const filteredTestCases = useMemo(() => {
+        if (!selectedCreatedBy || selectedCreatedBy === "All") return responseData;
+        return responseData.filter((tc: TestCase) => tc?.createdBy?.toLowerCase() === selectedCreatedBy.toLowerCase());
+    }, [responseData, selectedCreatedBy]);
+
     const selectAllChecked = responseData.length > 0 && selectedCases.length === responseData.length;
 
     const isSearchButtonDisabled = !(selectedTag || selectedModule);
 
+    const selectedTests: any = testCasesUpdated.filter((tc: any) =>
+        selectedCases.includes(tc.testCaseId)
+    );
+
+    console.log("testData ", loading);
+    
     return (
         <DashboardHeader onToggleDarkMode={handleToggleDarkMode}>
-            <div className="w-full p-4 flex flex-col gap-4 justify-center mx-auto text-[#051d3d]">
+            <div className="w-full p-4 flex flex-col gap-4 justify-center mx-auto text-primary">
                 <div className="flex flex-wrap gap-4 mb-4 mt-2">
                     <h2 className="font-semibold tracking-wide text-xl">Filters Test Cases</h2>
-                    <Select value={selectedTag} onValueChange={setSelectedTag}>
-                        <SelectTrigger className="min-w-[200px]">
-                            <SelectValue placeholder="Tag" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {tags.map((tag: any, index) => (
-                                <SelectItem key={index} value={tag}>
-                                    {tag}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Select value={selectedModule} onValueChange={setSelectedModule}>
-                        <SelectTrigger className="min-w-[200px]">
-                            <SelectValue placeholder="Module" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {modules.map((mod: any, index) => (
-                                <SelectItem key={index} value={mod}>
-                                    {mod}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Select value={selectedSubmodule} disabled={!selectedModule} onValueChange={setSelectedSubmodule}>
-                        <SelectTrigger className="min-w-[200px]">
-                            <SelectValue placeholder="Submodule" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {submodules.map((sub: any, index) => (
-                                <SelectItem key={index} value={sub}>
-                                    {sub}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <SelectField
+                    value={selectedTag}
+                    onChange={setSelectedTag}
+                    options={tags.map((tag: Tag) => ({
+                        label: String(tag),
+                        value: String(tag),
+                    }))}
+                    placeholder="Tag"
+                    />
+                    <SelectField
+                    value={selectedModule}
+                    onChange={setSelectedModule}
+                    options={modules.map((mod: Tag) => ({
+                        label: String(mod),
+                        value: String(mod),
+                    }))}
+                    placeholder="Module"
+                    />
+
+                    <SelectField
+                    value={selectedSubmodule}
+                    onChange={setSelectedSubmodule}
+                    options={submodules.map((sub: Tag) => ({
+                        label: String(sub),
+                        value: String(sub),
+                    }))}
+                    placeholder="Submodule"
+                    disabled={!selectedModule}
+                    />
+
                     <div className="flex lg:flex-row flex-wrap items-center gap-2">
                         <Button
                             onClick={handleSearch}
@@ -239,29 +261,29 @@ const Home = () => {
                             Clear Filters
                         </Button>
                         <div className="flex flex-wrap gap-2">
-                        {selectedTag && (
-                                <div className="bg-[#021d3d]/20 text-[#021d3d]/80 px-2 py-1 rounded-full text-sm flex items-center gap-2">
+                            {selectedTag && (
+                                <div className="bg-primary/85 text-white/90 px-2 py-1 rounded-full text-sm flex items-center gap-2">
                                     <span>{selectedTag}</span>
                                     <button
                                         onClick={() => {
                                             setSelectedTag("")
                                         }
                                         }
-                                        className="text-[#021d3d]/80 hover:text-[#021d3d]/80"
+                                        className="text-white/90 hover:text-white"
                                     >
                                         ×
                                     </button>
                                 </div>
                             )}
                             {selectedModule && (
-                                <div className="bg-[#021d3d]/10 text-[#021d3d]/80 px-2 py-1 rounded-full text-sm flex items-center gap-1">
+                                <div className="bg-primary/65 text-white px-2 py-1 rounded-full text-sm flex items-center gap-1">
                                     <span>{selectedModule}</span>
                                     <button
                                         onClick={() => {
                                             setSelectedModule("")
                                         }
                                         }
-                                        className="text-[#021d3d]/60 hover:text-[#021d3d]/80"
+                                        className="text-white/90 hover:text-white"
                                     >
                                         ×
                                     </button>
@@ -269,30 +291,44 @@ const Home = () => {
                             )}
 
                             {selectedSubmodule && (
-                                <div className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm flex items-center gap-1">
+                                <div className="bg-primary/50 text-white px-2 py-1 rounded-full text-sm flex items-center gap-1">
                                     <span>{selectedSubmodule}</span>
                                     <button
                                         onClick={() => {
                                             setSelectedSubmodule("");
                                         }}
-                                        className="text-green-600 hover:text-green-800"
+                                        className="text-white/90 hover:text-white"
                                     >
                                         ×
                                     </button>
                                 </div>
                             )}
                         </div>
+                        {availableCreators.length > 0 && (
+                            <SelectField 
+                            value={selectedCreatedBy}
+                            onChange={setSelectedCreatedBy}
+                            options={[
+                                { label: "All", value: "All" },
+                                ...availableCreators.map(creator => ({ label: creator, value: creator }))
+                              ]}
+                            placeholder="Created By"
+                        
+                            />
+                        )}
+                        
                     </div>
                 </div>
                 <div className="border p-4 rounded-lg">
-                    {(Array.isArray(responseData) && responseData.length > 0) ? (
+                    {(responseData.length > 0) ? (
                         <>
                             <div className="flex flex-col gap-2 mb-2">
                                 <button
                                     onClick={toggleDropdown}
                                     className="flex w-full items-center justify-between shadow-md p-2 font-semibold tracking-wide rounded-md"
                                 >
-                                    <span className="text-xl">Test cases </span>
+                                    <span className="text-xl font-semibold tracking-wide">Test cases </span>
+                                    <span>{filteredTestCases.length}</span>
                                     {isDropdownOpenTC ? (
                                         <FaChevronUp className="" />
                                     ) : (
@@ -308,14 +344,16 @@ const Home = () => {
                                                 checked={selectAllChecked}
                                                 onCheckedChange={toggleSelectAll}
                                                 className={`w-5 h-5 rounded-md transition-all duration-200 ${darkMode
-                                                    ? "bg-white border-gray-300 text-[#021d3d] focus:ring-[#021d3d] hover:bg-gray-100"
-                                                    : "bg-[#1f2937] border-gray-600 text-white focus:ring-white hover:bg-gray-700 "}`}
+                                                    ? "bg-white border-gray-300 text-primary focus:ring-primary hover:bg-gray-100"
+                                                    : "bg-primary border-gray-600 text-white focus:ring-white hover:bg-primary/90 "}`}
                                             />
                                             <label htmlFor="select-all" className="cursor-pointer">
                                                 Select All
                                             </label>
                                         </div>
-                                        <TestCaseList testCases={responseData} selectedCases={selectedCases} toggleSelect={toggleSelect} onDataChange={onDataChangeRead}/>
+                                        <TestCaseList testCases={filteredTestCases} selectedCases={selectedCases} toggleSelect={toggleSelect} onDataChange={onDataChangeRead}
+                                            onTestCasesDataChange={onTestCasesDataChange}
+                                        />
                                         <TestSettings
                                             onBrowserLimitChange={handleBrowserLimitChange}
                                             onHeadlessChange={handleHeadlessChange}
@@ -323,33 +361,32 @@ const Home = () => {
                                     </>
                                 )}
                             </div>
+                            <div className="flex gap-2">
                             <button
-                                onClick={() => {                                    
-                                    const selectedTests: any = responseData.filter((tc: any) =>
-                                        selectedCases.includes(tc.testCaseId)
-                                    );
+                                onClick={() => {
                                     executeTests(selectedTests, testData, maxBrowsers, isHeadless);
                                 }}
-                                disabled={selectedCases.length === 0 || isLoading}
+                                disabled={selectedCases.length === 0 || loading}
                                 className={`px-4 py-2 font-semibold tracking-wide mt-4 rounded-lg transition-all duration-300 ${darkMode
                                     ? "bg-white text-[#021d3d] hover:bg-gray-200"
                                     : "bg-[#021d3d] text-white hover:bg-[rgb(2,29,61)]"}
-                                        ${isLoading || selectedCases.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+                                        ${loading || selectedCases.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
                             >
                                 {isLoading ? "Executing..." : (<>
                                     <span className="flex items-center gap-2"><FiPlay /> Run Tests</span>
                                 </>)}
                             </button>
-                            <TestReports reports={reports} idReports={idReports} progress={progress} selectedCases={selectedCases} darkMode={darkMode} />
+                            </div>
+                            <TestReports reports={reports} idReports={idReports} progress={progress} selectedCases={selectedCases} selectedTest={selectedTests} darkMode={darkMode} />
                         </>
                     ) : (
                         <>
-                            <h3>No data</h3>
+                            <NoData />
                         </>
                     )}
                 </div>
             </div>
-        </DashboardHeader>
+        </DashboardHeader >
     );
 };
 
