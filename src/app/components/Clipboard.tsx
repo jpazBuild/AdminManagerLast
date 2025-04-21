@@ -1,6 +1,6 @@
 import { FiClipboard } from "react-icons/fi"
 
-const ClipboardComponent = ({text,size=18,className="bg-gray-100 rounded-md border border-gray-300 hover:bg-gray-200 focus:ring-indigo-500"}:any) => {
+const ClipboardComponent = ({text,size=18,className="bg-gray-100 rounded-md border border-gray-300 hover:bg-gray-200 focus:ring-primary"}:any) => {
     return (
         <>
             <button

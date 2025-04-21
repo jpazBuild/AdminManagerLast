@@ -1,6 +1,5 @@
 "use client"
 import * as React from "react"
-import { TrendingUp } from "lucide-react"
 import { Label, Pie, PieChart } from "recharts"
 import {
   Card,
@@ -35,7 +34,7 @@ export function ExecutionSummary({ totalSuccess, totalFailed, successRate }:any)
 
   return (
     totalTests > 0 && (
-      <Card className="flex flex-col">
+      <Card className="flex flex-col text-primary">
         <CardHeader className="items-center pb-0">
           <CardTitle>Summary</CardTitle>
         </CardHeader>
@@ -44,7 +43,7 @@ export function ExecutionSummary({ totalSuccess, totalFailed, successRate }:any)
             config={chartConfig}
             className="mx-auto aspect-square max-h-[250px]"
           >
-            <PieChart>
+            <PieChart className="text-primary">
               <ChartTooltip
                 cursor={false}
                 content={<ChartTooltipContent hideLabel />}
@@ -65,18 +64,19 @@ export function ExecutionSummary({ totalSuccess, totalFailed, successRate }:any)
                           y={viewBox.cy}
                           textAnchor="middle"
                           dominantBaseline="middle"
+                          className="text-primary"
                         >
                           <tspan
                             x={viewBox.cx}
                             y={viewBox.cy}
-                            className="fill-foreground text-3xl font-bold"
+                            className="fill-foreground text-3xl font-bold text-primary"
                           >
                             {totalTests.toLocaleString()}
                           </tspan>
                           <tspan
                             x={viewBox.cx}
                             y={(viewBox.cy || 0) + 24}
-                            className="fill-muted-foreground"
+                            className="fill-muted-foreground text-primary"
                           >
                             Tests
                           </tspan>

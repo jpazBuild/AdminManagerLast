@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Clock } from "lucide-react";
+import { Popover, PopoverTrigger, PopoverContent } from "@radix-ui/react-popover"; // Adjust the import path if necessary
+import { FiTarget } from "react-icons/fi";
 
-const ReportUI = ({ report, key, darkMode }: any) => {
+const ReportUI = ({ data, report, key, darkMode }: any) => {
     const [error, setError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedImage, setSelectedImage] = useState<string>("");
@@ -51,45 +53,73 @@ const ReportUI = ({ report, key, darkMode }: any) => {
 
     return (
         <>
-            <div key={key} className="text-[#051d3d] w-full p-6 shadow-md rounded-lg">
+            <div key={key} className="text-primary w-full p-6 shadow-md rounded-lg">
                 <span className="mt-3 text-xl font-semibold tracking-wide">Report</span>
                 <div className="mt-4">
                     {/* <h3 className="text-xl font-medium mb-4">Steps:</h3> */}
                     <div className="flex flex-col gap-4 p-2">
                         {Object.entries(groupedSteps).map(([indexStep, steps]: any) => {
                             const latestStep = steps[steps.length - 1];
+                            const dataStep = steps.find((step: any) => step.action !== "Browser closed") &&
+                            data?.stepsData?.find((s: any) => s.indexStep === Number(indexStep));
 
                             const isStepSuccess = latestStep.status.toLowerCase() === "completed";
                             const isStepError = latestStep.status.toLowerCase() === "failed";
                             const isProcessing = latestStep.status.toLowerCase() === "processing";
                             const isSkipped = latestStep.status.toLowerCase() === "skipped";
+                            const timeInSeconds = (Number(latestStep.time) / 1000).toFixed(2);
+                            // const dataStep = data.
                             return (
                                 <div
                                     key={indexStep}
-                                    className={`relative p-4 rounded-lg shadow-md transition-all ${darkMode ? "text-[#021d3d]" : ""
+                                    className={`relative p-4 flex flex-col rounded-lg shadow-md transition-all ${darkMode ? "text-primary" : ""
                                         } ${isStepSuccess
                                             ? "border-green-500 border-2 border-l-4"
                                             : isStepError
                                                 ? "border-red-500 border-2 border-l-4"
                                                 : isProcessing
                                                     ? "border-yellow-500 border-2 border-l-4"
-                                                : isSkipped 
-                                                    ? "border-blue-500 border-2 border-l-4"
-                                                    : "border-gray-300"
-                                                
+                                                    : isSkipped
+                                                        ? "border-blue-500 border-2 border-l-4"
+                                                        : "border-gray-300"
+
                                         }`}
                                 >
-                                    <div className="absolute top-0 left-0 bg-blue-500 text-white px-3 py-1 text-sm font-semibold rounded-tl-xl rounded-br-full shadow-md">
+                                    <div className="absolute top-0 left-0 bg-primary text-white px-3 py-1 text-sm font-semibold rounded-tl-xl rounded-br-full shadow-md">
                                         Step {Number(indexStep) + 1}
                                     </div>
 
-                                    <div className="absolute top-2 right-2 flex items-center text-gray-600 text-sm">
+                                    {dataStep?.data?.selectors?.length > 0 && (
+                                        <div className="self-center">
+                                            <Popover>
+                                                <PopoverTrigger asChild>
+                                                    <button className="bg-primary text-white p-2 rounded-full shadow-md hover:bg-primary/90 transition">
+                                                        <FiTarget size={18} />
+                                                    </button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="bg-white text-primary p-3 rounded-md shadow-lg min-w-[200px] max-w-[300px]">
+                                                    <h4 className="font-semibold text-sm mb-2">Selectors</h4>
+                                                    <ul className="text-sm space-y-1">
+                                                        {dataStep.data.selectors.map((selector: any, idx: number) => (
+                                                            <li key={idx} className="border-b py-1">
+                                                                <div className="text-xs text-primary break-words text-muted-foreground">
+                                                                    <strong>{selector.type}</strong>: {selector.locator}
+                                                                </div>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </PopoverContent>
+                                            </Popover>
+                                        </div>
+                                    )}
+
+                                    <div className="absolute top-2 right-2 flex items-center text-primary/90 text-sm">
                                         {isProcessing ? (
-                                            <div className="w-4 h-4 border-2 border-gray-300 border-t-[#051d3d] rounded-full animate-spin" style={{ borderTopColor: "#051d3d" }}></div>
+                                            <div className="w-5 h-5 border-4 border-gray-300 border-t-primary rounded-full animate-spin" style={{ borderTopColor: "#223853" }}></div>
                                         ) : (
                                             <>
                                                 <Clock className="w-4 h-4 mr-1" />
-                                                {latestStep.time} ms
+                                                {timeInSeconds} s
                                             </>
                                         )}
                                     </div>
@@ -98,25 +128,25 @@ const ReportUI = ({ report, key, darkMode }: any) => {
                                         {latestStep.action || latestStep.step}
                                     </p>
 
-                                    <p className="text-sm mt-2">
+                                    <p className="text-sm mt-2 break-words">
                                         <strong>Status:</strong> {latestStep.status}
                                     </p>
 
                                     {latestStep.result && (
-                                        <p className="text-sm">
+                                        <p className="text-sm break-words">
                                             <strong>Result:</strong> {latestStep.result}
                                         </p>
                                     )}
 
                                     {latestStep.action && (
-                                       <p className="text-sm">
-                                          <strong>Action:</strong> <span className="break-words">{latestStep.action}</span>
-                                       </p>
-                                   
+                                        <p className="text-sm">
+                                            <strong>Action:</strong> <span className="break-words">{latestStep.action}</span>
+                                        </p>
+
                                     )}
 
                                     {latestStep.error && (
-                                        <p className="text-sm text-red-500">
+                                        <p className="text-sm text-red-500 break-words">
                                             <strong>Error:</strong> {latestStep.error}
                                         </p>
                                     )}
@@ -136,8 +166,12 @@ const ReportUI = ({ report, key, darkMode }: any) => {
                                                     alt="Step screenshot"
                                                     width={256}
                                                     height={256}
-                                                    className="rounded-lg object-cover"
+                                                    className="rounded-lg object-cover cursor-pointer"
+                                                    onClick={() =>
+                                                        handleImageClick(`data:image/png;base64,${latestStep.screenshot}`)
+                                                    }
                                                 />
+
                                             </div>
                                         </div>
                                     )}
@@ -150,7 +184,7 @@ const ReportUI = ({ report, key, darkMode }: any) => {
 
             {isModalOpen && (
                 <div
-                    className="fixed inset-0 bg-[#021d3d] bg-opacity-75 flex justify-center items-center z-50"
+                    className="fixed inset-0 bg-primary bg-opacity-75 flex justify-center items-center z-50"
                     onClick={handleCloseModal}
                 >
                     <div
@@ -160,7 +194,7 @@ const ReportUI = ({ report, key, darkMode }: any) => {
                     >
                         <button
                             onClick={handleCloseModal}
-                            className="absolute top-2 right-2 text-gray-600 text-3xl font-bold"
+                            className="absolute top-2 right-2 text-primary text-3xl font-bold"
                         >
                             ×
                         </button>
@@ -170,6 +204,7 @@ const ReportUI = ({ report, key, darkMode }: any) => {
                             width={800}
                             height={800}
                             className="rounded-md"
+                            priority
                         />
                     </div>
                 </div>

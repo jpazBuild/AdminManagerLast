@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Progress } from "../../components/ui/progress";
-import { FaChevronDown, FaChevronUp, FaClock } from "react-icons/fa";
+import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 import { ExecutionSummary } from "./ExecutionSummary";
 import ReportUI from "./Report";
 import { Clock } from "lucide-react";
 
-const TestReports = ({ reports, idReports, progress, selectedCases }: any) => {
+const TestReports = ({ reports, idReports, progress, selectedCases, selectedTest }: any) => {
     const [expandedReports, setExpandedReports] = useState<Record<string, boolean>>({});
 
     const toggleReport = (reportId: string) => {
@@ -17,36 +17,38 @@ const TestReports = ({ reports, idReports, progress, selectedCases }: any) => {
         }));
     };
 
-    const reportSummary = reports.reduce((acc: Record<number, { success: number; failed: number }>, report: any) => {
-        report.data.forEach((item: any) => {
-            const indexStep = item.indexStep;
-            if (!acc[indexStep]) {
-                acc[indexStep] = { success: 0, failed: 0 };
-            }
+    interface StepEvent {
+        indexStep: number;
+        status?: string;
+        finalStatus?: string;
+        [key: string]: any;
+    }
 
-            if (item.status === "completed" || item.finalStatus === "sucess") {
-                acc[indexStep].success += 1;
-            } else if (item.status === "failed" || item.finalStatus === "failed") {
-                acc[indexStep].failed += 1;
-            }
+    // Asociar pasos con reportId para poder filtrarlos correctamente
+    const steps: { indexStep: number; ev: StepEvent; reportId: string }[] = [];
+
+    // Construir steps con reportId asociado
+    reports.forEach((report: any) => {
+        report.data.forEach((ev: StepEvent) => {
+            steps.push({ indexStep: ev.indexStep, ev, reportId: report.id });
         });
-        return acc;
-    }, {});
+    });
 
-    let steps: any[] = [];
+    const finishtest: string[] = [];
 
-    reports[0]?.data.map((ev: any) => {
-        const existingIndex = steps.findIndex(step => step.indexStep === ev.indexStep);
+    // Obtener últimos pasos por reporte y decidir estado final
+    reports.forEach((report: any) => {
+        if (progress[report.id] === 100) {
+            const stepsOfReport = steps.filter(step => step.reportId === report.id);
+            const lastStep = stepsOfReport.at(-1);
 
-        if (!ev.finalStatus) {
-            if (existingIndex !== -1) {
-                steps[existingIndex] = { indexStep: ev.indexStep, ev };
-            } else {
-                steps.push({ indexStep: ev.indexStep, ev });
+            if (lastStep) {
+                const status = (lastStep.ev.status || lastStep.ev.finalStatus) === "failed" ? "failed" : "completed";
+                finishtest.push(status);
             }
         }
-        return ev
-    })
+    });
+
 
     const formatExecutionTime = (ms: number) => {
         const minutes = Math.floor(ms / 60000);
@@ -56,53 +58,60 @@ const TestReports = ({ reports, idReports, progress, selectedCases }: any) => {
             : `${seconds} sec`;
     };
 
-    const totalSuccess = steps.filter(step => step.status === "completed").length;
-    const totalFailed = steps.filter(step => step.status === "failed").length;
-
-
-    const totalTests = steps.length;
+    const totalSuccess = finishtest.filter(status => status === "completed").length;
+    const totalFailed = finishtest.filter(status => status === "failed").length;
+    const totalTests = totalSuccess + totalFailed;
     const successRate = totalTests > 0 ? (totalSuccess / totalTests) * 100 : 0;
 
+
+                
     return (
         <div className="space-y-6 mt-6">
             {totalTests > 0 && (
                 <ExecutionSummary totalSuccess={totalSuccess} totalFailed={totalFailed} successRate={successRate} />
             )}
-
             <div className="space-y-4">
                 {reports.map((report: any, index: number) => {
                     const reportId = idReports[index];
                     const isExpanded = expandedReports[reportId] ?? false;
                     const progressValue = progress[reportId] || 0;
-                    const finalStatus = report.data.length > 0 ? report.data[report.data.length - 1].finalStatus : "in_progress";
+                    const stepsOfReport = steps.filter(s => s.reportId === reportId);
+                    const finalStatus = stepsOfReport.at(-1)?.ev?.finalStatus || "in_progress";
                     const isFailed = finalStatus === "failed";
                     const isCompleted = progressValue === 100;
 
-                    const closeBroser = report?.data.find((step: any) => step.action === 'Closing browser')
-
+                    const closeBrowser = report?.data.find((step: any) => step.action === 'Closing browser');
+                    const selectedtest = selectedTest.find((test:any)=>test.testCaseId === reportId)
                     return (
                         <div key={reportId} className="space-y-2">
                             <Card
-                                className={`relative cursor-pointer transition-shadow hover:shadow-lg border-2 border-l-4 ${isFailed ? "border-red-500" : "border-green-500"
+                                className={`relative cursor-pointer transition-shadow hover:shadow-lg border-2 border-l-4 
+                                    ${isFailed
+                                        ? "border-red-500"
+                                        : progressValue < 100
+                                            ? "border-yellow-500"
+                                            : "border-green-500"
                                     }`}
                                 onClick={() => toggleReport(reportId)}
                             >
-                                {closeBroser && (
+                                <span className="bg-primary rounded-br-lg text-white absolute top-0 left-0 p-1 text-[12px]">{report.id}</span>
+
+                                {closeBrowser && (
                                     <div className="absolute top-2 right-2 flex items-center gap-1 rounded-md shadow-sm ">
                                         <Clock className="w-4 h-4 mr-1" />
                                         <span className="text-xs font-medium">
-                                          {formatExecutionTime(Number(closeBroser.executionTime))}
+                                            {formatExecutionTime(Number(closeBrowser.executionTime))}
                                         </span>
                                     </div>
                                 )}
-                                <CardHeader className="flex flex-col items-center gap-2 justify-between p-4 mt-4">
-                                    <div className="flex justify-between w-full">
+                                <CardHeader className="relative flex flex-col items-center gap-2 justify-between p-4 mt-4">
+                                    <div className=" flex justify-between w-full">
                                         <CardTitle className="text-base font-semibold tracking-wider">
                                             {report.testCaseName}
                                         </CardTitle>
 
-                                        <div className="flex items-center gap-2">
-                                            <Badge variant={isCompleted ? "secondary" : "default"}>{progressValue}%</Badge>
+                                        <div className="flex items-center gap-2 ">
+                                            <Badge className="text-white" variant={isCompleted ? "default" : "default"}>{progressValue}%</Badge>
                                             {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
                                         </div>
                                     </div>
@@ -121,16 +130,18 @@ const TestReports = ({ reports, idReports, progress, selectedCases }: any) => {
 
                             {isExpanded && (
                                 <div className="p-2">
-                                    <ReportUI report={report} className="rounded-lg border p-4 bg-muted/50" />
+                                    <ReportUI data={selectedtest} report={report} className="rounded-lg border p-4 bg-muted/50" />
                                 </div>
                             )}
                         </div>
                     );
                 })}
+                
             </div>
         </div>
     );
 };
+
 
 const ProgressBar = ({ progressValue, finalStatus }: { progressValue: number; finalStatus: string }) => {
     const isCompleted = progressValue === 100;
