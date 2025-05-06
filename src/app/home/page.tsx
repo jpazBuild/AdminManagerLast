@@ -178,6 +178,7 @@ const Home = () => {
     };
 
     const onDataChangeRead = (data: any) => {
+        console.log("🚀 ~ onDataChangeRead ~ data:", data)
         setTestData(data)
     }
 
@@ -200,8 +201,6 @@ const Home = () => {
 
     return (
         <DashboardHeader onToggleDarkMode={handleToggleDarkMode}>
-          
-
             <div className="w-full p-4 flex flex-col gap-4 justify-center mx-auto text-primary">
                 <div className="flex flex-wrap gap-4 mb-4 mt-2">
                     <h2 className="font-semibold tracking-wide text-xl">Filters Test Cases</h2>
@@ -315,7 +314,6 @@ const Home = () => {
 
                             />
                         )}
-
                     </div>
                 </div>
                 <div className="border p-4 rounded-lg">

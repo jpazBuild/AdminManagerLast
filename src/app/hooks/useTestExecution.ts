@@ -133,6 +133,7 @@ export const useTestExecution = () => {
                 });
 
             } catch (error: any) {
+                console.log("🚀 ~ runNextTest ~ error:", error)
                 setError(`Error ejecutando prueba: ${error.message}`);
                 setProgress(prev => ({
                     ...prev,

@@ -80,6 +80,7 @@ const JSONBox = ({
             ...updatedData,
             ...updatedData?.data,
         };
+
         const remainingFields = {
             ...flattenedData,
             ...flattenedData.data,
@@ -94,12 +95,14 @@ const JSONBox = ({
         delete remainingFields.context;
         delete remainingFields.conditionalElement;
         setRemainingFields(remainingFields);
+
         delete flattenedData?.data;
         delete flattenedData?.indexStep;
         if (value.action === "navigate") {
             setUpdatedData(undefined)
         } else {
             setUpdatedData(flattenedData)
+
         }
         if (flattenedData?.coordinates && Object.keys(flattenedData?.coordinates)?.length > 0) {
             setCoordinates(flattenedData?.coordinates);
@@ -112,16 +115,19 @@ const JSONBox = ({
             [idx]: !prev[idx],
         }));
     };
+
     const toggleSelectorsExpand = () => setIsSelectorsExpanded(!isSelectorsExpanded);
     const toggleAttributesExpand = () => setIsAttributesExpanded(!isAttributesExpanded);
     const toggleContextExpand = () => setIsContextExpanded(!isContextExpanded);
     const toggleContextGeneralExpand = () => setIsContextGeneralExpanded(!isContextGeneralExpanded);
     const toggleCoordinatesExpand = () => setIsCoordinatesExpanded(!isCoordinatesExpanded);
+
     const toggleConditionalAssertExpand = () => setIsConditionalAssertExpanded(!isConditionalAssertExpanded);
     const toggleSelectorsConditionalAssertExpand = () => setIsSelectorConditionalAssertExpanded(!isSelectorConditionalAssertExpanded);
     const toggleAttributesConditionalAssertExpand = () => setIsAttributesConditionalAssertExpanded(!isAttributesConditionalAssertExpanded);
     
     const renderSelectors = (selectors: any[], onChange?: (updated: any[]) => void) => {
+
         return selectors?.map((selector, idx) => {
             const handleChange = (newValue: string) => {
                 const updated = [...selectors];
@@ -145,6 +151,7 @@ const JSONBox = ({
                             onChangeHandler={(e) => handleChange(e.target.value)}
                             placeholder="locator"
                         />
+
                     </div>
                 </div>
             );
@@ -172,6 +179,7 @@ const JSONBox = ({
                     <div key={idx} className="py-2 px-3  rounded-b-md text-primary/80">
                         <div className="w-full py-2 px-3  rounded-md flex flex-col items-center gap-2">
                             <span className="self-start">Image</span>
+
                             <Image src={value} alt={key} width={500} height={500} className="max-h-32 w-auto" />
                         </div>
                     </div>
@@ -229,7 +237,6 @@ const JSONBox = ({
     const toggleDropdown = () => {
         setIsDropdownOpen(!isDropdownOpen);
     };
-
 
     return (
         <div className="mb-2 bg-white flex flex-col gap-2">
@@ -338,6 +345,7 @@ const JSONBox = ({
                                     {renderAttributes(contextGeneral, true, (updated) => {
                                         setContextGeneral(updated);
                                         onChange?.({ ...value, data: updated });
+
                                     })}
                                 </div>
                             )}
@@ -548,7 +556,6 @@ const JSONBox = ({
 
                         </div>
                     )}
-
                 </>
             )
             }
@@ -564,6 +571,7 @@ const InteractionItem = ({ data, index, onDelete, onUpdate }: InteractionItemPro
                     <div className="flex flex-col">
                         <p className="font-semibold text-center">{data.action}</p>
                         <p className="font-normal text-center">{data?.data?.text || data?.data?.attributes?.name || data?.data?.attributes?.placeholder || data?.data?.attributes?.["aria-label"]}</p>
+
                     </div>
                     <div className="absolute top-0 left-0 bg-primary text-white px-3 py-1 text-sm font-semibold rounded-tl-xl rounded-br-full shadow-md">
                         {data.indexStep}

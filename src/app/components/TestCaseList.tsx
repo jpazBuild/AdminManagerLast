@@ -135,7 +135,6 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                             },
                             createdBy: testCreatedBy,
                             order: idx
-
                         };
                     } else {
                         updated.push({
@@ -190,7 +189,6 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
 
     const handleParsedJSON = (json: any[]) => {
         if (!Array.isArray(json)) return;
-
         const parsed: {
             id: string;
             input: Record<string, string>;
@@ -379,7 +377,6 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                                 Dynamic fields: {testFields.join(", ")}
                                             </p>
                                         )}
-
                                         <div className="flex justify-between w-full">
                                             <span className="p-1 text-[11px] text-primary/80 rounded-md">
                                                 {currentTestCase?.stepsData?.length} Steps
@@ -408,9 +405,11 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                                 )}
                                             </div>
                                         )}
+
                                     </div>
                                 </AccordionTrigger>
                             </div>
+
 
                             <AccordionContent className="p-4 space-y-3">
                                 <div className="flex gap-2">
@@ -470,8 +469,6 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                                     placeholder={`Enter ${fieldName}`}
                                                 />
                                             )}
-
-
                                         </div>
                                     ))
                                 ) : (
@@ -535,9 +532,11 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                                 />
                                             </div>
                                         ))}
+
                                     </div>
                                 )}
                             </AccordionContent>
+
                         </AccordionItem>
                     );
                 }}
