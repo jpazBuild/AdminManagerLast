@@ -2,33 +2,50 @@ import { useCallback, useState } from "react";
 import { Upload } from "lucide-react";
 import { toast } from "sonner";
 
-const JSONDropzone = ({
-  onJSONParsed,
-  onFileInfoChange,
-  acceptedFileTypes = ["application/json"],
-}: {
-  onJSONParsed: (data: any) => void;
+type FileDropzoneProps = {
+  onFileParsed: (base64: string, file: File) => void;
   onFileInfoChange?: (info: { loaded: boolean; name: string }) => void;
-  acceptedFileTypes?: string[];
-}) => {
+  acceptedExtensions?: string[];
+  acceptedMimeTypes?: string[];
+  label?: string;
+};
+
+const FileDropzone = ({
+  onFileParsed,
+  onFileInfoChange,
+  acceptedExtensions = [".json", ".csv"],
+  acceptedMimeTypes = ["application/json", "text/csv"],
+  label = "a file",
+}: FileDropzoneProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
 
+  const isValidFile = (file: File) => {
+    const extensionMatch = acceptedExtensions.some(ext => file.name.endsWith(ext));
+    const mimeMatch = acceptedMimeTypes.includes(file.type);
+    return extensionMatch || mimeMatch;
+  };
+
   const handleFile = (file: File) => {
+    if (!isValidFile(file)) {
+      toast.error(`Invalid file type. Please upload ${acceptedExtensions.join(" or ")}`);
+      onFileInfoChange?.({ loaded: false, name: "" });
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
-      try {
-        const json = JSON.parse(reader.result as string);
-        onJSONParsed(json);
+      const result = reader.result as string;
+      if (result.startsWith("data:")) {
+        onFileParsed(result, file);
         setFileName(file.name);
-        toast.success("JSON uploaded successfully!");
+        toast.success(`${file.name} uploaded successfully!`);
         onFileInfoChange?.({ loaded: true, name: file.name });
-      } catch {
-        toast.error("Invalid JSON format.");
-        onFileInfoChange?.({ loaded: false, name: "" });
+      } else {
+        toast.error("Could not read file as base64.");
       }
     };
-    reader.readAsText(file);
+    reader.readAsDataURL(file);
   };
 
   const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
@@ -36,12 +53,8 @@ const JSONDropzone = ({
     setIsDragging(false);
 
     const file = event.dataTransfer.files[0];
-    if (file && file.type === "application/json") {
-      handleFile(file);
-    } else {
-      toast.error("Please upload a valid .json file.");
-    }
-  }, [onJSONParsed]);
+    if (file) handleFile(file);
+  }, []);
 
   return (
     <div
@@ -51,27 +64,26 @@ const JSONDropzone = ({
         setIsDragging(true);
       }}
       onDragLeave={() => setIsDragging(false)}
-      className={`border-2 text-primary border-dashed hover:bg-primary/10 hover:border-primary rounded-md px-4 py-6 transition-colors cursor-pointer ${
+      className={`border-2 border-dashed rounded-md px-4 py-6 text-primary transition-colors cursor-pointer ${
         isDragging ? "border-primary bg-primary/10" : "border-primary/30 bg-white"
       }`}
     >
       <div className="flex flex-col items-center justify-center gap-2 text-sm text-primary/60">
         <Upload className="text-primary" size={20} />
         <p className="text-xs text-center">
-          Drag and drop a <span className="font-medium">JSON</span> file here or click to browse
+          Drag and drop {label} here or click to browse
         </p>
         <input
           type="file"
-          accept={acceptedFileTypes.join(",")}
+          accept={acceptedExtensions.join(",")}
           onChange={(e) => {
             const file = e.target.files?.[0];
-            if (!file) return;
-            handleFile(file);
+            if (file) handleFile(file);
           }}
           className="hidden"
-          id="json-upload"
+          id={`file-upload-${label}`}
         />
-        <label htmlFor="json-upload" className="underline text-primary cursor-pointer text-xs">
+        <label htmlFor={`file-upload-${label}`} className="underline text-primary cursor-pointer text-xs">
           or select manually
         </label>
       </div>
@@ -85,4 +97,4 @@ const JSONDropzone = ({
   );
 };
 
-export default JSONDropzone;
+export default FileDropzone;

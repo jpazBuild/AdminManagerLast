@@ -10,7 +10,6 @@ const AddCustomStep = ({
   onAdd: (newStep: any) => void;
   setOpen: (open: boolean) => void;
 }) => {
-  // const [isOpen, setIsOpen] = useState(false);
   const [jsonText, setJsonText] = useState("");
   const [stepsCount, setStepsCount] = useState(0);
 

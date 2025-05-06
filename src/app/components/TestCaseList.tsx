@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Eye, File } from "lucide-react";
 import InteractionItem from "./Interaction";
@@ -11,6 +11,9 @@ import JSONDropzone from "./JSONDropzone";
 import CopyToClipboard from "./CopyToClipboard";
 import { toast } from "sonner";
 import StepActions from "./StepActions";
+import { FakerInputWithAutocomplete } from "./FakerInput";
+import SortableTestCasesAccordion from "./SortableItem";
+import FileDropzone from "./FileDropZone";
 
 interface TestStep {
     action: string;
@@ -66,15 +69,23 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
     onTestCasesDataChange
 }) => {
     const [editMode, setEditMode] = useState<'global' | 'individual'>('global');
-    const [dynamicValues, setDynamicValues] = useState<{ id: string; input: Record<string, string> }[]>([]);
+    const [dynamicValues, setDynamicValues] = useState<{ id: string; input: Record<string, string>; order?: number; testCaseName?: string; createdBy?: string }[]>([]);
     const [viewMode, setViewMode] = useState<'data' | 'steps'>('data');
     const [testCasesData, setTestCasesData] = useState<TestCase[]>([]);
-
     useEffect(() => {
         if (typeof onTestCasesDataChange === "function") {
             onTestCasesDataChange(testCasesData);
         }
     }, [testCasesData, onTestCasesDataChange]);
+
+    useEffect(() => {
+        setDynamicValues(prev =>
+            prev.map(entry => {
+                const newIndex = testCasesData.findIndex(tc => tc.testCaseId === entry.id);
+                return { ...entry, order: newIndex };
+            })
+        );
+    }, [testCasesData]);
 
     useEffect(() => {
         setTestCasesData(testCases);
@@ -110,21 +121,28 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
 
             if (editMode === 'global' && uniqueDynamicFields.includes(fieldName)) {
                 const ids = testCases.map(tc => tc.testCaseId).filter(Boolean) as string[];
-
-                ids.forEach(id => {
+                const testCaseName = testCases.find(tc => tc.testCaseId === id)?.testCaseName || '';
+                const testCreatedBy = testCases.find(tc => tc.testCaseId === id)?.createdBy || '';
+                ids.forEach((id, idx) => {
                     const index = updated.findIndex(entry => entry.id === id);
                     if (index !== -1) {
                         updated[index] = {
                             ...updated[index],
+                            testCaseName,
                             input: {
                                 ...updated[index].input,
                                 [fieldName]: value,
-                            }
+                            },
+                            createdBy: testCreatedBy,
+                            order: idx
                         };
                     } else {
                         updated.push({
                             id: id,
-                            input: { [fieldName]: value }
+                            testCaseName,
+                            input: { [fieldName]: value },
+                            createdBy: testCreatedBy,
+                            order: idx
                         });
                     }
                 });
@@ -135,19 +153,27 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
             if (!id) return prev;
 
             const existingIndex = updated.findIndex(entry => entry.id === id);
-
+            const orderIndex = testCases.findIndex(tc => tc.testCaseId === id);
+            const testCaseNameExists = testCases.find(tc => tc.testCaseId === id)?.testCaseName || '';
+            const testCreatedByExist = testCases.find(tc => tc.testCaseId === id)?.createdBy || '';
             if (existingIndex !== -1) {
                 updated[existingIndex] = {
                     ...updated[existingIndex],
+                    testCaseName: testCaseNameExists,
                     input: {
                         ...updated[existingIndex].input,
                         [fieldName]: value,
-                    }
+                    },
+                    createdBy: testCreatedByExist,
+                    order: orderIndex
                 };
             } else {
                 updated.push({
                     id,
+                    testCaseName: testCaseNameExists,
                     input: { [fieldName]: value },
+                    createdBy: testCreatedByExist,
+                    order: orderIndex
                 });
             }
 
@@ -163,16 +189,93 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
 
     const handleParsedJSON = (json: any[]) => {
         if (!Array.isArray(json)) return;
+        const parsed: {
+            id: string;
+            input: Record<string, string>;
+            order?: number;
+            testCaseName?: string;
+            createdBy?: string;
+        }[] = [];
 
-        const parsed: { id: string; input: Record<string, string> }[] = [];
+        const testCaseMap = new Map<string, typeof parsed[number]>();
 
         for (const item of json) {
             if (item?.id && typeof item.input === 'object') {
-                parsed.push({ id: item.id, input: item.input });
+                const existing = testCaseMap.get(item.id);
+
+                if (!existing || Object.keys(item.input).length > Object.keys(existing.input).length) {
+                    const matchingTest = testCasesData.find(tc => tc.testCaseId === item.id);
+                    testCaseMap.set(item.id, {
+                        id: item.id,
+                        input: item.input,
+                        order: typeof item.order === "number" ? item.order : undefined,
+                        testCaseName: matchingTest?.testCaseName,
+                        createdBy: matchingTest?.createdBy
+                    });
+                }
             }
         }
 
-        setDynamicValues(parsed);
+        testCaseMap.forEach(value => parsed.push(value));
+
+        const filtered = parsed.filter(entry =>
+            testCasesData.some(tc => tc.testCaseId === entry.id)
+        );
+
+        const ordered = filtered.map((entry) => {
+            const indexInTestCases = testCasesData.findIndex(tc => tc.testCaseId === entry.id);
+            return {
+                ...entry,
+                order: entry.order ?? indexInTestCases,
+            };
+        });
+
+        ordered.sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999));
+        setDynamicValues(ordered);
+
+        const orderMap = ordered.reduce((acc, item) => {
+            if (item.id && typeof item.order === "number") {
+                acc[item.id] = item.order;
+            }
+            return acc;
+        }, {} as Record<string, number>);
+
+        setTestCasesData(prev => {
+            const sorted = [...prev];
+            sorted.sort((a, b) => {
+                const orderA = orderMap[a.testCaseId ?? ""] ?? 9999;
+                const orderB = orderMap[b.testCaseId ?? ""] ?? 9999;
+                return orderA - orderB;
+            });
+            return sorted;
+        });
+    };
+
+    const handleExportAsDataObject = () => {
+        const sortedDynamicValues = [...dynamicValues].sort((a, b) => {
+            const orderA = a.order ?? 9999;
+            const orderB = b.order ?? 9999;
+            return orderA - orderB;
+        });
+
+        const exportData = sortedDynamicValues.map(({ id, input, order, testCaseName, createdBy }) => ({
+            id,
+            input,
+            order,
+            testCaseName,
+            createdBy
+        }));
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+            type: "application/json",
+        });
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "dynamic-data.json";
+        a.click();
+        URL.revokeObjectURL(url);
     };
 
     return (
@@ -188,8 +291,11 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                         {editMode === 'global' ? 'Editing all tests' : 'Editing individual tests'}
                     </Label>
                 </div>
-                <JSONDropzone onJSONParsed={handleParsedJSON} />
-
+                <JSONDropzone onJSONParsed={handleParsedJSON}
+                    onFileInfoChange={({ loaded, name }) => {
+                        if (loaded) setEditMode('individual')
+                    }}
+                />
             </div>
 
 
@@ -232,13 +338,16 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                     <span>Submodule</span>
                 </div>
             </div>
+            <Button onClick={handleExportAsDataObject} variant="outline" className="text-xs">
+                Export Dynamic Values
+            </Button>
 
-
-            <Accordion type="multiple" className="space-y-2">
-                {testCases.map((test: TestCase, index: number) => {
+            <SortableTestCasesAccordion
+                testCases={testCasesData}
+                setTestCasesData={setTestCasesData}
+                renderItem={(test: TestCase, index: number) => {
                     const testFields = getDynamicFields(test);
-
-                    const currentTestCase = testCasesData.find(tc => tc.testCaseId === test.testCaseId);
+                    const currentTestCase = testCasesData.find(tc => tc?.testCaseId === test?.testCaseId);
                     const steps = currentTestCase?.stepsData ?? [];
 
                     return (
@@ -257,7 +366,6 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                                     Id: {test.testCaseId}
                                                 </span>
                                                 {test.testCaseId ? (<CopyToClipboard text={test.testCaseId ?? ''} />) : (toast.error("No ID found"))}
-
                                             </div>
                                             <span className="text-xs break-words text-primary/80 shadow-md rounded-md px-2 py-1">
                                                 {test.createdBy}
@@ -269,8 +377,6 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                                 Dynamic fields: {testFields.join(", ")}
                                             </p>
                                         )}
-
-
                                         <div className="flex justify-between w-full">
                                             <span className="p-1 text-[11px] text-primary/80 rounded-md">
                                                 {currentTestCase?.stepsData?.length} Steps
@@ -314,13 +420,55 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                     testFields.map((fieldName, index: number) => (
                                         <div key={`${fieldName} ${test.testCaseId} ${index}`} className="flex items-center gap-3">
                                             <Label className="w-32 break-words">{fieldName}</Label>
-                                            <TextInputWithClearButton
-                                                id={`${fieldName} ${test.testCaseId} ${index}`}
-                                                value={getFieldValue(test.testCaseId ?? '', fieldName)}
-                                                onChangeHandler={(e) => handleValueChange(fieldName ?? '', e?.target?.value ?? '', test.testCaseId)}
-                                                placeholder={`Enter ${fieldName}`}
-                                                disabled={editMode === 'global' && uniqueDynamicFields.includes(fieldName)}
-                                            />
+
+                                            {fieldName.match(/^file\.(.+)\.(.+)$/) ? (() => {
+                                                    const currentValue = getFieldValue(test.testCaseId ?? '', fieldName);
+                                                    const typeMatch = typeof currentValue === "string" ? currentValue.match(/^data:(.*?);base64,/) : null;
+                                                    const extractedMime = typeMatch ? typeMatch[1] : "";
+
+                                                    const fieldMimeMatch = fieldName.match(/^file\.(.+)\.(.+)$/);
+                                                    const allowedMime = fieldMimeMatch ? fieldMimeMatch[2] : "application/octet-stream";
+
+                                                    let label = "Upload file";
+                                                    if (allowedMime.startsWith("image/")) label = "Upload image";
+                                                    else if (allowedMime === "application/pdf") label = "Upload PDF";
+                                                    else if (allowedMime === "text/csv") label = "Upload CSV";
+                                                    else if (allowedMime === "application/json") label = "Upload JSON";
+
+                                                    return (
+                                                        <FileDropzone
+                                                            label={label}
+                                                            acceptedExtensions={[allowedMime]} // Solo permite el tipo MIME extraído
+                                                            onFileParsed={(base64, file) => {
+                                                                const mime = file?.type;
+                                                                let messageType = "File";
+
+                                                                if (mime?.startsWith("image/")) messageType = "Image";
+                                                                else if (mime === "application/pdf") messageType = "PDF";
+                                                                else if (mime === "text/csv") messageType = "CSV";
+                                                                else if (mime === "application/json") messageType = "JSON";
+
+                                                                if (mime !== allowedMime) {
+                                                                    toast.error(`❌ Invalid file type. Expected: ${allowedMime}`);
+                                                                    return;
+                                                                }
+
+                                                                toast.success(`✅ ${messageType} loading: ${file?.name}`);
+                                                                handleValueChange(fieldName, base64, test.testCaseId);
+                                                            }}
+                                                            onFileInfoChange={({ name }) => {
+                                                                console.log(`Select file: ${name}`);
+                                                            }}
+                                                        />
+                                                    );
+                                                })() : (
+                                                <FakerInputWithAutocomplete
+                                                    id={`${fieldName} ${test.testCaseId} ${index}`}
+                                                    value={getFieldValue(test.testCaseId ?? '', fieldName)}
+                                                    onChange={(val: string) => handleValueChange(fieldName ?? '', val, test.testCaseId)}
+                                                    placeholder={`Enter ${fieldName}`}
+                                                />
+                                            )}
                                         </div>
                                     ))
                                 ) : (
@@ -347,12 +495,10 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                                     onDelete={(stepIndex) => {
                                                         const updatedSteps = [...steps];
                                                         updatedSteps.splice(stepIndex, 1);
-
                                                         const reindexed = updatedSteps.map((step, idx) => ({
                                                             ...step,
                                                             indexStep: idx + 1,
                                                         }));
-
                                                         setTestCasesData((prev) => {
                                                             const updatedTests = [...prev];
                                                             updatedTests[index] = {
@@ -378,7 +524,6 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                                         });
                                                     }}
                                                 />
-
                                                 <StepActions
                                                     index={i}
                                                     steps={steps}
@@ -394,8 +539,9 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
 
                         </AccordionItem>
                     );
-                })}
-            </Accordion>
+                }}
+            />
+
         </div>
     );
 };

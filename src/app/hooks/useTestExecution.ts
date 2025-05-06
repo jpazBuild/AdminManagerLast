@@ -144,7 +144,7 @@ export const useTestExecution = () => {
             activeTests--;
 
             if (pendingTests.length > 0) {
-                runNextTest();
+                await runNextTest();
             }
         };
 

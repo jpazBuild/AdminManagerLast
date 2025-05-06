@@ -21,7 +21,7 @@ export interface TestCase {
     module: string;
     submodule: string[];
     tags: string[];
-    contextGeneral:{};
+    contextGeneral:any;
     jsonSteps:any,
     createdBy: string;
 }

@@ -32,7 +32,7 @@ const Home = () => {
     const [selectedCreatedBy, setSelectedCreatedBy] = useState("");
     const [availableCreators, setAvailableCreators] = useState<string[]>([]);
     const [testCasesUpdated, setTestCasesUpdated] = useState<TestCase[]>([]);
-
+    const [executeRun, setExecuteRun] = useState(false);
     useEffect(() => {
         if (Array.isArray(responseData)) {
             const uniqueCreators = Array.from(new Set(responseData.map((tc: any) => tc.createdBy).filter(Boolean)));
@@ -152,8 +152,8 @@ const Home = () => {
 
 
         } catch (error) {
-            console.error('Error al obtener los datos', error);
-            toast.error('Error al obtener los datos')
+            console.error('Error to obtain data', error);
+            toast.error('Error to obtain data');
             setResponseData([]);
         } finally {
             setIsLoading(false);
@@ -199,41 +199,39 @@ const Home = () => {
         selectedCases.includes(tc.testCaseId)
     );
 
-    console.log("testData ", loading);
-    
     return (
         <DashboardHeader onToggleDarkMode={handleToggleDarkMode}>
             <div className="w-full p-4 flex flex-col gap-4 justify-center mx-auto text-primary">
                 <div className="flex flex-wrap gap-4 mb-4 mt-2">
                     <h2 className="font-semibold tracking-wide text-xl">Filters Test Cases</h2>
                     <SelectField
-                    value={selectedTag}
-                    onChange={setSelectedTag}
-                    options={tags.map((tag: Tag) => ({
-                        label: String(tag),
-                        value: String(tag),
-                    }))}
-                    placeholder="Tag"
+                        value={selectedTag}
+                        onChange={setSelectedTag}
+                        options={tags.map((tag: Tag) => ({
+                            label: String(tag),
+                            value: String(tag),
+                        }))}
+                        placeholder="Tag"
                     />
                     <SelectField
-                    value={selectedModule}
-                    onChange={setSelectedModule}
-                    options={modules.map((mod: Tag) => ({
-                        label: String(mod),
-                        value: String(mod),
-                    }))}
-                    placeholder="Module"
+                        value={selectedModule}
+                        onChange={setSelectedModule}
+                        options={modules.map((mod: Tag) => ({
+                            label: String(mod),
+                            value: String(mod),
+                        }))}
+                        placeholder="Module"
                     />
 
                     <SelectField
-                    value={selectedSubmodule}
-                    onChange={setSelectedSubmodule}
-                    options={submodules.map((sub: Tag) => ({
-                        label: String(sub),
-                        value: String(sub),
-                    }))}
-                    placeholder="Submodule"
-                    disabled={!selectedModule}
+                        value={selectedSubmodule}
+                        onChange={setSelectedSubmodule}
+                        options={submodules.map((sub: Tag) => ({
+                            label: String(sub),
+                            value: String(sub),
+                        }))}
+                        placeholder="Submodule"
+                        disabled={!selectedModule}
                     />
 
                     <div className="flex lg:flex-row flex-wrap items-center gap-2">
@@ -305,18 +303,17 @@ const Home = () => {
                             )}
                         </div>
                         {availableCreators.length > 0 && (
-                            <SelectField 
-                            value={selectedCreatedBy}
-                            onChange={setSelectedCreatedBy}
-                            options={[
-                                { label: "All", value: "All" },
-                                ...availableCreators.map(creator => ({ label: creator, value: creator }))
-                              ]}
-                            placeholder="Created By"
-                        
+                            <SelectField
+                                value={selectedCreatedBy}
+                                onChange={setSelectedCreatedBy}
+                                options={[
+                                    { label: "All", value: "All" },
+                                    ...availableCreators.map(creator => ({ label: creator, value: creator }))
+                                ]}
+                                placeholder="Created By"
+
                             />
                         )}
-                        
                     </div>
                 </div>
                 <div className="border p-4 rounded-lg">
@@ -362,22 +359,30 @@ const Home = () => {
                                 )}
                             </div>
                             <div className="flex gap-2">
-                            <button
-                                onClick={() => {
-                                    executeTests(selectedTests, testData, maxBrowsers, isHeadless);
-                                }}
-                                disabled={selectedCases.length === 0 || loading}
-                                className={`px-4 py-2 font-semibold tracking-wide mt-4 rounded-lg transition-all duration-300 ${darkMode
-                                    ? "bg-white text-[#021d3d] hover:bg-gray-200"
-                                    : "bg-[#021d3d] text-white hover:bg-[rgb(2,29,61)]"}
+                                <button
+                                    onClick={() => {
+                                        setExecuteRun(true);
+                                        if (selectedCases.length === 0) {
+                                            toast.error("Please select at least one test case");
+                                            return;
+                                        }
+                                        executeTests(selectedTests, testData, maxBrowsers, isHeadless);
+                                    }}
+                                    disabled={selectedCases.length === 0 || loading}
+                                    className={`px-4 py-2 font-semibold tracking-wide mt-4 rounded-lg transition-all duration-300 ${darkMode
+                                        ? "bg-white text-[#021d3d] hover:bg-gray-200"
+                                        : "bg-[#021d3d] text-white hover:bg-[rgb(2,29,61)]"}
                                         ${loading || selectedCases.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
-                            >
-                                {isLoading ? "Executing..." : (<>
-                                    <span className="flex items-center gap-2"><FiPlay /> Run Tests</span>
-                                </>)}
-                            </button>
+                                >
+                                    {isLoading ? "Executing..." : (<>
+                                        <span className="flex items-center gap-2"><FiPlay /> Run Tests</span>
+                                    </>)}
+                                </button>
                             </div>
-                            <TestReports reports={reports} idReports={idReports} progress={progress} selectedCases={selectedCases} selectedTest={selectedTests} darkMode={darkMode} />
+                            {executeRun && (
+                            <TestReports testData={testData} reports={reports} idReports={idReports} progress={progress} selectedCases={selectedCases} selectedTest={selectedTests} darkMode={darkMode} />
+
+                            )}
                         </>
                     ) : (
                         <>
@@ -385,6 +390,8 @@ const Home = () => {
                         </>
                     )}
                 </div>
+
+
             </div>
         </DashboardHeader >
     );

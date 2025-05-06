@@ -8,11 +8,8 @@ import AddCustomStep from "./AddCustomStep";
 const StepActions = ({ index, steps, test, setTestCasesData }: any) => {
     const [waitInputs, setWaitInputs] = useState<Record<number, string | undefined>>({});
     const [viewActionStep, setViewActionStep] = useState<'wait' | 'customStep' | 'none'>('none');
-    const [isOpenCustom, setIsOpenCustom] = useState(false);
-    console.log("🚀 ~ StepActions ~ isOpenCustom:", isOpenCustom)
 
     const handleOpenCustom = (open: boolean) => {
-        setIsOpenCustom(open);
         if (!open) {
             setViewActionStep('none');
         }
@@ -40,7 +37,6 @@ const StepActions = ({ index, steps, test, setTestCasesData }: any) => {
                     variant={"outline"}
                     className={`text-xs w-fit`}
                     onClick={() => {
-                        setIsOpenCustom(true);
                         setViewActionStep((prev) => prev === 'customStep' ? 'none' : 'customStep')
                     }}
                 >
@@ -144,28 +140,6 @@ const StepActions = ({ index, steps, test, setTestCasesData }: any) => {
 
 
             )}
-            {/* <div className="flex flex-col gap-1">
-                <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-xs w-fit"
-                    onClick={() => {
-                        setViewActionStep('wait')
-                        setWaitInputs((prev) => ({
-                            ...prev,
-                            [index]: prev[index] !== undefined ? undefined : "1000",
-                        }))
-                    }
-
-                    }
-                >
-                    <Clock className="mr-1 h-3 w-3" /> Add Wait
-                </Button>
-
-                
-
-            </div> */}
-
 
         </div>
     );
