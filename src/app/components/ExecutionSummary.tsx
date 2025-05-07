@@ -90,14 +90,14 @@ export function ExecutionSummary({ totalSuccess, totalFailed, totalPending, succ
                         >
                           <tspan
                             x={cx}
-                            y={cy - 12}
+                            y={(Number(cy) ?? 0) - 12}
                             className="!fill-primary text-3xl font-bold"
                           >
                             {totalTests.toLocaleString()}
                           </tspan>
                           <tspan
                             x={cx}
-                            y={cy + 12}
+                            y={(Number(cy) ?? 0) + 12}
                             className="fill-primary/90 text-sm"
                           >
                             Tests

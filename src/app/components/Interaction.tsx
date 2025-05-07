@@ -80,6 +80,7 @@ const JSONBox = ({
             ...updatedData,
             ...updatedData?.data,
         };
+
         const remainingFields = {
             ...flattenedData,
             ...flattenedData.data,
@@ -94,12 +95,14 @@ const JSONBox = ({
         delete remainingFields.context;
         delete remainingFields.conditionalElement;
         setRemainingFields(remainingFields);
+
         delete flattenedData?.data;
         delete flattenedData?.indexStep;
         if (value.action === "navigate") {
             setUpdatedData(undefined)
         } else {
             setUpdatedData(flattenedData)
+
         }
         if (flattenedData?.coordinates && Object.keys(flattenedData?.coordinates)?.length > 0) {
             setCoordinates(flattenedData?.coordinates);
@@ -112,11 +115,13 @@ const JSONBox = ({
             [idx]: !prev[idx],
         }));
     };
+
     const toggleSelectorsExpand = () => setIsSelectorsExpanded(!isSelectorsExpanded);
     const toggleAttributesExpand = () => setIsAttributesExpanded(!isAttributesExpanded);
     const toggleContextExpand = () => setIsContextExpanded(!isContextExpanded);
     const toggleContextGeneralExpand = () => setIsContextGeneralExpanded(!isContextGeneralExpanded);
     const toggleCoordinatesExpand = () => setIsCoordinatesExpanded(!isCoordinatesExpanded);
+
     const toggleConditionalAssertExpand = () => setIsConditionalAssertExpanded(!isConditionalAssertExpanded);
     const toggleSelectorsConditionalAssertExpand = () => setIsSelectorConditionalAssertExpanded(!isSelectorConditionalAssertExpanded);
     const toggleAttributesConditionalAssertExpand = () => setIsAttributesConditionalAssertExpanded(!isAttributesConditionalAssertExpanded);
@@ -548,7 +553,6 @@ const JSONBox = ({
 
                         </div>
                     )}
-
                 </>
             )
             }

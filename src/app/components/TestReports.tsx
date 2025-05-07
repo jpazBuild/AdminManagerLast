@@ -11,8 +11,6 @@ import { handleDownloadHTMLReport } from "../hooks/HTMLReport";
 import { handleDownloadPDFReport } from "../../lib/PDFReport";
 
 const TestReports = ({ reports, idReports, progress, selectedCases, selectedTest, testData }: any) => {
-    console.log("🚀 ~ TestReports ~ selectedCases:", selectedCases)
-    console.log("🚀 ~ TestReports ~ selectedTest:", selectedTest)
     const [expandedReports, setExpandedReports] = useState<Record<string, boolean>>({});
     const statusMap: Record<string, "completed" | "failed" | "pending"> = {};
 
@@ -31,7 +29,6 @@ const TestReports = ({ reports, idReports, progress, selectedCases, selectedTest
     }
 
     const steps: { indexStep: number; ev: StepEvent; reportId: string }[] = [];
-
     reports.forEach((report: any) => {
         report.data.forEach((ev: StepEvent) => {
             steps.push({ indexStep: ev.indexStep, ev, reportId: report.id });
@@ -106,7 +103,6 @@ const TestReports = ({ reports, idReports, progress, selectedCases, selectedTest
                 </div>
 
             )}
-
             <div className="space-y-4">
                 {selectedTest.map((test: any) => {
                     const report = reports.find((r: any) => r.id === test.testCaseId); // Encuentra el reporte correspondiente
@@ -118,7 +114,6 @@ const TestReports = ({ reports, idReports, progress, selectedCases, selectedTest
                     const isFailed = finalStatus === "failed";
                     const isCompleted = progressValue === 100;
                     const dataSteps = test.stepsData;
-                    console.log("🚀 ~ {selectedTest.map ~ dataSteps:", dataSteps)
                     const closeBrowser = report?.data.find((step: any) => step.action === "Closing browser");
 
                     return (
@@ -152,7 +147,6 @@ const TestReports = ({ reports, idReports, progress, selectedCases, selectedTest
                                         <CardTitle className="text-base font-semibold tracking-wider">
                                             {test.testCaseName || report?.testCaseName || "Unnamed Test"}
                                         </CardTitle>
-
                                         <div className="flex items-center gap-2">
                                             <Badge className="text-white" variant={isCompleted ? "default" : "default"}>
                                                 {progressValue}%
@@ -176,16 +170,18 @@ const TestReports = ({ reports, idReports, progress, selectedCases, selectedTest
                             {isExpanded && dataSteps && (
                                 <div className="p-2">
                                     <ReportUI
+                                        testcaseId={test?.testCaseId}
                                         data={test}
                                         report={report}
                                         dataStepsTotal={dataSteps}
-                                        className="rounded-lg border p-4 bg-muted/50"
+                                        progressValue={progressValue}
                                     />
                                 </div>
                             )}
                         </div>
                     );
                 })}
+                
             </div>
         </div>
     );

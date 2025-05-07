@@ -123,8 +123,6 @@ export const handleDownloadPDFReport = async (
 
         const testCaseId = report.testCaseId || report.id;
         const testDataForCase = testData?.data[testCaseId];
-        console.log("testDataForCase", testDataForCase);
-
         if (testDataForCase && typeof testDataForCase === "object") {
             const testDataLines = Object.entries(testDataForCase).map(
                 ([key, value]) => `• ${key}: ${value || '—'}`
@@ -136,8 +134,8 @@ export const handleDownloadPDFReport = async (
         
             let linesAdded = 0;
             testDataLines.forEach((line) => {
-                const splitted = doc.splitTextToSize(line, 170);
-                splitted.forEach((part, j) => {
+                const splitted: string[] = doc.splitTextToSize(line, 170);
+                splitted.forEach((part: string, j) => {
                     doc.text(part, 18, currentY + 12 + (linesAdded + j) * 6);
                 });
                 linesAdded += splitted.length;

@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../components/ui/select";
-import { Switch } from "../../components/ui/switch";
 import { Settings } from "lucide-react";
 import { SelectField } from "./SelectField";
 

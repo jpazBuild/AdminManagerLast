@@ -70,7 +70,6 @@ export const SelectField = ({
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
-          {/* Campo de búsqueda */}
           <div className="p-2 sticky top-0 bg-white z-10">
             <input
               ref={searchInputRef}
