@@ -25,3 +25,23 @@ export interface TestCase {
     jsonSteps:any,
     createdBy: string;
 }
+
+export interface Step {
+    status?: string;
+    time?: number;
+    action?: string;
+    result?: string;
+    error?: string;
+    screenshot?: string;
+}
+
+export interface StepData {
+    data?: {
+        selectors?: { type: string; locator: string }[];
+    };
+    action?: string;
+};
+
+export interface DataJsonStep extends StepData {
+    indexStep: number;
+};
