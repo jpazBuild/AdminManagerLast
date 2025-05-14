@@ -12,6 +12,7 @@ import { FiPlay } from "react-icons/fi";
 import { useTestExecution } from "../hooks/useTestExecution";
 import NoData from "../components/NoData";
 import { toast } from "sonner";
+import { SearchField } from "../components/SearchField";
 import { SelectField } from "../components/SelectField";
 
 const Home = () => {
@@ -178,7 +179,6 @@ const Home = () => {
     };
 
     const onDataChangeRead = (data: any) => {
-        console.log("🚀 ~ onDataChangeRead ~ data:", data)
         setTestData(data)
     }
 
@@ -188,14 +188,14 @@ const Home = () => {
 
     const filteredTestCases = useMemo(() => {
         if (!selectedCreatedBy || selectedCreatedBy === "All") return responseData;
-        return responseData.filter((tc: TestCase) => tc?.createdBy?.toLowerCase() === selectedCreatedBy.toLowerCase());
+        return responseData.filter((tc: TestCase) => tc?.createdBy?.toLowerCase() === selectedCreatedBy?.toLowerCase());
     }, [responseData, selectedCreatedBy]);
 
-    const selectAllChecked = responseData.length > 0 && selectedCases.length === responseData.length;
+    const selectAllChecked = responseData?.length > 0 && selectedCases?.length === responseData?.length;
 
     const isSearchButtonDisabled = !(selectedTag || selectedModule);
 
-    const selectedTests: any = testCasesUpdated.filter((tc: any) =>
+    const selectedTests: any = testCasesUpdated?.filter((tc: any) =>
         selectedCases.includes(tc.testCaseId)
     );
 
@@ -204,7 +204,8 @@ const Home = () => {
             <div className="w-full p-4 flex flex-col gap-4 justify-center mx-auto text-primary">
                 <div className="flex flex-wrap gap-4 mb-4 mt-2">
                     <h2 className="font-semibold tracking-wide text-xl">Filters Test Cases</h2>
-                    <SelectField
+                    <SearchField
+                        label="Tag"
                         value={selectedTag}
                         onChange={setSelectedTag}
                         options={tags.map((tag: Tag) => ({
@@ -213,7 +214,8 @@ const Home = () => {
                         }))}
                         placeholder="Tag"
                     />
-                    <SelectField
+                    <SearchField
+                        label="Module"
                         value={selectedModule}
                         onChange={setSelectedModule}
                         options={modules.map((mod: Tag) => ({
@@ -223,7 +225,8 @@ const Home = () => {
                         placeholder="Module"
                     />
 
-                    <SelectField
+                    <SearchField
+                        label="Submodule"
                         value={selectedSubmodule}
                         onChange={setSelectedSubmodule}
                         options={submodules.map((sub: Tag) => ({
@@ -247,17 +250,20 @@ const Home = () => {
                                 </>
                             )}
                         </Button>
-                        <Button
-                            variant="outline"
-                            onClick={() => {
-                                setSelectedModule("");
-                                setSelectedSubmodule("");
-                                setSelectedTag("");
-                            }}
-                            className="ml-2 font-semibold tracking-wide"
-                        >
-                            Clear Filters
-                        </Button>
+                        {selectedTag || selectedModule || selectedSubmodule ? (
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setSelectedModule("");
+                                    setSelectedSubmodule("");
+                                    setSelectedTag("");
+                                }}
+                                className="ml-2 font-semibold tracking-wide"
+                            >
+                                Clear Filters
+                            </Button>
+                        ) : null}
+
                         <div className="flex flex-wrap gap-2">
                             {selectedTag && (
                                 <div className="bg-primary/85 text-white/90 px-2 py-1 rounded-full text-sm flex items-center gap-2">
@@ -380,7 +386,7 @@ const Home = () => {
                                 </button>
                             </div>
                             {executeRun && (
-                            <TestReports testData={testData} reports={reports} idReports={idReports} progress={progress} selectedCases={selectedCases} selectedTest={selectedTests} darkMode={darkMode} />
+                                <TestReports testData={testData} reports={reports} idReports={idReports} progress={progress} selectedCases={selectedCases} selectedTest={selectedTests} darkMode={darkMode} />
 
                             )}
                         </>
@@ -390,8 +396,6 @@ const Home = () => {
                         </>
                     )}
                 </div>
-
-
             </div>
         </DashboardHeader >
     );

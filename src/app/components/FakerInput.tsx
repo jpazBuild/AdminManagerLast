@@ -18,6 +18,7 @@ export const FakerInputWithAutocomplete = ({
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
     const [highlightedIndex, setHighlightedIndex] = useState(0);
+    const [fakerExpression, setFakerExpression] = useState<string | null>(null);
 
     const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -26,10 +27,11 @@ export const FakerInputWithAutocomplete = ({
             const evaluated = evaluateFakerExpression(value);
             if (evaluated && evaluated !== value) {
                 onChange(evaluated);
+                setFakerExpression(value);
                 setShowSuggestions(false);
             }
         }
-    }, [value]);
+    }, [value, onChange]);
 
 
 
@@ -67,6 +69,7 @@ export const FakerInputWithAutocomplete = ({
 
     const handleClear = () => {
         onChange("");
+        setFakerExpression("");
         setShowSuggestions(false);
     };
 
@@ -131,12 +134,10 @@ export const FakerInputWithAutocomplete = ({
             console.warn("Invalid faker expression:", err);
             return null;
         }
-    };
-
-
-
+    };    
     return (
-        <div className="relative w-full overflow-visible z-40">
+        <div className="relative w-full overflow-visible z-40 flex flex-col gap-2">
+            <div className="relative w-full">
             <input
                 ref={inputRef}
                 id={id}
@@ -155,8 +156,12 @@ export const FakerInputWithAutocomplete = ({
                     <AiOutlineClose className="w-4 h-4" />
                 </button>
             )}
-
-
+            </div>
+            {fakerExpression && (
+            <p className="text-xs text-muted-foreground mt-1">
+                <strong>Expression:</strong> <code className="bg-gray-100 px-1 rounded">{fakerExpression}</code>
+            </p>
+            )}
             {showSuggestions && filteredSuggestions.length > 0 && inputRef.current &&
                 ReactDOM.createPortal(
                     <ul

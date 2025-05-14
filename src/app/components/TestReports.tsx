@@ -170,10 +170,11 @@ const TestReports = ({ reports, idReports, progress, selectedCases, selectedTest
                             {isExpanded && dataSteps && (
                                 <div className="p-2">
                                     <ReportUI
+                                        testcaseId={test?.testCaseId}
                                         data={test}
                                         report={report}
                                         dataStepsTotal={dataSteps}
-                                        className="rounded-lg border p-4 bg-muted/50"
+                                        progressValue={progressValue}
                                     />
                                 </div>
                             )}

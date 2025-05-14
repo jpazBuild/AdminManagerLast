@@ -133,7 +133,6 @@ export const useTestExecution = () => {
                 });
 
             } catch (error: any) {
-                console.log("🚀 ~ runNextTest ~ error:", error)
                 setError(`Error ejecutando prueba: ${error.message}`);
                 setProgress(prev => ({
                     ...prev,
@@ -166,3 +165,142 @@ export const useTestExecution = () => {
         executeTests,
     };
 };
+
+// import { URL_API_RUNNER } from "../../config";
+// import { useState, useEffect } from "react";
+// import { io, Socket } from "socket.io-client";
+
+// export const useTestExecution = () => {
+//     const [reports, setReports] = useState<any[]>([]);
+//     const [loading, setLoading] = useState(false);
+//     const [error, setError] = useState<string | null>(null);
+//     const [progress, setProgress] = useState<Record<string, number>>({});
+//     const [idReports, setIdReports] = useState<string[]>([]);
+//     const [isModalOpen, setIsModalOpen] = useState(false);
+//     const [selectedImage, setSelectedImage] = useState("");
+//     const [expandedStep, setExpandedStep] = useState<number | null>(null);
+//     const [socket, setSocket] = useState<Socket | null>(null);
+
+//     useEffect(() => {
+//         // Conectar al servidor de Socket.IO
+//         const newSocket = io(URL_API_RUNNER);
+//         setSocket(newSocket);
+
+//         // Limpiar la conexión al desmontar el componente
+//         return () => {
+//             newSocket.disconnect();
+//         };
+//     }, []);
+
+//     const executeTests = async (selectedCases: any[], testData: any, maxBrowsers: number, isHeadless: boolean) => {
+//         setLoading(true);
+//         setError(null);
+//         setReports([]);
+//         setIdReports([]);
+
+//         let activeTests = 0;
+//         const pendingTests = [...selectedCases];
+
+//         const runNextTest = async () => {
+//             if (pendingTests.length === 0) return;
+//             if (activeTests >= maxBrowsers) return;
+//             const testCase = pendingTests.shift();
+//             const testId = await testCase?.testCaseId;
+//             setIdReports((prev) => [...prev, testId]);
+//             activeTests++;
+
+//             try {
+//                 testCase.contextGeneral.data.url = await testData.data[testCase.testCaseId].urlSite;
+//                 const response = await fetch(`${URL_API_RUNNER}/executeTest`, {
+//                     method: "POST",
+//                     headers: { "Content-Type": "application/json" },
+//                     body: JSON.stringify({
+//                         testId: testId,
+//                         isHeadless: isHeadless,
+//                         testData: testData?.data[testCase.testCaseId],
+//                         dataScenario: {
+//                             contextGeneral: testCase.contextGeneral,
+//                             jsonSteps: testCase.stepsData,
+//                         },
+//                     }),
+//                 });
+
+//                 // Escuchar mensajes en tiempo real desde el servidor
+//                 socket?.on("testUpdate", (data) => {
+//                     const { indexStep, status, action, description } = data;
+
+//                     // Actualizar progreso
+//                     if (status?.toLowerCase() === "completed" || status?.toLowerCase() === "failed") {
+//                         setProgress((prev) => ({
+//                             ...prev,
+//                             [testId]: Math.min((prev[testId] || 0) + (100 / (testCase.stepsData.length + 2)), 100),
+//                         }));
+//                     }
+
+//                     // Actualizar reportes en tiempo real
+//                     setReports((prev) => {
+//                         const reportIndex = prev.findIndex((r) => r.id === testId);
+//                         if (reportIndex > -1) {
+//                             const updatedReports = [...prev];
+//                             updatedReports[reportIndex].data.push(data);
+//                             return updatedReports;
+//                         } else {
+//                             return [...prev, { id: testId, testCaseName: testCase.testCaseName, data: [data] }];
+//                         }
+//                     });
+//                 });
+
+//                 // Manejar finalización del test
+//                 socket?.on("testStopped", () => {
+//                     setProgress((prev) => ({
+//                         ...prev,
+//                         [testId]: 100,
+//                     }));
+//                 });
+
+//             } catch (error: any) {
+//                 setError(`Error ejecutando prueba: ${error.message}`);
+//                 setProgress((prev) => ({
+//                     ...prev,
+//                     [testId]: 100,
+//                 }));
+//             }
+
+//             activeTests--;
+
+//             if (pendingTests.length > 0) {
+//                 await runNextTest();
+//             }
+//         };
+
+//         await Promise.all(new Array(Math.min(maxBrowsers, pendingTests.length)).fill(null).map(runNextTest));
+//         setLoading(false);
+//     };
+
+//     const pauseTest = (testId: string) => {
+//         socket?.emit("pauseTest", { testId });
+//     };
+
+//     const resumeTest = (testId: string) => {
+//         socket?.emit("resumeTest", { testId });
+//     };
+
+//     const stopTest = (testId: string) => {
+//         socket?.emit("stopTest", { testId });
+//     };
+
+//     return {
+//         reports,
+//         loading,
+//         error,
+//         progress,
+//         idReports,
+//         isModalOpen,
+//         selectedImage,
+//         expandedStep,
+//         executeTests,
+//         pauseTest,
+//         resumeTest,
+//         stopTest,
+//     };
+// };

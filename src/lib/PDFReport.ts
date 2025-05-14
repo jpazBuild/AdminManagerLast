@@ -123,8 +123,6 @@ export const handleDownloadPDFReport = async (
 
         const testCaseId = report.testCaseId || report.id;
         const testDataForCase = testData?.data[testCaseId];
-        console.log("testDataForCase", testDataForCase);
-
         if (testDataForCase && typeof testDataForCase === "object") {
             const testDataLines = Object.entries(testDataForCase).map(
                 ([key, value]) => `• ${key}: ${value || '—'}`
