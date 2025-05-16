@@ -44,22 +44,39 @@ export const useTestExecution = () => {
                         },
                     }),
                 });
-                const reader = response.body?.getReader();
-                const decoder = new TextDecoder();
-                let buffer = "";
+
+                // Cambio aca
+                if (!response.ok) {
+                    console.error(`Error: ${response.status} - ${response.statusText}`);
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const responseBody = await response.json();
+                const responseData = responseBody.response;
+                console.log("Response:", responseData);
+                // Cambio termina
+
+
+                // const reader = response.body?.getReader();
+                // const decoder = new TextDecoder();
+                // let buffer = "";
                 const stepCount = testCase.stepsData.length + 2;
                 let completedSteps = 0;
                 const testResults: { finalStatus?: string }[] = [];
 
                 const steps: { indexStep: number; jsonData: any }[] = []
-                while (reader) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
+                // while (reader) {
+                    // const { done, value } = await reader.read();
+                    // if (done) break;
 
-                    buffer += decoder.decode(value, { stream: true });
-                    const events = buffer.split("\n\n");
-                    buffer = events.pop() || "";
+                    // buffer += decoder.decode(value, { stream: true });
+                    // const events = buffer.split("\n\n");
+                    // buffer = events.pop() || "";
 
+                    // Cambio aca
+                    const events: string[] = Object.entries(responseData).sort(
+                        (a: [string, any], b: [string, any]): number => Number(a[0].slice(4)) - Number(b[0].slice(4))
+                    ).map((value: [string, any]): string => `data: ${value[1]}`);
+                    // Cambio termina
 
                     events.map(ev => {
                         const jsonData = JSON.parse(ev.slice(6));
@@ -98,7 +115,8 @@ export const useTestExecution = () => {
                             });
                         }
                     }
-                }
+
+                // }
 
                 let finalStatus;
                 steps.map((step) => {
