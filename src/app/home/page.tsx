@@ -94,7 +94,9 @@ const Home = () => {
         loading,
         progress,
         executeTests,
-        idReports
+        idReports,
+        stopTest,
+        stopped
     } = useTestExecution();
 
     useEffect(() => {
@@ -198,7 +200,7 @@ const Home = () => {
     const selectedTests: any = testCasesUpdated?.filter((tc: any) =>
         selectedCases.includes(tc.testCaseId)
     );
-
+    
     return (
         <DashboardHeader onToggleDarkMode={handleToggleDarkMode}>
             <div className="w-full p-4 flex flex-col gap-4 justify-center mx-auto text-primary">
@@ -374,16 +376,18 @@ const Home = () => {
                                         }
                                         executeTests(selectedTests, testData, maxBrowsers, isHeadless);
                                     }}
-                                    disabled={selectedCases.length === 0 || loading}
+                                    disabled={selectedCases.length === 0 || isLoading}
                                     className={`px-4 py-2 font-semibold tracking-wide mt-4 rounded-lg transition-all duration-300 ${darkMode
                                         ? "bg-white text-[#021d3d] hover:bg-gray-200"
                                         : "bg-[#021d3d] text-white hover:bg-[rgb(2,29,61)]"}
-                                        ${loading || selectedCases.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+                                        ${isLoading || selectedCases.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
                                 >
                                     {isLoading ? "Executing..." : (<>
                                         <span className="flex items-center gap-2"><FiPlay /> Run Tests</span>
                                     </>)}
                                 </button>
+                                
+
                             </div>
                             {executeRun && (
                                 <TestReports testData={testData} reports={reports} idReports={idReports} progress={progress} selectedCases={selectedCases} selectedTest={selectedTests} darkMode={darkMode} />

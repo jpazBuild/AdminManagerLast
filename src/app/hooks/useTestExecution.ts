@@ -1,176 +1,192 @@
+import { useEffect, useState, useCallback } from "react";
 import { URL_API_RUNNER } from "../../config";
-import { useState } from "react";
+import { logger } from "../../utils/logger";
 
 export const useTestExecution = () => {
     const [reports, setReports] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState<Record<string, boolean>>({});
+    const [stopped, setStopped] = useState<Record<string, boolean>>({});
     const [error, setError] = useState<string | null>(null);
-    const [progress, setProgress] = useState<Record<string, number>>({});
+    const [progress, setProgress] = useState<{ testCaseId: string; percent: number }[]>([]);
     const [idReports, setIdReports] = useState<string[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedImage, setSelectedImage] = useState("");
     const [expandedStep, setExpandedStep] = useState<number | null>(null);
 
-    const executeTests = async (selectedCases: any[], testData: any, maxBrowsers: number, isHeadless: boolean) => {
-        setLoading(true);
+    const [socketMap, setSocketMap] = useState<Record<string, WebSocket>>({});
+    const [connectionMap, setConnectionMap] = useState<Record<string, string>>({});
+    const [stepsCountMap, setStepsCountMap] = useState<Record<string, number>>({});
+    const [completedStepsMap, setCompletedStepsMap] = useState<Record<string, number>>({});
+    const [activeTests, setActiveTests] = useState(0);
+    const [pendingTests, setPendingTests] = useState<any[]>([]);
+    const [maxBrowsers, setMaxBrowsers] = useState(1);
+    const [isHeadless, setIsHeadless] = useState(true);
+    const [testData, setTestData] = useState<any>({});
+
+    const updateProgress = useCallback((testId: string, completedSteps: number) => {
+        setStepsCountMap(prevSteps => {
+            const total = prevSteps[testId];
+            if (!total || total === 0) return prevSteps;
+            const clamped = Math.min(completedSteps, total);
+            const percent = Math.round((clamped / total) * 100);
+            setProgress(prev => {
+                const updated = prev.filter(p => p.testCaseId !== testId);
+                return [...updated, { testCaseId: testId, percent }];
+            });
+            return prevSteps;
+        });
+    }, []);
+
+    useEffect(() => {
+        const slotsAvailable = maxBrowsers - activeTests;
+        if (pendingTests.length > 0 && slotsAvailable > 0) {
+            const testsToRun = pendingTests.slice(0, slotsAvailable);
+            testsToRun.forEach(testCase => {
+                const testId = String(testCase.testCaseId);
+                if (!URL_API_RUNNER) {
+                    logger("❌ URL_API_RUNNER is undefined. Cannot create WebSocket.");
+                    setError("WebSocket URL is not configured.");
+                    return;
+                }
+                const socket = new WebSocket(URL_API_RUNNER);
+
+                setSocketMap(prev => ({ ...prev, [testId]: socket }));
+                
+                setActiveTests(prev => prev + 1);
+                setIdReports(prev => [...prev, testId]);
+                const totalSteps = testCase.stepsData.length + 2;
+                setStepsCountMap(prev => ({ ...prev, [testId]: totalSteps }));
+
+                socket.onopen = () => {
+                    const payload = {
+                        action: "executeTest",
+                        testCaseId: testId,
+                        isHeadless,
+                        testCaseName: testCase.testCaseName,
+                        totalSteps,
+                        testData: testData.data[testId],
+                        dataScenario: {
+                            contextGeneral: {
+                                ...testCase.contextGeneral,
+                                data: {
+                                    ...testCase.contextGeneral.data,
+                                    url: testData.data[testId].urlSite,
+                                },
+                            },
+                            jsonSteps: testCase.stepsData,
+                        },
+                    };
+                    socket.send(JSON.stringify(payload));
+                    setPendingTests(prev => prev.filter(t => t.testCaseId !== testCase.testCaseId));
+                };
+
+                socket.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        const { type, payload, response, routeKey, connectionId, testCaseId } = message;
+                        const id = String(testCaseId);
+                    
+                        if (stopped[id]) return;
+                        if (connectionId) setConnectionMap(prev => ({ ...prev, [id]: connectionId }));
+
+                        if (type === "stepUpdate") {
+                            const { data, completedSteps } = payload;                            
+                            setCompletedStepsMap(prev => ({ ...prev, [id]: completedSteps }));
+                            updateProgress(id, completedSteps);
+                            setReports(prev => {
+                                const idx = prev.findIndex(r => r.testCaseId === id);
+                                const newEntry = { testCaseId: id, connectionId, data,socket };
+                                const updated = [...prev];
+                                if (idx >= 0) updated[idx] = newEntry;
+                                else updated.push(newEntry);
+                                return updated;
+                            });
+                        }
+
+                        if (["testComplete", "testError", "testStopped"].includes(type)) {
+                            const msg = payload.message;
+                            const finalStatus = type === "testComplete" ? "completed" : type === "testError" ? "failed" : "stopped";
+                            const completed = completedStepsMap[id] || 0;
+                            
+                            updateProgress(id, completed);
+                            setLoading(prev => ({ ...prev, [id]: false }));
+                            setReports(prev => {
+                                const idx = prev.findIndex(r => r.testCaseId === id);
+                                const report = prev[idx];
+                                const newEntry = {
+                                    ...report,
+                                    data: [...(report?.data || []), { finalStatus, message: msg }],
+                                };
+                                const updated = [...prev];
+                                if (idx >= 0) updated[idx] = newEntry;
+                                else updated.push(newEntry);
+                                return updated;
+                            });
+                            setActiveTests(prev => prev - 1);
+                        }
+
+                        if (response && routeKey === "executeTest") {
+                            const stepData = response;
+                            setReports(prev => {
+                                const idx = prev.findIndex(r => r.testCaseId === id);
+                                const existingData = idx >= 0 ? prev[idx].data || [] : [];
+                                const existingStepIndex = existingData.findIndex((d: any) => d.indexStep === stepData.indexStep);
+                                const updatedSteps = [...existingData];
+                                if (existingStepIndex >= 0) updatedSteps[existingStepIndex] = stepData;
+                                else updatedSteps.push(stepData);
+                                updateProgress(id, updatedSteps.length);
+                                const updatedReport = { testCaseId: id, connectionId, data: updatedSteps,socket };
+                                const updated = [...prev];
+                                if (idx >= 0) updated[idx] = updatedReport;
+                                else updated.push(updatedReport);
+                                return updated;
+                            });
+                        }
+                    } catch (err) {
+                        logger("❌ Error procesando mensaje:", event.data);
+                    }
+                };
+            });
+        }
+    }, [pendingTests, activeTests, maxBrowsers, isHeadless, testData, stopped, completedStepsMap, updateProgress, socketMap]);
+
+    const executeTests = async (selectedCases: any[], testDataInput: any, max: number, headless: boolean) => {
+        const initialLoading: Record<string, boolean> = {};
+        const initialStopped: Record<string, boolean> = {};
+        selectedCases.forEach(tc => {
+            const testId = String(tc.testCaseId);
+            initialLoading[testId] = true;
+            initialStopped[testId] = false;
+        });
+        setLoading(initialLoading);
+        setStopped(initialStopped);
         setError(null);
         setReports([]);
         setIdReports([]);
+        setProgress([]);
+        setConnectionMap({});
+        setPendingTests([...selectedCases]);
+        setActiveTests(0);
+        setMaxBrowsers(max);
+        setIsHeadless(headless);
+        setTestData(testDataInput);
+        setSocketMap({});
+    };
 
-        let activeTests = 0;
-        const pendingTests = [...selectedCases];
-
-        const runNextTest = async () => {
-            if (pendingTests.length === 0) return;
-            if (activeTests >= maxBrowsers) return;            
-            const testCase = pendingTests.shift();
-            const testId = await testCase?.testCaseId;
-            setIdReports(prev => [...prev, testId]);
-            activeTests++;
-
-            try {
-                testCase.contextGeneral.data.url = await testData.data[testCase.testCaseId].urlSite;             
-                const response = await fetch(`${URL_API_RUNNER}/executeTest`, {
-                    method: "POST",
-                    headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        isHeadless: isHeadless,
-                        testData: testData?.data[testCase.testCaseId],
-                        dataScenario: {
-                            contextGeneral: testCase.contextGeneral,
-                            jsonSteps: testCase.stepsData,
-                        },
-                    }),
-                });
-
-                // Cambio aca
-                if (!response.ok) {
-                    console.error(`Error: ${response.status} - ${response.statusText}`);
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const responseBody = await response.json();
-                const responseData = responseBody.response;
-                console.log("Response:", responseData);
-                // Cambio termina
-
-
-                // const reader = response.body?.getReader();
-                // const decoder = new TextDecoder();
-                // let buffer = "";
-                const stepCount = testCase.stepsData.length + 2;
-                let completedSteps = 0;
-                const testResults: { finalStatus?: string }[] = [];
-
-                const steps: { indexStep: number; jsonData: any }[] = []
-                // while (reader) {
-                    // const { done, value } = await reader.read();
-                    // if (done) break;
-
-                    // buffer += decoder.decode(value, { stream: true });
-                    // const events = buffer.split("\n\n");
-                    // buffer = events.pop() || "";
-
-                    // Cambio aca
-                    const events: string[] = Object.entries(responseData).sort(
-                        (a: [string, any], b: [string, any]): number => Number(a[0].slice(4)) - Number(b[0].slice(4))
-                    ).map((value: [string, any]): string => `data: ${value[1]}`);
-                    // Cambio termina
-
-                    events.map(ev => {
-                        const jsonData = JSON.parse(ev.slice(6));
-                        const existingIndex = steps.findIndex(step => step.indexStep === jsonData.indexStep);
-
-                        if (existingIndex !== -1) {
-                            // Si el indexStep ya existe, actualizamos su valor
-                            steps[existingIndex] = { indexStep: jsonData.indexStep, jsonData };
-                        } else {
-                            // Si no existe, lo agregamos a la lista
-                            steps.push({ indexStep: jsonData.indexStep, jsonData });
-                        }
-                        return jsonData
-                    })
-                    for (const event of events) {
-                        if (event.startsWith("data: ")) {
-                            const jsonData = JSON.parse(event.slice(6));
-                            testResults.push(jsonData);
-                            if (jsonData.status?.toLowerCase() === "completed") {
-                                completedSteps++;
-                            }
-                            const newProgress = Math.round((completedSteps / stepCount) * 100);
-                            setProgress(prev => ({
-                                ...prev,
-                                [testId]: newProgress,
-                            }));
-                            setReports(prev => {
-                                const reportIndex = prev.findIndex(r => r.id === testId);
-                                if (reportIndex > -1) {
-                                    const updatedReports = [...prev];
-                                    updatedReports[reportIndex] = { id: testId, testCaseName: testCase.testCaseName, data: testResults };
-                                    return updatedReports;
-                                } else {
-                                    return [...prev, { id: testId, testCaseName: testCase.testCaseName, data: testResults }];
-                                }
-                            });
-                        }
-                    }
-
-                // }
-
-                let finalStatus;
-                steps.map((step) => {
-                    if (step.jsonData.status === "completed") {
-                        testResults.push({ finalStatus: "success" })
-                        finalStatus = "success"
-                    } else if (step.jsonData.status === "failed") {
-                        testResults.push({ finalStatus: "failed" })
-                        finalStatus = "failed"
-                    }
-                })
-
-                if (finalStatus === "failed") {
-                    setProgress(prev => ({
-                        ...prev,
-                        [testId]: 100,
-                    }));
-                }
-
-                if (finalStatus === "success") {
-                    setProgress(prev => ({
-                        ...prev,
-                        [testId]: 100,
-                    }));
-                }
-                setReports(prev => {
-                    const reportIndex = prev.findIndex(r => r.id === testId);
-                    if (reportIndex > -1) {
-                        const updatedReports = [...prev];
-                        updatedReports[reportIndex] = { id: testId, testCaseName: testCase.testCaseName, data: testResults };
-                        return updatedReports;
-                    }
-                    return [...prev, { id: testId, data: testResults }];
-                });
-
-            } catch (error: any) {
-                setError(`Error ejecutando prueba: ${error.message}`);
-                setProgress(prev => ({
-                    ...prev,
-                    [testId]: 100,
-                }));
-            }
-
-            activeTests--;
-
-            if (pendingTests.length > 0) {
-                await runNextTest();
-            }
+    const stopTest = (testCaseId: string,connectionId:string,socket:any) => {
+        const testId = String(testCaseId);        
+        if (!socket || socket.readyState !== WebSocket.OPEN) return;
+        
+        if (!connectionId) return;
+        const payload = {
+            action: "stopTest",
+            testCaseId: testId,
+            lambdaID: connectionId,
         };
+        socket.send(JSON.stringify(payload));        
+        socket.close();
 
-        await Promise.all(
-            new Array(Math.min(maxBrowsers, pendingTests.length)).fill(null).map(runNextTest)
-        );
-        setLoading(false);
+        setStopped(prev => ({ ...prev, [testId]: true }));
     };
 
     return {
@@ -183,5 +199,7 @@ export const useTestExecution = () => {
         selectedImage,
         expandedStep,
         executeTests,
+        stopTest,
+        stopped
     };
 };

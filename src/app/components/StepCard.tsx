@@ -31,6 +31,8 @@ const StepCard = ({ step, stepData, index, handleImageClick }: StepCardProps) =>
     const timeInSeconds = step?.time ? (Number(step.time) / 1000).toFixed(2) : null;
     const [isStepSuccess, isStepError, isProcessing, isSkipped] = ["completed", "failed", "processing", "skipped"].map(s => s === status);
 
+    const cleanUrl = step?.screenshot?.replace(/^https?:\/\//, '');
+
     return (
         <div
             key={`step-${index}`}
@@ -103,14 +105,21 @@ const StepCard = ({ step, stepData, index, handleImageClick }: StepCardProps) =>
                 <div className="flex justify-center mt-4">
                     <div
                         className="cursor-pointer"
-                        onClick={() => handleImageClick(`data:image/png;base64,${step.screenshot}`)}
+                        onClick={() => {                            
+                            handleImageClick(`data:image/png;base64,${step.screenshot}`)
+                        }}
                     >
                         <Image
-                            src={`data:image/png;base64,${step.screenshot}`}
+                            src={
+                                step.screenshot.startsWith("http")
+                                    ? step.screenshot
+                                    : `data:image/jpeg;base64,${step.screenshot}`
+                            }
                             alt="Step screenshot"
                             width={256}
                             height={256}
                             className="rounded-lg object-cover cursor-pointer"
+                            unoptimized
                         />
                     </div>
                 </div>

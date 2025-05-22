@@ -2,7 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  
+  images: {
+    domains: ['blossom-automation-screenshots-dev.s3.us-east-2.amazonaws.com'],
+  },
   env:{
     URL_API_INTEGRATION: process.env.URL_API_INTEGRATION,
     TOKEN_API: process.env.TOKEN_API,
