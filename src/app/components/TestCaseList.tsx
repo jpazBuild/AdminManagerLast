@@ -421,29 +421,48 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                         <div key={`${fieldName} ${test.testCaseId} ${index}`} className="flex items-center gap-3">
                                             <Label className="w-32 break-words">{fieldName}</Label>
 
-                                            {fieldName.match(/^file\.(.+)\.(.+)$/) ? (() => {
-                                                    const currentValue = getFieldValue(test.testCaseId ?? '', fieldName);
-                                                    const typeMatch = typeof currentValue === "string" ? currentValue.match(/^data:(.*?);base64,/) : null;
-                                                    const extractedMime = typeMatch ? typeMatch[1] : "";
+                                            {(() => {
+                                                const currentValue = getFieldValue(test.testCaseId ?? '', fieldName);
 
-                                                    const fieldMimeMatch = fieldName.match(/^file\.(.+)\.(.+)$/);
-                                                    const allowedMime = fieldMimeMatch ? fieldMimeMatch[2] : "application/octet-stream";
+                                                const valueMimeMatch = typeof currentValue === "string"
+                                                    ? currentValue.match(/^data:(.*?);base64,/)
+                                                    : null;
+                                                const extractedMime = valueMimeMatch ? valueMimeMatch[1] : "";
 
-                                                    let label = "Upload file";
-                                                    if (allowedMime.startsWith("image/")) label = "Upload image";
-                                                    else if (allowedMime === "application/pdf") label = "Upload PDF";
-                                                    else if (allowedMime === "text/csv") label = "Upload CSV";
-                                                    else if (allowedMime === "application/json") label = "Upload JSON";
+                                                const mimeFromFieldName = (() => {
+                                                    const regex = /\.(application\/json|application\/pdf|text\/csv|image\/[a-zA-Z0-9.+-]+)$/;
+                                                    const match = fieldName.match(regex);
+                                                    return match ? match[1] : "application/octet-stream";
+                                                })();
 
+                                                const allowedMime = mimeFromFieldName;
+
+                                                const label = (() => {
+                                                    if (allowedMime.startsWith("image/")) return "Upload image";
+                                                    if (allowedMime === "application/pdf") return "Upload PDF";
+                                                    if (allowedMime === "text/csv") return "Upload CSV";
+                                                    if (allowedMime === "application/json") return "Upload JSON";
+                                                    return "Upload file";
+                                                })();
+
+                                                const isPossiblyFileField =
+                                                    fieldName.includes('.') &&
+                                                    (
+                                                        fieldName.startsWith("file.") ||
+                                                        allowedMime !== "application/octet-stream" ||
+                                                        (typeof currentValue === "string" && currentValue.startsWith("data:"))
+                                                    );
+
+                                                if (isPossiblyFileField) {
                                                     return (
                                                         <FileDropzone
                                                             label={label}
-                                                            acceptedExtensions={[allowedMime]} // Solo permite el tipo MIME extraído
+                                                            acceptedExtensions={[allowedMime]}
                                                             onFileParsed={(base64, file) => {
-                                                                const mime = file?.type;
+                                                                const mime = file?.type || "";
                                                                 let messageType = "File";
 
-                                                                if (mime?.startsWith("image/")) messageType = "Image";
+                                                                if (mime.startsWith("image/")) messageType = "Image";
                                                                 else if (mime === "application/pdf") messageType = "PDF";
                                                                 else if (mime === "text/csv") messageType = "CSV";
                                                                 else if (mime === "application/json") messageType = "JSON";
@@ -453,22 +472,25 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                                                     return;
                                                                 }
 
-                                                                toast.success(`✅ ${messageType} loading: ${file?.name}`);
+                                                                toast.success(`✅ ${messageType} loaded: ${file?.name}`);
                                                                 handleValueChange(fieldName, base64, test.testCaseId);
                                                             }}
                                                             onFileInfoChange={({ name }) => {
-                                                                console.log(`Select file: ${name}`);
+                                                                console.log(`Selected file: ${name}`);
                                                             }}
                                                         />
                                                     );
-                                                })() : (
-                                                <FakerInputWithAutocomplete
-                                                    id={`${fieldName} ${test.testCaseId} ${index}`}
-                                                    value={getFieldValue(test.testCaseId ?? '', fieldName)}
-                                                    onChange={(val: string) => handleValueChange(fieldName ?? '', val, test.testCaseId)}
-                                                    placeholder={`Enter ${fieldName}`}
-                                                />
-                                            )}
+                                                }
+
+                                                return (
+                                                    <FakerInputWithAutocomplete
+                                                        id={`${fieldName} ${test.testCaseId} ${index}`}
+                                                        value={getFieldValue(test.testCaseId ?? '', fieldName)}
+                                                        onChange={(val: string) => handleValueChange(fieldName ?? '', val, test.testCaseId)}
+                                                        placeholder={`Enter ${fieldName}`}
+                                                    />
+                                                );
+                                            })()}
                                         </div>
                                     ))
                                 ) : (

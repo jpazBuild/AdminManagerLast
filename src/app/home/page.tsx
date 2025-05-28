@@ -200,7 +200,7 @@ const Home = () => {
     const selectedTests: any = testCasesUpdated?.filter((tc: any) =>
         selectedCases.includes(tc.testCaseId)
     );
-    
+
     return (
         <DashboardHeader onToggleDarkMode={handleToggleDarkMode}>
             <div className="w-full p-4 flex flex-col gap-4 justify-center mx-auto text-primary">
@@ -390,7 +390,7 @@ const Home = () => {
 
                             </div>
                             {executeRun && (
-                                <TestReports testData={testData} reports={reports} idReports={idReports} progress={progress} selectedCases={selectedCases} selectedTest={selectedTests} darkMode={darkMode} />
+                                <TestReports stopped={stopped} testData={testData} reports={reports} idReports={idReports} progress={progress} selectedCases={selectedCases} selectedTest={selectedTests} darkMode={darkMode} />
 
                             )}
                         </>

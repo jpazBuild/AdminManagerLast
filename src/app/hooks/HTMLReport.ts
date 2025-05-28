@@ -27,8 +27,11 @@ export const handleDownloadHTMLReport = (
     totalTests: number,
     totalExecutionTime: number,
     reports: TestReport[],
-    testData?: TestDataType
+    testData?: TestDataType,
+    selectedTest?:any
 ) => {
+  console.log("selectedTest :", selectedTest);
+  
     const chartData = {
         labels: ['Success', 'Failed'],
         datasets: [{
@@ -38,15 +41,18 @@ export const handleDownloadHTMLReport = (
     };
 
     const stepsByReportHTML = reports.map((report: any, idx: number) => {
-        const testCaseId = report.testCaseId || report.id;
+        const testCaseId = report?.testCaseId || report?.id;
         const testDataForCase = testData?.data[testCaseId];
-    
+        const test = selectedTest?.find((test: any) => test?.testCaseId === testCaseId)
+
         const testDataHTML = testDataForCase
-            ? `<div class="test-data-block" style="margin: 10px 0 10px 10px;">
-                  <strong style="color: #223853;">🔧 Test Data:</strong>
+            ? `<div class="test-data-block" style="margin: 10px 0 10px 10px; display: flex; flex-direction: column; gap: 4px;">
+                  <strong style="color: #223853; word-break: break-word;">${test?.testCaseName}</strong>
+                  <p style="color: #223853; word-break: break-word;">Description: ${test?.testCaseDescription}</p>
+                  <strong style="color: #223853; word-break: break-word;">🔧 Test Data:</strong>
                   <ul style="margin-top: 4px;">
                     ${Object.entries(testDataForCase).map(
-                        ([key, value]) => `<li><strong>${key}:</strong> ${value || '—'}</li>`
+                        ([key, value]) => `<li><strong style="color: #223853; word-break: break-word;">${key}:</strong> ${value || '—'}</li>`
                     ).join("")}
                   </ul>
                </div>`
@@ -61,11 +67,11 @@ export const handleDownloadHTMLReport = (
             .map((step: any, i: number) => {
                 const status = step.status || step.finalStatus || "in_progress";
                 const isBase64 = typeof step.screenshot === 'string' && step.screenshot.trim() !== '';
-                const base64Image = isBase64 ? `data:image/png;base64,${step.screenshot}` : '';
+                // const base64Image = isBase64 ? `data:image/png;base64,${step.screenshot}` : '';
                 const imageTag = isBase64
-                    ? `<div><img src="${base64Image}" alt="step image"
+                    ? `<div><img src="${step.screenshot}" alt="step image"
                         style="max-width:200px; max-height:120px; border:1px solid #ccc; margin-top:5px; cursor: pointer;"
-                        onclick="showImageModal('${base64Image}')" /></div>`
+                        onclick="showImageModal('${step.screenshot}')" /></div>`
                     : '';
     
                 return `

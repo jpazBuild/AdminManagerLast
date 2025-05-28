@@ -2,6 +2,7 @@ import Image from "next/image";
 import { Clock } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@radix-ui/react-popover";
 import { FiTarget } from "react-icons/fi";
+import { useState } from "react";
 
 interface Step {
     status?: string;
@@ -25,6 +26,52 @@ interface StepCardProps {
     index: number;
     handleImageClick: (image: string) => void;
 }
+
+const StepScreenshot = ({ step, handleImageClick }: any) => {
+    const [isImageLoaded, setIsImageLoaded] = useState(false);
+
+    if (!step?.screenshot) return null;
+
+    const isUrl = step.screenshot.startsWith("http");
+    const imageSrc = isUrl
+        ? step.screenshot
+        : `data:image/jpeg;base64,${step.screenshot}`;
+
+    return (
+        <div className="flex justify-center mt-4">
+            <div
+                className="relative cursor-pointer w-[320px] h-[256px]"
+                onClick={() => handleImageClick(imageSrc)}
+            >
+                {(!isImageLoaded) && (
+                    <div className="w-auto h-auto bg-gray-200 rounded-md flex items-center justify-center p-12 animate-pulse">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="w-32 h-32 text-gray-400"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14h18zM5 5h14v10l-4.5-6L9 17l-3-4z" />
+                            <circle cx="15.5" cy="8.5" r="1.5" />
+                        </svg>
+                    </div>
+                )}
+
+                <Image
+                    src={imageSrc}
+                    alt="Step screenshot"
+                    width={320}
+                    height={256}
+                    className={`rounded-lg object-cover z-10 transition-opacity duration-300 ${isImageLoaded ? "opacity-100" : "opacity-0"
+                        }`}
+                    onLoad={() => setIsImageLoaded(true)}
+                    loading="lazy"
+                    unoptimized
+                />
+            </div>
+        </div>
+    );
+};
 
 const StepCard = ({ step, stepData, index, handleImageClick }: StepCardProps) => {
     const status = step?.status?.toLowerCase();
@@ -102,27 +149,7 @@ const StepCard = ({ step, stepData, index, handleImageClick }: StepCardProps) =>
                 </div>
             )}
             {step?.screenshot && (
-                <div className="flex justify-center mt-4">
-                    <div
-                        className="cursor-pointer"
-                        onClick={() => {                            
-                            handleImageClick(`data:image/png;base64,${step.screenshot}`)
-                        }}
-                    >
-                        <Image
-                            src={
-                                step.screenshot.startsWith("http")
-                                    ? step.screenshot
-                                    : `data:image/jpeg;base64,${step.screenshot}`
-                            }
-                            alt="Step screenshot"
-                            width={256}
-                            height={256}
-                            className="rounded-lg object-cover cursor-pointer"
-                            unoptimized
-                        />
-                    </div>
-                </div>
+                <StepScreenshot step={step} handleImageClick={handleImageClick} />
             )}
         </div>
     );
