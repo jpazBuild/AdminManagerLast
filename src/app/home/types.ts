@@ -20,6 +20,7 @@ export interface TestCase {
     name: string;
     module: string;
     submodule: string[];
+    subModuleName?: string;
     tags: string[];
     contextGeneral:any;
     jsonSteps:any,

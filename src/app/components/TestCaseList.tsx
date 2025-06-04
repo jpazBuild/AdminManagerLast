@@ -103,7 +103,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
 
     const getDynamicFields = (jsonTest: any) => {
         const valueAsString = typeof jsonTest === "string" ? jsonTest : JSON.stringify(jsonTest);
-        return valueAsString.match(/<([^>]+)>/g)?.map(t => t.replace(/[<>]/g, '')) || [];
+        return valueAsString?.match(/<([^>]+)>/g)?.map(t => t.replace(/[<>]/g, '')) || [];
     };
 
     const uniqueDynamicFields = useMemo(() => {
@@ -351,27 +351,27 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                     const steps = currentTestCase?.stepsData ?? [];
 
                     return (
-                        <AccordionItem key={`${test.testCaseId} ${index}`} value={test.testCaseId ?? ''} className="border rounded-lg">
+                        <AccordionItem key={`${test?.testCaseId} ${index}`} value={test?.testCaseId ?? ''} className="border rounded-lg">
                             <div className="flex items-center w-full h-auto bg-primary/5 p-0.5">
                                 <Checkbox
-                                    id={test.testCaseId ?? ''}
-                                    checked={selectedCases?.includes(test.testCaseId ?? '')}
-                                    onCheckedChange={() => toggleSelect(test.testCaseId ?? '')}
+                                    id={test?.testCaseId ?? ''}
+                                    checked={selectedCases?.includes(test?.testCaseId ?? '')}
+                                    onCheckedChange={() => toggleSelect(test?.testCaseId ?? '')}
                                 />
                                 <AccordionTrigger className="flex hover:no-underline">
                                     <div className="flex flex-col w-full h-auto">
                                         <div className="flex justify-between w-full gap-2 items-center p-1 rounded-br-xl text-[10px]">
                                             <div className="flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-primary/20">
                                                 <span className="text-xs font-mono tracking-wide text-muted-foreground">
-                                                    Id: {test.testCaseId}
+                                                    Id: {test?.testCaseId}
                                                 </span>
-                                                {test.testCaseId ? (<CopyToClipboard text={test.testCaseId ?? ''} />) : (toast.error("No ID found"))}
+                                                {test?.testCaseId ? (<CopyToClipboard text={test.testCaseId ?? ''} />) : (toast.error("No ID found"))}
                                             </div>
                                             <span className="text-xs break-words text-primary/80 shadow-md rounded-md px-2 py-1">
-                                                {test.createdBy}
+                                                {test?.createdBy}
                                             </span>
                                         </div>
-                                        <h3 className="font-medium mt-2 px-2">{test.testCaseName}</h3>
+                                        <h3 className="font-medium mt-2 px-2">{test?.testCaseName}</h3>
                                         {testFields.length > 0 && (
                                             <p className="text-xs px-2 break-all whitespace-pre-wrap text-primary/70">
                                                 Dynamic fields: {testFields.join(", ")}
@@ -383,24 +383,24 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                             </span>
 
                                             <span className="p-1 text-[9px] text-primary/80 rounded-md">
-                                                {test.createdAt}
+                                                {test?.createdAt}
                                             </span>
                                         </div>
                                         {(test?.tagName || test?.moduleName || test?.subModuleName) && (
                                             <div className="w-full flex flex-col lg:flex-row gap-1 rounded-md shadow-sm overflow-x-auto">
                                                 {test?.tagName && (
                                                     <span className="text-xs text-white bg-primary/85 px-2 py-1 rounded-full">
-                                                        {test.tagName}
+                                                        {test?.tagName}
                                                     </span>
                                                 )}
                                                 {test?.moduleName && (
                                                     <span className="text-xs text-white bg-primary/65 px-2 py-1 rounded-full">
-                                                        {test.moduleName}
+                                                        {test?.moduleName}
                                                     </span>
                                                 )}
                                                 {test?.subModuleName && (
                                                     <span className="text-xs text-white bg-primary/50 px-2 py-1 rounded-full">
-                                                        {test.subModuleName}
+                                                        {test?.subModuleName}
                                                     </span>
                                                 )}
                                             </div>
@@ -418,11 +418,11 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                 </div>
                                 {viewMode === 'data' ? (
                                     testFields.map((fieldName, index: number) => (
-                                        <div key={`${fieldName} ${test.testCaseId} ${index}`} className="flex items-center gap-3">
+                                        <div key={`${fieldName} ${test?.testCaseId} ${index}`} className="flex items-center gap-3">
                                             <Label className="w-32 break-words">{fieldName}</Label>
 
                                             {(() => {
-                                                const currentValue = getFieldValue(test.testCaseId ?? '', fieldName);
+                                                const currentValue = getFieldValue(test?.testCaseId ?? '', fieldName);
 
                                                 const valueMimeMatch = typeof currentValue === "string"
                                                     ? currentValue.match(/^data:(.*?);base64,/)
@@ -431,7 +431,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
 
                                                 const mimeFromFieldName = (() => {
                                                     const regex = /\.(application\/json|application\/pdf|text\/csv|image\/[a-zA-Z0-9.+-]+)$/;
-                                                    const match = fieldName.match(regex);
+                                                    const match = fieldName?.match(regex);
                                                     return match ? match[1] : "application/octet-stream";
                                                 })();
 
@@ -446,9 +446,9 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                                 })();
 
                                                 const isPossiblyFileField =
-                                                    fieldName.includes('.') &&
+                                                    fieldName?.includes('.') &&
                                                     (
-                                                        fieldName.startsWith("file.") ||
+                                                        fieldName?.startsWith("file.") ||
                                                         allowedMime !== "application/octet-stream" ||
                                                         (typeof currentValue === "string" && currentValue.startsWith("data:"))
                                                     );
@@ -473,7 +473,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                                                 }
 
                                                                 toast.success(`✅ ${messageType} loaded: ${file?.name}`);
-                                                                handleValueChange(fieldName, base64, test.testCaseId);
+                                                                handleValueChange(fieldName, base64, test?.testCaseId);
                                                             }}
                                                             onFileInfoChange={({ name }) => {
                                                                 console.log(`Selected file: ${name}`);
@@ -484,9 +484,9 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
 
                                                 return (
                                                     <FakerInputWithAutocomplete
-                                                        id={`${fieldName} ${test.testCaseId} ${index}`}
-                                                        value={getFieldValue(test.testCaseId ?? '', fieldName)}
-                                                        onChange={(val: string) => handleValueChange(fieldName ?? '', val, test.testCaseId)}
+                                                        id={`${fieldName} ${test?.testCaseId} ${index}`}
+                                                        value={getFieldValue(test?.testCaseId ?? '', fieldName)}
+                                                        onChange={(val: string) => handleValueChange(fieldName ?? '', val, test?.testCaseId)}
                                                         placeholder={`Enter ${fieldName}`}
                                                     />
                                                 );

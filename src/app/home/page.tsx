@@ -33,10 +33,11 @@ const Home = () => {
     const [selectedCreatedBy, setSelectedCreatedBy] = useState("");
     const [availableCreators, setAvailableCreators] = useState<string[]>([]);
     const [testCasesUpdated, setTestCasesUpdated] = useState<TestCase[]>([]);
+    const [isLoadingSubmodules, setIsLoadingSubmodules] = useState<boolean>(false);
     const [executeRun, setExecuteRun] = useState(false);
     useEffect(() => {
         if (Array.isArray(responseData)) {
-            const uniqueCreators = Array.from(new Set(responseData.map((tc: any) => tc.createdBy).filter(Boolean)));
+            const uniqueCreators = Array.from(new Set(responseData.map((tc: any) => tc?.createdBy).filter(Boolean)));
             setAvailableCreators(uniqueCreators);
         }
     }, [responseData]);
@@ -52,7 +53,7 @@ const Home = () => {
         setIsLoading(true);
         try {
             const response = await fetch(`${process.env.URL_API_INTEGRATION}retrieveAutomationFlow?returnUniqueValues=true`);
-            const data = await response.json();
+            const data = await response.json();            
             setTags(data.response.tagName);
             setModules(data.response.moduleName);
             setSubmodules(data.response.subModuleName);
@@ -77,15 +78,34 @@ const Home = () => {
     };
 
     const fetchSubModulesByModule = async (mod: any) => {
-        setIsLoading(true);
+        setIsLoadingSubmodules(true);
         try {
-            const response = await fetch(`${process.env.URL_API_INTEGRATION}retrieveAutomationFlow?returnUniqueValues=true&moduleName=${mod}`);
+            const searchParams = new URLSearchParams();
+
+            if (selectedTag) {
+                searchParams.append("tagName", selectedTag);
+            }
+
+            if (selectedModule) {
+                searchParams.append("moduleName", selectedModule);
+            }
+
+            const response = await fetch(
+                `${process.env.URL_API_INTEGRATION}retrieveAutomationFlow?${searchParams.toString()}`
+            );
+            
             const data = await response.json();
-            setSubmodules(data.response.subModuleName);
+            const uniqueSubmodules = Array.from(
+                new Set(data.response.map((item: any) => item.subModuleName).filter(Boolean))
+            );
+
+            setSubmodules(uniqueSubmodules as Submodule[]);
+          
         } catch (error) {
             console.error('Error al obtener los subMódulos para el module', error);
         } finally {
-            setIsLoading(false);
+            setIsLoadingSubmodules(false);
+
         }
     };
 
@@ -148,12 +168,18 @@ const Home = () => {
             const response = await fetch(
                 `${process.env.URL_API_INTEGRATION}retrieveAutomationFlow?${searchParams.toString()}`
             );
-
-            const data = await response.json();
-
-            setResponseData(data.response);
-
-
+            
+            const data = await response.json();            
+            
+            if (selectedSubmodule) {    
+                const filteredData = await data?.response?.filter((item: TestCase) =>
+                    item?.subModuleName === selectedSubmodule || item?.subModuleName?.includes(selectedSubmodule)
+                );
+                setResponseData(filteredData || []);
+            }else{
+                setResponseData(data?.response || []);
+            }
+                
         } catch (error) {
             console.error('Error to obtain data', error);
             toast.error('Error to obtain data');
@@ -201,6 +227,8 @@ const Home = () => {
         selectedCases.includes(tc.testCaseId)
     );
 
+    console.log("responseData ",responseData);
+    
     return (
         <DashboardHeader onToggleDarkMode={handleToggleDarkMode}>
             <div className="w-full p-4 flex flex-col gap-4 justify-center mx-auto text-primary">
@@ -236,7 +264,7 @@ const Home = () => {
                             value: String(sub),
                         }))}
                         placeholder="Submodule"
-                        disabled={!selectedModule}
+                        disabled={!selectedModule || isLoadingSubmodules}
                     />
 
                     <div className="flex lg:flex-row flex-wrap items-center gap-2">
@@ -325,7 +353,7 @@ const Home = () => {
                     </div>
                 </div>
                 <div className="border p-4 rounded-lg">
-                    {(responseData.length > 0) ? (
+                    {responseData?.length > 0 ? (
                         <>
                             <div className="flex flex-col gap-2 mb-2">
                                 <button

@@ -47,12 +47,12 @@ const SortableTestCasesAccordion: React.FC<SortableTestCasesAccordionProps> = ({
     return (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext
-                items={testCases.map(tc => tc.testCaseId)}
+                items={testCases?.map(tc => tc?.testCaseId)}
                 strategy={verticalListSortingStrategy}
             >
                 <Accordion type="multiple" className="space-y-2">
-                    {testCases.map((test, index) => (
-                        <SortableAccordionItem key={test.testCaseId} id={test.testCaseId}>
+                    {testCases?.map((test, index) => (
+                        <SortableAccordionItem key={test?.testCaseId} id={test?.testCaseId}>
                             {renderItem(test, index)}
                         </SortableAccordionItem>
                     ))}

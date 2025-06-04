@@ -12,11 +12,6 @@ import { handleDownloadPDFReport } from "@/lib/PDFReport";
 import { ExecutionSummary } from "./ExecutionSummary";
 
 const TestReports = ({ reports, progress, selectedTest, testData, stopped }: any) => {
-    console.log("TestReports component rendered with reports:", reports);
-    // console.log("TestReports component rendered with progress:", progress);
-    console.log("TestReports component rendered with selectedTest:", selectedTest);
-    console.log("TestReports component rendered with testData:", testData);
-    
     const [expandedReports, setExpandedReports] = useState<Record<string, boolean>>({});
     const { stopTest } = useTestExecution();
 

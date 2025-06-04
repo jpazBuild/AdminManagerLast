@@ -163,8 +163,8 @@ export const ImageModalWithZoom = ({ isOpen, imageUrl, onClose }: ImageModalProp
                         <Image
                             src={imageUrl}
                             alt="Zoomable screenshot"
-                            width={700}
-                            height={700}
+                            width={1280}
+                            height={720}
                             loading="lazy"
                             onLoadingComplete={() => setIsImageLoaded(true)}
                             className="rounded-md select-none pointer-events-none object-contain w-auto h-auto max-w-full max-h-[90vh]"
