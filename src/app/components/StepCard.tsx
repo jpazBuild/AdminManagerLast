@@ -36,7 +36,6 @@ const StepScreenshot = ({ step, handleImageClick }: any) => {
     const imageSrc = isUrl
         ? step.screenshot
         : `data:image/jpeg;base64,${step.screenshot}`;
-
     return (
         <div className="flex justify-center mt-4">
             <div
@@ -62,7 +61,7 @@ const StepScreenshot = ({ step, handleImageClick }: any) => {
                     alt="Step screenshot"
                     width={320}
                     height={256}
-                    className={`rounded-lg object-cover z-10 transition-opacity duration-300 ${isImageLoaded ? "opacity-100" : "opacity-0"
+                    className={`rounded-lg object-contain z-10 transition-opacity duration-300 ${isImageLoaded ? "opacity-100" : "opacity-0"
                         }`}
                     onLoad={() => setIsImageLoaded(true)}
                     loading="lazy"

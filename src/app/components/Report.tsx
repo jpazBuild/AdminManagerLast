@@ -115,7 +115,7 @@ export const ImageModalWithZoom = ({ isOpen, imageUrl, onClose }: ImageModalProp
             onClick={onClose}
         >
             <div
-                className="relative bg-white p-4 rounded-md overflow-hidden max-w-[800px] max-h-[800px]"
+                className="relative bg-white p-4 rounded-md overflow-hidden max-w-[1280px] max-h-[800px]"
                 onClick={(e) => e.stopPropagation()}
             >
                 <button
@@ -137,7 +137,7 @@ export const ImageModalWithZoom = ({ isOpen, imageUrl, onClose }: ImageModalProp
                 )}
 
                 {(!isImageLoaded || !showImage) && (
-                    <div className="w-auto h-auto max-w-[800px] max-h-[800px] bg-gray-200 rounded-md flex items-center justify-center p-12 animate-pulse">
+                    <div className="w-auto h-auto bg-gray-200 rounded-md flex items-center justify-center p-12 animate-pulse">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             className="w-32 h-32 text-gray-400"
@@ -153,7 +153,7 @@ export const ImageModalWithZoom = ({ isOpen, imageUrl, onClose }: ImageModalProp
                 {(showImage) && (
                     <div
                         ref={containerRef}
-                        className="cursor-grab overflow-hidden w-auto h-auto max-w-[800px] max-h-[800px] relative"
+                        className="cursor-grab overflow-hidden w-auto h-auto relative"
                         onWheel={handleWheel}
                         onMouseDown={handleMouseDown}
                         onMouseUp={handleMouseUp}
