@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
     URL_API_AUTOMATION:process.env.URL_API_AUTOMATION,
     X_API_KEY: process.env.X_API_KEY,
     URL_API_RUNNER: process.env.URL_API_RUNNER,
-    URL_API_ALB: process.env.URL_API_ALB,
+    URL_API_ALB: process.env.URL_ALB_API_RUNNER,
   }
 };
 

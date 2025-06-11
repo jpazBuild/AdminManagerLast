@@ -44,7 +44,7 @@ const Reports = () => {
   useEffect(() => {
     const fetchReports = async () => {
       try {
-        const url = `${String(URL_API_ALB)}dev/getReports`;
+        const url = `${String(URL_API_ALB)}/getReports`;
         const response = await fetch(url, {
           method: "GET",
           headers: { "Content-Type": "application/json" },
