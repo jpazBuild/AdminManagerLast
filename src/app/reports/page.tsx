@@ -1,10 +1,13 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Dialog } from "@headlessui/react";
+import { Dialog, Disclosure } from "@headlessui/react";
 import { URL_API_ALB } from "@/config";
 import { DashboardHeader } from "../Layouts/main";
-import { Clock } from "lucide-react";
-import { FaXmark } from "react-icons/fa6";
+import { ChevronUpIcon } from "lucide-react";
+import { TimestampTabs } from "../components/TimestampTabs";
+import { toast } from "sonner";
+import CopyToClipboard from "../components/CopyToClipboard";
+import { SummaryDonutChart } from "../components/SummaryDonutChart";
 
 type Event = {
   indexStep: number;
@@ -19,141 +22,223 @@ type Event = {
   time: string;
 };
 
+type ReportItem = {
+  testCaseId: string;
+  urlReport: string;
+};
+
+type Reports = {
+  testCaseId: string;
+  reports: Event[];
+};
+
 const Reports = () => {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [allReports, setAllReports] = useState<Reports[]>([]);
+  const [reportSummaries, setReportSummaries] = useState<{
+    [testCaseId: string]: { totalCompleted: number; totalFailed: number; totalReports: number };
+  }>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [modalImage, setModalImage] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(false);
 
-  
   useEffect(() => {
-    const url = `${String(URL_API_ALB)}getReports`;
-
-    const fetchReport = async () => {
+    const fetchReports = async () => {
       try {
+        const url = `${String(URL_API_ALB)}dev/getReports`;
         const response = await fetch(url, {
-          method: "POST",
+          method: "GET",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            testCaseId: "19e9c7b7-4b2d-4b86-8925-220de1e7ae0a",
-          }),
         });
 
-        const reportUrl = await response.text();
-        const reportResponse = await fetch(reportUrl);
-        const reportData = await reportResponse.json();
+        const data: ReportItem[] = await response.json();
 
-        const firstReport = reportData?.reports?.[0];
-        if (firstReport?.events) {
-          setEvents(firstReport.events);
-        } else {
-          setError("No se encontraron eventos en el reporte.");
+        const summaries: { [key: string]: { totalCompleted: number; totalFailed: number; totalReports: number } } = {};
+        const reportsWithData: Reports[] = [];
+
+        for (const { testCaseId, urlReport } of data) {
+          try {
+            const res = await fetch(urlReport);
+            if (!res.ok) throw new Error(`Error ${res.status}`);
+            const json = await res.json();
+
+            const reports: Event[] = json?.reports || [];
+
+            const latestSteps = reports?.map((r: any) => r?.events?.at(-1));
+            const totalCompleted = latestSteps?.filter((s) => s?.status === "completed").length;
+            const totalFailed = latestSteps?.filter((s) => s?.status === "failed").length;
+
+            summaries[testCaseId] = {
+              totalCompleted,
+              totalFailed,
+              totalReports: reports?.length,
+            };
+
+            reportsWithData.push({ testCaseId, reports });
+          } catch (err) {
+            console.error(`Error loading report for ${testCaseId}:`, err);
+            summaries[testCaseId] = { totalCompleted: 0, totalFailed: 0, totalReports: 0 };
+            reportsWithData.push({ testCaseId, reports: [] });
+          }
         }
+
+        setAllReports(reportsWithData);
+        setReportSummaries(summaries);
       } catch (err) {
-        setError("Error al obtener el reporte.");
         console.error(err);
+        setError("Error to obtain reports.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchReport();
+    fetchReports();
   }, []);
 
-  const handleToggleDarkMode = (darkMode: boolean) => {
-    setDarkMode(darkMode);
-  };
-  const statusColor = (status: string) => {
-    switch (status) {
-      case "completed":
-        return "text-primary border-green-300 border-l-4 border-2";
-      case "failed":
-        return "text-red-600 border-red-300 border-l-4 border-2";
-      case "processing":
-        return "text-yellow-600 border-yellow-300 border-l-4 border-2";
-      default:
-        return "text-gray-600 border-gray-300 border-l-4 border-2";
-    }
-  };
-
-
   return (
-    <DashboardHeader onToggleDarkMode={handleToggleDarkMode}>
-      <div className="p-6 max-w-5xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8 text-gray-800">Reporte de Ejecución</h1>
+    <DashboardHeader onToggleDarkMode={setDarkMode}>
+      <div className="p-6 max-w-6xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6 text-primary/80">Historic Reports</h1>
 
-        {loading && <p className="text-gray-500">Cargando reporte...</p>}
-        {error && <p className="text-red-500">{error}</p>}
-
-        <div className="space-y-6">
-          {!loading &&
-            !error &&
-            events.map((ev, index) => (
+        {loading && (
+          <div className="flex flex-col gap-4">
+            {[...Array(3)].map((_, i) => (
               <div
-                key={index}
-                className={`relative border-l-4 p-4 rounded-md shadow-sm transition ${statusColor(
-                  ev.status
-                )}`}
+                key={i}
+                className="flex items-center gap-4 rounded-lg border border-primary/10 shadow-sm p-4 bg-white animate-pulse"
               >
-                <div className="flex justify-between flex-col items-start">
-                  <div className="flex-1">
-                    <div className="absolute top-0 left-0 bg-primary text-white px-3 py-1 text-sm font-semibold rounded-tl-xl rounded-br-full shadow-md">
-                      Step {index}
-                    </div>
-                    <h2 className="text-md text-primary mt-6 font-semibold break-words max-w-full">
-                      {ev.action}
-                    </h2>
-                    <p className="text-xs text-gray-700 mt-1">{ev.description}</p>
-                    <div className="mt-2 text-sm text-gray-500 flex gap-6 flex-wrap">
-                      {ev.isConditional && <span>🔀 Paso condicional</span>}
-                    </div>
-                    <div className="absolute top-2 right-2 flex items-center text-primary/90 text-sm">
-                      <Clock className="w-4 h-4 mr-1" />
-                      {ev.time} s
-                    </div>
-                  </div>
-
-                  {ev.screenshot && (
-                    <img
-                      src={
-                        ev.screenshot.startsWith("data:image")
-                          ? ev.screenshot
-                          : `data:image/png;base64,${ev.screenshot}`
-                      }
-                      alt={`step-${ev.indexStep}`}
-                      className="w-28 h-auto ml-4 rounded border self-center cursor-pointer hover:scale-105 transition"
-                      onClick={() =>
-                        setModalImage(
-                          ev.screenshot.startsWith("data:image")
-                            ? ev.screenshot
-                            : `data:image/png;base64,${ev.screenshot}`
-                        )
-                      }
-                    />
-                  )}
+                <div className="flex-1">
+                  <div className="h-6 bg-primary/10 rounded w-2/3 mb-2"></div>
+                  <div className="h-4 bg-primary/10 rounded w-1/2"></div>
                 </div>
+                <div className="w-7 h-7 rounded-full border-4 border-primary/10 border-t-primary/40 animate-spin"></div>
+
               </div>
             ))}
-        </div>
-
-        <Dialog open={!!modalImage} onClose={() => setModalImage(null)} className="relative z-50">
-          <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4">
-            <Dialog.Panel className="bg-white rounded-lg shadow-xl p-4 max-w-4xl w-full relative">
-              <Dialog.Title className="text-lg font-semibold align-middle">Screenshot</Dialog.Title>
-              <img src={modalImage!} alt="modal screenshot" className="max-w-full h-auto" />
-              <button
-                onClick={() => setModalImage(null)}
-                className=" px-4 py-2 text-primary top-0 right-2 absolute"
-              >
-                <FaXmark className="text-2xl" />
-              </button>
-            </Dialog.Panel>
           </div>
-        </Dialog>
+        )}
+
+
+        {error && (
+          <div className="flex items-center gap-3 p-4 mb-4 bg-red-50 border border-red-200 text-red-700 rounded-md">
+            <svg
+              className="w-6 h-6 shrink-0 text-red-500"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.054 0 1.64-1.14 1.077-2.045L13.077 4.954c-.527-.899-1.827-.899-2.354 0L4.005 16.955C3.442 17.86 4.028 19 5.082 19z"
+              />
+            </svg>
+            <span className="text-sm font-medium">{error}</span>
+          </div>
+        )}
+
+        {!loading && !error && allReports.length === 0 && (
+          <div className="flex items-center gap-3 p-4 mb-4 bg-gray-50 border border-gray-200 text-gray-700 rounded-md">
+            <svg
+              className="w-6 h-6 shrink-0 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 17v-2a4 4 0 00-4-4H5a2 2 0 00-2 2v6h16v-2a4 4 0 00-4-4h-1a4 4 0 00-4 4zM9 7h.01M15 7h.01M12 11h.01"
+              />
+            </svg>
+            <span className="text-sm font-medium">No reports found.</span>
+          </div>
+        )}
+
+
+        <div className="space-y-4">
+          {allReports.map((reportGroup) => {
+            const summary = reportSummaries[reportGroup?.testCaseId];
+
+            return (
+              <Disclosure key={reportGroup?.testCaseId}>
+                {({ open }) => (
+                  <div className="border border-primary/30 rounded-md shadow-sm">
+                    <Disclosure.Button className="flex w-full justify-between items-center px-4 py-3 font-medium bg-primary/5 rounded-t-md cursor-pointer">
+                      <div className="flex flex-col items-start gap-1">
+                        <div className="flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-primary/20">
+                          <span className="text-xs font-mono tracking-wide text-muted-foreground">
+                            Id: {reportGroup?.testCaseId}
+                          </span>
+                          <CopyToClipboard text={reportGroup?.testCaseId ?? ""} />
+                        </div>
+                      </div>
+
+                      {summary && (
+                        <div className="ml-auto mr-3">
+                          <SummaryDonutChart
+                            completed={summary?.totalCompleted}
+                            failed={summary?.totalFailed}
+                            total={summary?.totalReports}
+                          />
+                        </div>
+                      )}
+
+                      <ChevronUpIcon
+                        className={`h-5 w-5 transition-transform duration-300 text-primary ${open ? "rotate-180" : ""}`}
+                      />
+                    </Disclosure.Button>
+
+                    <Disclosure.Panel className="px-4 py-2 bg-white">
+                      <TimestampTabs reports={reportGroup.reports} />
+                    </Disclosure.Panel>
+                  </div>
+                )}
+              </Disclosure>
+            );
+          })}
+        </div>
       </div>
     </DashboardHeader>
   );
 };
 
 export default Reports;
+
+
+
+{/* <div className="space-y-4">
+          {allReports.map((reportGroup) => (
+            <Disclosure key={reportGroup.testCaseId}>
+              {({ open }) => (
+                <div className="border border-primary/30 rounded-md shadow-sm">
+                  <Disclosure.Button className="flex w-full justify-between items-center px-4 py-3 font-medium bg-primary/5 rounded-t-md cursor-pointer">
+                    <div className="flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-primary/20">
+                      <span className="text-xs font-mono tracking-wide text-muted-foreground">
+                        Id: {reportGroup.testCaseId}
+                      </span>
+                      {reportGroup.testCaseId ? (<CopyToClipboard text={reportGroup.testCaseId ?? ''} />) : (toast.error("No ID found"))}
+                    </div>
+
+                    <ChevronUpIcon
+                      className={`h-5 w-5 transition-transform duration-300 ${open ? "rotate-180" : ""
+                        }`}
+                    />
+                  </Disclosure.Button>
+                  <Disclosure.Panel className="px-4 py-2 bg-white">
+                    <TimestampTabs
+                      reports={reportGroup.reports}
+                      onStatusComputed={(summary) => {
+                        setReportSummaries((prev) => ({
+                          ...prev,
+                          [reportGroup.testCaseId]: summary,
+                        }));
+                      }}
+                    />
+                  </Disclosure.Panel>
+                </div>
+              )}
+            </Disclosure>
+          ))}
+        </div> */}

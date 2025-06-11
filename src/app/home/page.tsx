@@ -226,8 +226,6 @@ const Home = () => {
     const selectedTests: any = testCasesUpdated?.filter((tc: any) =>
         selectedCases.includes(tc.testCaseId)
     );
-
-    console.log("responseData ",responseData);
     
     return (
         <DashboardHeader onToggleDarkMode={handleToggleDarkMode}>

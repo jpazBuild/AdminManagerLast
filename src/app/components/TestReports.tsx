@@ -77,8 +77,6 @@ const TestReports = ({ reports, progress, selectedTest, testData, stopped }: any
         totalExecutionTime: number;
     }>(() => {
         let success = 0, failed = 0, pending = 0, time = 0;
-
-        console.log("steps in useMemo", steps);
         
         selectedTest.forEach((test: any) => {
             const reportId = test.testCaseId;

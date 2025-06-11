@@ -42,8 +42,11 @@ export const ImageModalWithZoom = ({ isOpen, imageUrl, onClose }: ImageModalProp
 
             const simulateDelay = 1000;
 
+            const isBase64Raw = !imageUrl.startsWith("http") && !imageUrl.startsWith("data:image");
+            const finalSrc = isBase64Raw ? `data:image/jpeg;base64,${imageUrl}` : imageUrl;
+
             const img = new window.Image();
-            img.src = imageUrl;
+            img.src = finalSrc;
 
             img.onload = () => {
                 if (img.width > 1 && img.height > 1) {
@@ -66,11 +69,13 @@ export const ImageModalWithZoom = ({ isOpen, imageUrl, onClose }: ImageModalProp
                     });
                 }
             }, simulateDelay);
+
             return () => {
                 clearTimeout(scrollTimer);
             };
         }
     }, [isOpen, imageUrl]);
+
 
     const handleWheel = (e: React.WheelEvent) => {
         e.preventDefault();
@@ -160,21 +165,37 @@ export const ImageModalWithZoom = ({ isOpen, imageUrl, onClose }: ImageModalProp
                         onMouseMove={handleMouseMove}
                         onMouseLeave={handleMouseUp}
                     >
-                        <Image
-                            src={imageUrl}
-                            alt="Zoomable screenshot"
-                            width={1280}
-                            height={720}
-                            loading="lazy"
-                            onLoadingComplete={() => setIsImageLoaded(true)}
-                            className="rounded-md select-none pointer-events-none object-contain w-auto h-auto max-w-full max-h-[90vh]"
-                            style={{
-                                transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
-                                transformOrigin: "top left",
-                                transition: "transform 0.1s ease-out",
-                            }}
-                            draggable={false}
-                        />
+                        {imageUrl.startsWith("http") ? (
+                            <Image
+                                src={imageUrl}
+                                alt="Zoomable screenshot"
+                                width={1280}
+                                height={720}
+                                loading="lazy"
+                                onLoadingComplete={() => setIsImageLoaded(true)}
+                                className="rounded-md select-none pointer-events-none object-contain w-auto h-auto max-w-full max-h-[90vh]"
+                                style={{
+                                    transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
+                                    transformOrigin: "top left",
+                                    transition: "transform 0.1s ease-out",
+                                }}
+                                draggable={false}
+                            />
+
+                        ) : (
+                            <img
+                                src={`data:image/jpeg;base64,${imageUrl}`}
+                                alt="Zoomable screenshot"
+                                onLoad={() => setIsImageLoaded(true)}
+                                className="rounded-md select-none pointer-events-none object-contain w-auto h-auto max-w-full max-h-[90vh]"
+                                style={{
+                                    transform: `scale(${zoom}) translate(${position.x / zoom}px, ${position.y / zoom}px)`,
+                                    transformOrigin: "top left",
+                                    transition: "transform 0.1s ease-out",
+                                }}
+                                draggable={false}
+                            />
+                        )}
                     </div>
                 )}
             </div>
@@ -268,3 +289,5 @@ const ReportUI = ({
 };
 
 export default ReportUI;
+
+

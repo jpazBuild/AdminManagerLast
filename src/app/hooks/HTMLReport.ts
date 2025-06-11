@@ -29,9 +29,7 @@ export const handleDownloadHTMLReport = (
     reports: TestReport[],
     testData?: TestDataType,
     selectedTest?:any
-) => {
-  console.log("selectedTest :", selectedTest);
-  
+) => {  
     const chartData = {
         labels: ['Success', 'Failed'],
         datasets: [{

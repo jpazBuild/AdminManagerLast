@@ -101,10 +101,6 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
         }
     }, [dynamicValues]);
 
-    // const getDynamicFields = (jsonTest: any) => {
-    //     const valueAsString = typeof jsonTest === "string" ? jsonTest : JSON.stringify(jsonTest);
-    //     return valueAsString?.match(/<([^>]+)>/g)?.map(t => t.replace(/[<>]/g, '')) || [];
-    // };
     const getDynamicFields = (jsonTest: any) => {
         const valueAsString = typeof jsonTest === "string" ? jsonTest : JSON.stringify(jsonTest);
 
