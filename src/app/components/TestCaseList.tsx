@@ -15,10 +15,8 @@ import { FakerInputWithAutocomplete } from "./FakerInput";
 import SortableTestCasesAccordion from "./SortableItem";
 import FileDropzone from "./FileDropZone";
 import axios from "axios";
-import { Dialog, DialogClose, DialogContent, DialogTitle } from "@radix-ui/react-dialog";
-import { DialogFooter, DialogHeader } from "@/components/ui/dialog";
 import TestCaseActions from "./TestCaseActions";
-import { handleAxiosRequest } from "@/utils/";
+import { handleAxiosRequest } from "../../utils/handleAxiosRequest";
 
 interface TestStep {
     action: string;
