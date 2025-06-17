@@ -8,6 +8,7 @@ import { TimestampTabs } from "../components/TimestampTabs";
 import { toast } from "sonner";
 import CopyToClipboard from "../components/CopyToClipboard";
 import { SummaryDonutChart } from "../components/SummaryDonutChart";
+import { useRef } from "react";
 
 type Event = {
   indexStep: number;
@@ -32,67 +33,105 @@ type Reports = {
   reports: Event[];
 };
 
+
 const Reports = () => {
-  const [allReports, setAllReports] = useState<Reports[]>([]);
-  const [reportSummaries, setReportSummaries] = useState<{
-    [testCaseId: string]: { totalCompleted: number; totalFailed: number; totalReports: number };
-  }>({});
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  const [reportItems, setReportItems] = useState<ReportItem[]>([]);
+  const [reportSummaries, setReportSummaries] = useState<{ [id: string]: any }>({});
+  const [allReports, setAllReports] = useState<{ [id: string]: Event[] }>({});
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const REPORTS_PER_PAGE = 10;
+  const totalPages = Math.max(1, Math.ceil(reportItems.length / REPORTS_PER_PAGE));
+  const currentItems = reportItems.slice((currentPage - 1) * REPORTS_PER_PAGE, currentPage * REPORTS_PER_PAGE);
+
+
+  const loadedReportsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
-    const fetchReports = async () => {
+    const fetchReportList = async () => {
       try {
         const url = `${String(URL_API_ALB)}/getReports`;
-        const response = await fetch(url, {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        });
-        
-        const data: ReportItem[] = await response.json();
-
-        const summaries: { [key: string]: { totalCompleted: number; totalFailed: number; totalReports: number } } = {};
-        const reportsWithData: Reports[] = [];
-
-        for (const { testCaseId, urlReport } of data) {
-          try {
-            const res = await fetch(urlReport);
-            if (!res.ok) throw new Error(`Error ${res.status}`);
-            const json = await res.json();
-
-            const reports: Event[] = json?.reports || [];
-
-            const latestSteps = reports?.map((r: any) => r?.events?.at(-1));
-            const totalCompleted = latestSteps?.filter((s) => s?.status === "completed").length;
-            const totalFailed = latestSteps?.filter((s) => s?.status === "failed").length;
-
-            summaries[testCaseId] = {
-              totalCompleted,
-              totalFailed,
-              totalReports: reports?.length,
-            };
-
-            reportsWithData.push({ testCaseId, reports });
-          } catch (err) {
-            console.error(`Error loading report for ${testCaseId}:`, err);
-            summaries[testCaseId] = { totalCompleted: 0, totalFailed: 0, totalReports: 0 };
-            reportsWithData.push({ testCaseId, reports: [] });
-          }
-        }
-
-        setAllReports(reportsWithData);
-        setReportSummaries(summaries);
+        const res = await fetch(url);
+        const data: ReportItem[] = await res.json();
+        setReportItems(data);
       } catch (err) {
         console.error(err);
-        setError("Error to obtain reports.");
+        setError("Failed to load report list.");
       } finally {
         setLoading(false);
       }
     };
-
-    fetchReports();
+    fetchReportList();
   }, []);
+
+  useEffect(() => {
+    const fetchReportsForPage = async () => {
+      setLoading(true);
+
+      const summaries: typeof reportSummaries = {};
+      const reportsToAdd: { [id: string]: Event[] } = {};
+
+      for (const { testCaseId, urlReport } of currentItems) {
+        if (loadedReportsRef.current.has(testCaseId)) {
+          if (!reportSummaries[testCaseId]) {
+            const existingEvents = allReports[testCaseId] || [];
+            const totalCompleted = existingEvents.filter(e => e?.status === "completed").length;
+            const totalFailed = existingEvents.filter(e => e?.status === "failed").length;
+            summaries[testCaseId] = {
+              totalCompleted,
+              totalFailed,
+              totalReports: existingEvents.length,
+            };
+          }
+          continue;
+        }
+
+        try {
+          const res = await fetch(urlReport);
+          if (!res.ok) throw new Error(`Error ${res.status}`);
+          const json = await res.json();
+          const events: Event[] = json?.reports || [];
+
+          const latestSteps = events.map((r: any) => r?.events?.at(-1));
+
+          const totalCompleted = latestSteps.filter((s) => s?.status === "completed").length;
+          const totalFailed = latestSteps.filter((s) => s?.status === "failed").length;
+
+
+          summaries[testCaseId] = {
+            totalCompleted,
+            totalFailed,
+            totalReports: events.length,
+          };
+
+          reportsToAdd[testCaseId] = events;
+          loadedReportsRef.current.add(testCaseId);
+        } catch (err) {
+          console.error(`Error loading report for ${testCaseId}:`, err);
+          summaries[testCaseId] = { totalCompleted: 0, totalFailed: 0, totalReports: 0 };
+          reportsToAdd[testCaseId] = [];
+          loadedReportsRef.current.add(testCaseId);
+        }
+      }
+
+      if (Object.keys(summaries).length > 0) {
+        setReportSummaries(prev => ({ ...prev, ...summaries }));
+      }
+
+      if (Object.keys(reportsToAdd).length > 0) {
+        setAllReports(prev => ({ ...prev, ...reportsToAdd }));
+      }
+
+      setLoading(false);
+    };
+
+    if (currentItems.length > 0) {
+      fetchReportsForPage();
+    }
+  }, [currentItems]);
 
   return (
     <DashboardHeader onToggleDarkMode={setDarkMode}>
@@ -111,134 +150,84 @@ const Reports = () => {
                   <div className="h-4 bg-primary/10 rounded w-1/2"></div>
                 </div>
                 <div className="w-7 h-7 rounded-full border-4 border-primary/10 border-t-primary/40 animate-spin"></div>
-
               </div>
             ))}
           </div>
         )}
 
-
         {error && (
-          <div className="flex items-center gap-3 p-4 mb-4 bg-red-50 border border-red-200 text-red-700 rounded-md">
-            <svg
-              className="w-6 h-6 shrink-0 text-red-500"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.054 0 1.64-1.14 1.077-2.045L13.077 4.954c-.527-.899-1.827-.899-2.354 0L4.005 16.955C3.442 17.86 4.028 19 5.082 19z"
-              />
-            </svg>
-            <span className="text-sm font-medium">{error}</span>
+          <div className="p-4 mb-4 bg-red-50 border border-red-200 text-red-700 rounded-md">
+            Error: {error}
           </div>
         )}
+        {currentItems?.map(({ testCaseId }) => {
+          const reports = allReports[testCaseId] || [];
+          const summary = reportSummaries[testCaseId];
 
-        {!loading && !error && allReports.length === 0 && (
-          <div className="flex items-center gap-3 p-4 mb-4 bg-gray-50 border border-gray-200 text-gray-700 rounded-md">
-            <svg
-              className="w-6 h-6 shrink-0 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 17v-2a4 4 0 00-4-4H5a2 2 0 00-2 2v6h16v-2a4 4 0 00-4-4h-1a4 4 0 00-4 4zM9 7h.01M15 7h.01M12 11h.01"
-              />
-            </svg>
-            <span className="text-sm font-medium">No reports found.</span>
-          </div>
-        )}
-
-
-        <div className="space-y-4">
-          {allReports.map((reportGroup) => {
-            const summary = reportSummaries[reportGroup?.testCaseId];
-
-            return (
-              <Disclosure key={reportGroup?.testCaseId}>
-                {({ open }) => (
-                  <div className="border border-primary/30 rounded-md shadow-sm">
-                    <Disclosure.Button className="flex w-full justify-between items-center px-4 py-3 font-medium bg-primary/5 rounded-t-md cursor-pointer">
-                      <div className="flex flex-col items-start gap-1">
-                        <div className="flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-primary/20">
-                          <span className="text-xs font-mono tracking-wide text-muted-foreground">
-                            Id: {reportGroup?.testCaseId}
-                          </span>
-                          <CopyToClipboard text={reportGroup?.testCaseId ?? ""} />
-                        </div>
-                      </div>
-
-                      {summary && (
-                        <div className="ml-auto mr-3">
-                          <SummaryDonutChart
-                            completed={summary?.totalCompleted}
-                            failed={summary?.totalFailed}
-                            total={summary?.totalReports}
-                          />
-                        </div>
-                      )}
-
-                      <ChevronUpIcon
-                        className={`h-5 w-5 transition-transform duration-300 text-primary ${open ? "rotate-180" : ""}`}
-                      />
-                    </Disclosure.Button>
-
-                    <Disclosure.Panel className="px-4 py-2 bg-white">
-                      <TimestampTabs reports={reportGroup.reports} />
-                    </Disclosure.Panel>
-                  </div>
-                )}
-              </Disclosure>
-            );
-          })}
-        </div>
-      </div>
-    </DashboardHeader>
-  );
-};
-
-export default Reports;
-
-
-
-{/* <div className="space-y-4">
-          {allReports.map((reportGroup) => (
-            <Disclosure key={reportGroup.testCaseId}>
+          return (
+            <Disclosure key={testCaseId}>
               {({ open }) => (
                 <div className="border border-primary/30 rounded-md shadow-sm">
-                  <Disclosure.Button className="flex w-full justify-between items-center px-4 py-3 font-medium bg-primary/5 rounded-t-md cursor-pointer">
-                    <div className="flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-primary/20">
-                      <span className="text-xs font-mono tracking-wide text-muted-foreground">
-                        Id: {reportGroup.testCaseId}
-                      </span>
-                      {reportGroup.testCaseId ? (<CopyToClipboard text={reportGroup.testCaseId ?? ''} />) : (toast.error("No ID found"))}
+                  <Disclosure.Button className="flex w-full justify-between items-center px-4 py-3 font-medium bg-primary/5">
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-primary/20">
+                        <span className="text-xs font-mono tracking-wide text-muted-foreground">
+                          Id: {testCaseId}
+                        </span>
+                        <CopyToClipboard text={testCaseId} />
+                      </div>
                     </div>
 
+                    {summary && (
+                      <div className="ml-auto mr-3">
+                        <SummaryDonutChart
+                          completed={summary?.totalCompleted}
+                          failed={summary?.totalFailed}
+                          total={summary?.totalReports}
+                        />
+                      </div>
+                    )}
+
                     <ChevronUpIcon
-                      className={`h-5 w-5 transition-transform duration-300 ${open ? "rotate-180" : ""
-                        }`}
+                      className={`h-5 w-5 transition-transform duration-300 text-primary ${open ? "rotate-180" : ""}`}
                     />
                   </Disclosure.Button>
+
                   <Disclosure.Panel className="px-4 py-2 bg-white">
-                    <TimestampTabs
-                      reports={reportGroup.reports}
-                      onStatusComputed={(summary) => {
-                        setReportSummaries((prev) => ({
-                          ...prev,
-                          [reportGroup.testCaseId]: summary,
-                        }));
-                      }}
-                    />
+                    <TimestampTabs reports={reports} />
                   </Disclosure.Panel>
                 </div>
               )}
             </Disclosure>
-          ))}
-        </div> */}
+          );
+        })}
+
+
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-4 mt-6">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 bg-primary/20 text-primary rounded hover:bg-primary/30 disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-primary/80">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 bg-primary/20 text-primary rounded hover:bg-primary/30 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        )}
+      </div>
+    </DashboardHeader>
+  );
+
+};
+
+export default Reports;
