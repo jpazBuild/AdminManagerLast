@@ -40,6 +40,11 @@ const Reports = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const REPORTS_PER_PAGE = 10;
+  const totalPages = Math.ceil(allReports.length / REPORTS_PER_PAGE);
+  const paginatedReports = allReports.slice((currentPage - 1) * REPORTS_PER_PAGE, currentPage * REPORTS_PER_PAGE);
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -49,7 +54,7 @@ const Reports = () => {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
-        
+
         const data: ReportItem[] = await response.json();
 
         const summaries: { [key: string]: { totalCompleted: number; totalFailed: number; totalReports: number } } = {};
@@ -62,15 +67,14 @@ const Reports = () => {
             const json = await res.json();
 
             const reports: Event[] = json?.reports || [];
-
-            const latestSteps = reports?.map((r: any) => r?.events?.at(-1));
-            const totalCompleted = latestSteps?.filter((s) => s?.status === "completed").length;
-            const totalFailed = latestSteps?.filter((s) => s?.status === "failed").length;
+            const latestSteps = reports.map((r: any) => r?.events?.at(-1));
+            const totalCompleted = latestSteps.filter((s) => s?.status === "completed").length;
+            const totalFailed = latestSteps.filter((s) => s?.status === "failed").length;
 
             summaries[testCaseId] = {
               totalCompleted,
               totalFailed,
-              totalReports: reports?.length,
+              totalReports: reports.length,
             };
 
             reportsWithData.push({ testCaseId, reports });
@@ -100,73 +104,26 @@ const Reports = () => {
         <h1 className="text-3xl font-bold mb-6 text-primary/80">Historic Reports</h1>
 
         {loading && (
-          <div className="flex flex-col gap-4">
-            {[...Array(3)].map((_, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-4 rounded-lg border border-primary/10 shadow-sm p-4 bg-white animate-pulse"
-              >
-                <div className="flex-1">
-                  <div className="h-6 bg-primary/10 rounded w-2/3 mb-2"></div>
-                  <div className="h-4 bg-primary/10 rounded w-1/2"></div>
-                </div>
-                <div className="w-7 h-7 rounded-full border-4 border-primary/10 border-t-primary/40 animate-spin"></div>
-
-              </div>
-            ))}
-          </div>
+          <div className="flex flex-col gap-4">{/* ...loading skeletons */}</div>
         )}
 
-
         {error && (
-          <div className="flex items-center gap-3 p-4 mb-4 bg-red-50 border border-red-200 text-red-700 rounded-md">
-            <svg
-              className="w-6 h-6 shrink-0 text-red-500"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.054 0 1.64-1.14 1.077-2.045L13.077 4.954c-.527-.899-1.827-.899-2.354 0L4.005 16.955C3.442 17.86 4.028 19 5.082 19z"
-              />
-            </svg>
-            <span className="text-sm font-medium">{error}</span>
-          </div>
+          <div className="...text-red-700">Error: {error}</div>
         )}
 
         {!loading && !error && allReports.length === 0 && (
-          <div className="flex items-center gap-3 p-4 mb-4 bg-gray-50 border border-gray-200 text-gray-700 rounded-md">
-            <svg
-              className="w-6 h-6 shrink-0 text-gray-400"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 17v-2a4 4 0 00-4-4H5a2 2 0 00-2 2v6h16v-2a4 4 0 00-4-4h-1a4 4 0 00-4 4zM9 7h.01M15 7h.01M12 11h.01"
-              />
-            </svg>
-            <span className="text-sm font-medium">No reports found.</span>
-          </div>
+          <div className="...text-gray-700">No reports found.</div>
         )}
 
-
         <div className="space-y-4">
-          {allReports.map((reportGroup) => {
+          {paginatedReports.map((reportGroup) => {
             const summary = reportSummaries[reportGroup?.testCaseId];
-
             return (
               <Disclosure key={reportGroup?.testCaseId}>
                 {({ open }) => (
                   <div className="border border-primary/30 rounded-md shadow-sm">
-                    <Disclosure.Button className="flex w-full justify-between items-center px-4 py-3 font-medium bg-primary/5 rounded-t-md cursor-pointer">
-                      <div className="flex flex-col items-start gap-1">
+                    <Disclosure.Button className="flex w-full items-center p-2">
+                      <div className="flex items-start gap-1">
                         <div className="flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-primary/20">
                           <span className="text-xs font-mono tracking-wide text-muted-foreground">
                             Id: {reportGroup?.testCaseId}
@@ -174,7 +131,6 @@ const Reports = () => {
                           <CopyToClipboard text={reportGroup?.testCaseId ?? ""} />
                         </div>
                       </div>
-
                       {summary && (
                         <div className="ml-auto mr-3">
                           <SummaryDonutChart
@@ -184,10 +140,7 @@ const Reports = () => {
                           />
                         </div>
                       )}
-
-                      <ChevronUpIcon
-                        className={`h-5 w-5 transition-transform duration-300 text-primary ${open ? "rotate-180" : ""}`}
-                      />
+                      <ChevronUpIcon className={`h-5 w-5 transition-transform duration-300 text-primary ${open ? "rotate-180" : ""}`} />
                     </Disclosure.Button>
 
                     <Disclosure.Panel className="px-4 py-2 bg-white">
@@ -199,46 +152,31 @@ const Reports = () => {
             );
           })}
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-4 mt-6">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 bg-primary/20 text-primary rounded hover:bg-primary/30 disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-primary/80">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 bg-primary/20 text-primary rounded hover:bg-primary/30 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </DashboardHeader>
   );
 };
 
 export default Reports;
-
-
-
-{/* <div className="space-y-4">
-          {allReports.map((reportGroup) => (
-            <Disclosure key={reportGroup.testCaseId}>
-              {({ open }) => (
-                <div className="border border-primary/30 rounded-md shadow-sm">
-                  <Disclosure.Button className="flex w-full justify-between items-center px-4 py-3 font-medium bg-primary/5 rounded-t-md cursor-pointer">
-                    <div className="flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-primary/20">
-                      <span className="text-xs font-mono tracking-wide text-muted-foreground">
-                        Id: {reportGroup.testCaseId}
-                      </span>
-                      {reportGroup.testCaseId ? (<CopyToClipboard text={reportGroup.testCaseId ?? ''} />) : (toast.error("No ID found"))}
-                    </div>
-
-                    <ChevronUpIcon
-                      className={`h-5 w-5 transition-transform duration-300 ${open ? "rotate-180" : ""
-                        }`}
-                    />
-                  </Disclosure.Button>
-                  <Disclosure.Panel className="px-4 py-2 bg-white">
-                    <TimestampTabs
-                      reports={reportGroup.reports}
-                      onStatusComputed={(summary) => {
-                        setReportSummaries((prev) => ({
-                          ...prev,
-                          [reportGroup.testCaseId]: summary,
-                        }));
-                      }}
-                    />
-                  </Disclosure.Panel>
-                </div>
-              )}
-            </Disclosure>
-          ))}
-        </div> */}
