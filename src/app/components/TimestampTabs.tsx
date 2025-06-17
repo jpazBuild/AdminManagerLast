@@ -86,13 +86,13 @@ export const TimestampTabs = ({ reports = [], onStatusComputed }: any) => {
 
             <div className="space-y-6">
                 <div className="p-2 flex gap-3 flex-wrap pb-2">
-                    {reports.map((report: any, idx: number) => {
+                    {reports?.map((report: any, idx: number) => {
                         const statusEntry = reportStatus.find((r:any) => r?.timestamp === report?.timestamp);
                         const isCompleted = statusEntry?.completed;
                         const isFailed = statusEntry?.failed;
 
                         return (
-                            <div key={report.timestamp} className="flex flex-col items-center">
+                            <div key={report?.timestamp} className="flex flex-col items-center">
                                 <button
                                     onClick={() => setSelectedIndex(idx)}
                                     className={`px-4 py-2 text-sm rounded-md font-medium transition ${idx === selectedIndex
@@ -100,7 +100,7 @@ export const TimestampTabs = ({ reports = [], onStatusComputed }: any) => {
                                             : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                         }`}
                                 >
-                                    {new Date(report.timestamp).toLocaleString()}
+                                    {new Date(report?.timestamp).toLocaleString()}
                                 </button>
                                 <span
                                     className={`mt-1 w-5 h-1 rounded-full ${isCompleted ? "bg-green-500" : isFailed ? "bg-red-500" : "bg-gray-400"
@@ -117,11 +117,11 @@ export const TimestampTabs = ({ reports = [], onStatusComputed }: any) => {
                         Report {new Date(selectedReport?.timestamp).toLocaleString()}
                     </h3>
                     <div className="list-disc pl-6 text-sm text-gray-600 flex flex-col gap-4">
-                        {selectedReport.events.map((ev: any, idx: any) => (
+                        {selectedReport?.events.map((ev: any, idx: any) => (
                             <StepCard
-                                key={ev.indexStep}
+                                key={ev?.indexStep}
                                 step={ev}
-                                stepData={ev.data}
+                                stepData={ev?.data}
                                 index={idx + 1}
                                 handleImageClick={() => handleImageClick(ev?.screenshot)}
                             />
