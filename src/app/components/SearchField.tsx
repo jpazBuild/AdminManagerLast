@@ -36,7 +36,7 @@ export const SearchField = ({
   disabled = false,
 }: TagSelectorProps) => {
   const [open, setOpen] = useState(false);
-  const selectedOption = options.find((opt) => opt.value === value);
+  const selectedOption = options?.find((opt) => opt?.value === value);
 
   const handleClear = () => {
     onChange("");
@@ -79,15 +79,15 @@ export const SearchField = ({
               <CommandList>
                 <CommandEmpty>No tags found.</CommandEmpty>
                 <CommandGroup>
-                  {options.map((opt) => (
+                  {options?.map((opt) => (
                     <CommandItem
-                      key={opt.value}
+                      key={opt?.value}
                       onSelect={() => {
-                        onChange(opt.value);
+                        onChange(opt?.value);
                         setOpen(false);
                       }}
                     >
-                      {opt.label}
+                      {opt?.label}
                     </CommandItem>
                   ))}
                 </CommandGroup>

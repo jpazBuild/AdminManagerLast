@@ -53,10 +53,10 @@ const Home = () => {
         setIsLoading(true);
         try {
             const response = await fetch(`${process.env.URL_API_INTEGRATION}retrieveAutomationFlow?returnUniqueValues=true`);
-            const data = await response.json();            
-            setTags(data.response.tagName);
-            setModules(data.response.moduleName);
-            setSubmodules(data.response.subModuleName);
+            const data = await response.json();
+            setTags(data.response?.tagName);
+            setModules(data.response?.moduleName);
+            setSubmodules(data.response?.subModuleName);
         } catch (error) {
             console.error('Error al obtener los datos', error);
         } finally {
@@ -93,14 +93,14 @@ const Home = () => {
             const response = await fetch(
                 `${process.env.URL_API_INTEGRATION}retrieveAutomationFlow?${searchParams.toString()}`
             );
-            
+
             const data = await response.json();
             const uniqueSubmodules = Array.from(
                 new Set(data.response.map((item: any) => item.subModuleName).filter(Boolean))
             );
 
             setSubmodules(uniqueSubmodules as Submodule[]);
-          
+
         } catch (error) {
             console.error('Error al obtener los subMódulos para el module', error);
         } finally {
@@ -168,18 +168,18 @@ const Home = () => {
             const response = await fetch(
                 `${process.env.URL_API_INTEGRATION}retrieveAutomationFlow?${searchParams.toString()}`
             );
-            
-            const data = await response.json();            
-            
-            if (selectedSubmodule) {    
+
+            const data = await response.json();
+
+            if (selectedSubmodule) {
                 const filteredData = await data?.response?.filter((item: TestCase) =>
                     item?.subModuleName === selectedSubmodule || item?.subModuleName?.includes(selectedSubmodule)
                 );
                 setResponseData(filteredData || []);
-            }else{
+            } else {
                 setResponseData(data?.response || []);
             }
-                
+
         } catch (error) {
             console.error('Error to obtain data', error);
             toast.error('Error to obtain data');
@@ -226,7 +226,7 @@ const Home = () => {
     const selectedTests: any = testCasesUpdated?.filter((tc: any) =>
         selectedCases.includes(tc.testCaseId)
     );
-    
+
     return (
         <DashboardHeader onToggleDarkMode={handleToggleDarkMode}>
             <div className="w-full p-4 flex flex-col gap-4 justify-center mx-auto text-primary">
@@ -236,7 +236,7 @@ const Home = () => {
                         label="Tag"
                         value={selectedTag}
                         onChange={setSelectedTag}
-                        options={tags.map((tag: Tag) => ({
+                        options={tags?.map((tag: Tag) => ({
                             label: String(tag),
                             value: String(tag),
                         }))}
@@ -246,7 +246,7 @@ const Home = () => {
                         label="Module"
                         value={selectedModule}
                         onChange={setSelectedModule}
-                        options={modules.map((mod: Tag) => ({
+                        options={modules?.map((mod: Tag) => ({
                             label: String(mod),
                             value: String(mod),
                         }))}
@@ -257,7 +257,7 @@ const Home = () => {
                         label="Submodule"
                         value={selectedSubmodule}
                         onChange={setSelectedSubmodule}
-                        options={submodules.map((sub: Tag) => ({
+                        options={submodules?.map((sub: Tag) => ({
                             label: String(sub),
                             value: String(sub),
                         }))}
@@ -268,8 +268,12 @@ const Home = () => {
                     <div className="flex lg:flex-row flex-wrap items-center gap-2">
                         <Button
                             onClick={handleSearch}
-                            disabled={isSearchButtonDisabled}
-                            className="bg-[#021d3d]/90 font-semibold tracking-wide hover:bg-[#021d3d]/95 text-white flex items-center gap-2"
+                            disabled={isSearchButtonDisabled || isLoading}
+                            className={`bg-[#021d3d]/90 font-semibold tracking-wide hover:bg-[#021d3d]/95 text-white flex items-center gap-2
+                            ${isSearchButtonDisabled ? "opacity-50 cursor-not-allowed" : ""}
+                            ${isLoading ? "opacity-50 cursor-not-allowed" : ""}
+
+                                `}
                         >
                             {isLoading ? "Searching..." : (
                                 <>
@@ -351,6 +355,7 @@ const Home = () => {
                     </div>
                 </div>
                 <div className="border p-4 rounded-lg">
+
                     {responseData?.length > 0 ? (
                         <>
                             <div className="flex flex-col gap-2 mb-2">
@@ -383,7 +388,7 @@ const Home = () => {
                                             </label>
                                         </div>
                                         <TestCaseList testCases={filteredTestCases} selectedCases={selectedCases} toggleSelect={toggleSelect} onDataChange={onDataChangeRead}
-                                            onTestCasesDataChange={onTestCasesDataChange}
+                                            onTestCasesDataChange={onTestCasesDataChange} onRefreshAfterUpdateOrDelete={fetchInitialData}
                                         />
                                         <TestSettings
                                             onBrowserLimitChange={handleBrowserLimitChange}
@@ -412,7 +417,7 @@ const Home = () => {
                                         <span className="flex items-center gap-2"><FiPlay /> Run Tests</span>
                                     </>)}
                                 </button>
-                                
+
 
                             </div>
                             {executeRun && (
@@ -422,7 +427,17 @@ const Home = () => {
                         </>
                     ) : (
                         <>
-                            <NoData />
+                            {isLoading ? (
+                                <div className="flex flex-col gap-4 justify-center items-center h-64">
+                                    <div className="h-16 bg-primary/20 rounded w-full mb-2 animate-pulse"></div>
+                                    <div className="h-16 bg-primary/20 rounded w-full mb-2 animate-pulse"></div>
+                                    <div className="h-16 bg-primary/20 rounded w-full mb-2 animate-pulse"></div>
+
+                                </div>
+                            ) : (
+                                <NoData />
+                            )}
+
                         </>
                     )}
                 </div>

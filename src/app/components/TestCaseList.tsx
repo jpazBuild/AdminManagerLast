@@ -14,6 +14,11 @@ import StepActions from "./StepActions";
 import { FakerInputWithAutocomplete } from "./FakerInput";
 import SortableTestCasesAccordion from "./SortableItem";
 import FileDropzone from "./FileDropZone";
+import axios from "axios";
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "@radix-ui/react-dialog";
+import { DialogFooter, DialogHeader } from "@/components/ui/dialog";
+import TestCaseActions from "./TestCaseActions";
+import { handleAxiosRequest } from "@/utils/";
 
 interface TestStep {
     action: string;
@@ -55,23 +60,28 @@ interface TestCaseListProps {
     onDataChange?: (data: DynamicValues) => void;
     onStepsUpdate?: (id: string, steps: TestStep[]) => void;
     onTestCasesDataChange?: (data: TestCase[]) => void;
+    onRefreshAfterUpdateOrDelete: () => void;
 }
 
 interface DynamicValues {
     data: Record<string, Record<string, string>>;
 }
 
+
 const TestCaseList: React.FC<TestCaseListProps> = ({
     testCases = [],
     selectedCases,
     toggleSelect,
     onDataChange,
-    onTestCasesDataChange
+    onTestCasesDataChange,
+    onRefreshAfterUpdateOrDelete
 }) => {
     const [editMode, setEditMode] = useState<'global' | 'individual'>('global');
     const [dynamicValues, setDynamicValues] = useState<{ id: string; input: Record<string, string>; order?: number; testCaseName?: string; createdBy?: string }[]>([]);
     const [viewMode, setViewMode] = useState<'data' | 'steps'>('data');
     const [testCasesData, setTestCasesData] = useState<TestCase[]>([]);
+    const [openDialog, setOpenDialog] = useState(false);
+
     useEffect(() => {
         if (typeof onTestCasesDataChange === "function") {
             onTestCasesDataChange(testCasesData);
@@ -285,6 +295,35 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
         URL.revokeObjectURL(url);
     };
 
+    const handleDeleteTestCase = async (testCaseId: string) => {
+        const res = await handleAxiosRequest(() =>
+            axios.delete(`${process.env.URL_API_INTEGRATION?.replace(/\/+$/, "")}/deleteAutomationFlow`, {
+                data: { testCaseId },
+                headers: { "Content-Type": "application/json" },
+            }),
+            "Test case deleted successfully"
+        );
+
+        if (res) {
+            setTestCasesData(prev => prev.filter(tc => tc.testCaseId !== testCaseId));
+            setDynamicValues(prev => prev.filter(val => val.id !== testCaseId));
+            onRefreshAfterUpdateOrDelete();
+        }
+    };
+
+    const handleUpdateTestCase = async (test: TestCase) => {
+        const res = await handleAxiosRequest(() =>
+            axios.put(`${process.env.URL_API_INTEGRATION?.replace(/\/+$/, "")}/updateAutomationFlow`, test, {
+                headers: { "Content-Type": "application/json" },
+            }),
+            "Test case updated successfully"
+        );
+
+        if (res) {
+            onRefreshAfterUpdateOrDelete();
+        }
+    };
+
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center gap-3 p-2 bg-card rounded-lg">
@@ -358,215 +397,227 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                     const steps = currentTestCase?.stepsData ?? [];
 
                     return (
-                        <AccordionItem key={`${test?.testCaseId} ${index}`} value={test?.testCaseId ?? ''} className="border rounded-lg">
-                            <div className="flex items-center w-full h-auto bg-primary/5 p-0.5">
-                                <Checkbox
-                                    id={test?.testCaseId ?? ''}
-                                    checked={selectedCases?.includes(test?.testCaseId ?? '')}
-                                    onCheckedChange={() => toggleSelect(test?.testCaseId ?? '')}
-                                />
-                                <AccordionTrigger className="flex hover:no-underline">
-                                    <div className="flex flex-col w-full h-auto">
-                                        <div className="flex justify-between w-full gap-2 items-center p-1 rounded-br-xl text-[10px]">
-                                            <div className="flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-primary/20">
-                                                <span className="text-xs font-mono tracking-wide text-muted-foreground">
-                                                    Id: {test?.testCaseId}
+
+                        <>
+                            <TestCaseActions
+                                test={test}
+                                onDelete={handleDeleteTestCase}
+                                onUpdate={handleUpdateTestCase}
+                            />
+
+                            <AccordionItem key={`${test?.testCaseId} ${index}`} value={test?.testCaseId ?? ''} className="border rounded-lg">
+                                <div className="flex items-center w-full h-auto bg-primary/5 p-0.5">
+                                    <Checkbox
+                                        id={test?.testCaseId ?? ''}
+                                        checked={selectedCases?.includes(test?.testCaseId ?? '')}
+                                        onCheckedChange={() => toggleSelect(test?.testCaseId ?? '')}
+                                    />
+                                    <AccordionTrigger className="flex hover:no-underline">
+                                        <div className="flex flex-col w-full h-auto">
+                                            <div className="flex justify-between w-full gap-2 items-center p-1 rounded-br-xl text-[10px]">
+                                                <div className="flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-primary/20">
+                                                    <span className="text-xs font-mono tracking-wide text-muted-foreground">
+                                                        Id: {test?.testCaseId}
+                                                    </span>
+                                                    {test?.testCaseId ? (<CopyToClipboard text={test.testCaseId ?? ''} />) : (toast.error("No ID found"))}
+                                                </div>
+                                                <span className="text-xs break-words text-primary/80 shadow-md rounded-md px-2 py-1">
+                                                    {test?.createdBy}
                                                 </span>
-                                                {test?.testCaseId ? (<CopyToClipboard text={test.testCaseId ?? ''} />) : (toast.error("No ID found"))}
                                             </div>
-                                            <span className="text-xs break-words text-primary/80 shadow-md rounded-md px-2 py-1">
-                                                {test?.createdBy}
-                                            </span>
-                                        </div>
-                                        <h3 className="font-medium mt-2 px-2">{test?.testCaseName}</h3>
-                                        {testFields.length > 0 && (
-                                            <p className="text-xs px-2 break-all whitespace-pre-wrap text-primary/70">
-                                                Dynamic fields: {testFields.join(", ")}
-                                            </p>
-                                        )}
-                                        <div className="flex justify-between w-full">
-                                            <span className="p-1 text-[11px] text-primary/80 rounded-md">
-                                                {currentTestCase?.stepsData?.length} Steps
-                                            </span>
+                                            <h3 className="font-medium mt-2 px-2">{test?.testCaseName}</h3>
 
-                                            <span className="p-1 text-[9px] text-primary/80 rounded-md">
-                                                {test?.createdAt}
-                                            </span>
-                                        </div>
-                                        {(test?.tagName || test?.moduleName || test?.subModuleName) && (
-                                            <div className="w-full flex flex-col lg:flex-row gap-1 rounded-md shadow-sm overflow-x-auto">
-                                                {test?.tagName && (
-                                                    <span className="text-xs text-white bg-primary/85 px-2 py-1 rounded-full">
-                                                        {test?.tagName}
-                                                    </span>
-                                                )}
-                                                {test?.moduleName && (
-                                                    <span className="text-xs text-white bg-primary/65 px-2 py-1 rounded-full">
-                                                        {test?.moduleName}
-                                                    </span>
-                                                )}
-                                                {test?.subModuleName && (
-                                                    <span className="text-xs text-white bg-primary/50 px-2 py-1 rounded-full">
-                                                        {test?.subModuleName}
-                                                    </span>
-                                                )}
+                                            {testFields.length > 0 && (
+                                                <p className="text-xs px-2 break-all whitespace-pre-wrap text-primary/70">
+                                                    Dynamic fields: {testFields.join(", ")}
+                                                </p>
+                                            )}
+                                            <div className="flex justify-between w-full">
+                                                <span className="p-1 text-[11px] text-primary/80 rounded-md">
+                                                    {currentTestCase?.stepsData?.length} Steps
+                                                </span>
+
+                                                <span className="p-1 text-[9px] text-primary/80 rounded-md">
+                                                    {test?.createdAt}
+                                                </span>
                                             </div>
-                                        )}
+                                            {(test?.tagName || test?.moduleName || test?.subModuleName) && (
+                                                <div className="w-full flex flex-col lg:flex-row gap-1 rounded-md shadow-sm overflow-x-auto">
+                                                    {test?.tagName && (
+                                                        <span className="text-xs text-white bg-primary/85 px-2 py-1 rounded-full">
+                                                            {test?.tagName}
+                                                        </span>
+                                                    )}
+                                                    {test?.moduleName && (
+                                                        <span className="text-xs text-white bg-primary/65 px-2 py-1 rounded-full">
+                                                            {test?.moduleName}
+                                                        </span>
+                                                    )}
+                                                    {test?.subModuleName && (
+                                                        <span className="text-xs text-white bg-primary/50 px-2 py-1 rounded-full">
+                                                            {test?.subModuleName}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
 
-                                    </div>
-                                </AccordionTrigger>
-                            </div>
-
-
-                            <AccordionContent className="p-4 space-y-3">
-                                <div className="flex gap-2">
-                                    <Button className={`bg-white hover:bg-white shadow-md text-primary/70 ${viewMode === 'data' ? 'border-b-4 border-primary' : ''}`} onClick={() => setViewMode('data')}>See Data <File className="ml-1" /></Button>
-                                    <Button className={`bg-white hover:bg-white shadow-md text-primary/70 ${viewMode === 'steps' ? 'border-b-4 border-primary' : ''}`} onClick={() => setViewMode('steps')}>See steps <Eye className="ml-1" /></Button>
+                                        </div>
+                                    </AccordionTrigger>
                                 </div>
-                                {viewMode === 'data' ? (
-                                    testFields.map((fieldName, index: number) => (
-                                        <div key={`${fieldName} ${test?.testCaseId} ${index}`} className="flex items-center gap-3">
-                                            <Label className="w-32 break-words">{fieldName}</Label>
 
-                                            {(() => {
-                                                const currentValue = getFieldValue(test?.testCaseId ?? '', fieldName);
 
-                                                const valueMimeMatch = typeof currentValue === "string"
-                                                    ? currentValue.match(/^data:(.*?);base64,/)
-                                                    : null;
-                                                const extractedMime = valueMimeMatch ? valueMimeMatch[1] : "";
+                                <AccordionContent className="p-4 space-y-3">
+                                    <div className="flex gap-2">
+                                        <Button className={`bg-white hover:bg-white shadow-md text-primary/70 ${viewMode === 'data' ? 'border-b-4 border-primary' : ''}`} onClick={() => setViewMode('data')}>See Data <File className="ml-1" /></Button>
+                                        <Button className={`bg-white hover:bg-white shadow-md text-primary/70 ${viewMode === 'steps' ? 'border-b-4 border-primary' : ''}`} onClick={() => setViewMode('steps')}>See steps <Eye className="ml-1" /></Button>
+                                    </div>
+                                    {viewMode === 'data' ? (
+                                        testFields.map((fieldName, index: number) => (
+                                            <div key={`${fieldName} ${test?.testCaseId} ${index}`} className="flex items-center gap-3">
+                                                <Label className="w-32 break-words">{fieldName}</Label>
 
-                                                const mimeFromFieldName = (() => {
-                                                    const regex = /\.(application\/json|application\/pdf|text\/csv|image\/[a-zA-Z0-9.+-]+)$/;
-                                                    const match = fieldName?.match(regex);
-                                                    return match ? match[1] : "application/octet-stream";
-                                                })();
+                                                {(() => {
+                                                    const currentValue = getFieldValue(test?.testCaseId ?? '', fieldName);
 
-                                                const allowedMime = mimeFromFieldName;
+                                                    const valueMimeMatch = typeof currentValue === "string"
+                                                        ? currentValue.match(/^data:(.*?);base64,/)
+                                                        : null;
+                                                    const extractedMime = valueMimeMatch ? valueMimeMatch[1] : "";
 
-                                                const label = (() => {
-                                                    if (allowedMime.startsWith("image/")) return "Upload image";
-                                                    if (allowedMime === "application/pdf") return "Upload PDF";
-                                                    if (allowedMime === "text/csv") return "Upload CSV";
-                                                    if (allowedMime === "application/json") return "Upload JSON";
-                                                    return "Upload file";
-                                                })();
+                                                    const mimeFromFieldName = (() => {
+                                                        const regex = /\.(application\/json|application\/pdf|text\/csv|image\/[a-zA-Z0-9.+-]+)$/;
+                                                        const match = fieldName?.match(regex);
+                                                        return match ? match[1] : "application/octet-stream";
+                                                    })();
 
-                                                const isPossiblyFileField =
-                                                    fieldName?.includes('.') &&
-                                                    (
-                                                        fieldName?.startsWith("file.") ||
-                                                        allowedMime !== "application/octet-stream" ||
-                                                        (typeof currentValue === "string" && currentValue.startsWith("data:"))
-                                                    );
+                                                    const allowedMime = mimeFromFieldName;
 
-                                                if (isPossiblyFileField) {
+                                                    const label = (() => {
+                                                        if (allowedMime.startsWith("image/")) return "Upload image";
+                                                        if (allowedMime === "application/pdf") return "Upload PDF";
+                                                        if (allowedMime === "text/csv") return "Upload CSV";
+                                                        if (allowedMime === "application/json") return "Upload JSON";
+                                                        return "Upload file";
+                                                    })();
+
+                                                    const isPossiblyFileField =
+                                                        fieldName?.includes('.') &&
+                                                        (
+                                                            fieldName?.startsWith("file.") ||
+                                                            allowedMime !== "application/octet-stream" ||
+                                                            (typeof currentValue === "string" && currentValue.startsWith("data:"))
+                                                        );
+
+                                                    if (isPossiblyFileField) {
+                                                        return (
+                                                            <FileDropzone
+                                                                label={label}
+                                                                acceptedExtensions={[allowedMime]}
+                                                                onFileParsed={(base64, file) => {
+                                                                    const mime = file?.type || "";
+                                                                    let messageType = "File";
+
+                                                                    if (mime.startsWith("image/")) messageType = "Image";
+                                                                    else if (mime === "application/pdf") messageType = "PDF";
+                                                                    else if (mime === "text/csv") messageType = "CSV";
+                                                                    else if (mime === "application/json") messageType = "JSON";
+
+                                                                    if (mime !== allowedMime) {
+                                                                        toast.error(`❌ Invalid file type. Expected: ${allowedMime}`);
+                                                                        return;
+                                                                    }
+
+                                                                    toast.success(`✅ ${messageType} loaded: ${file?.name}`);
+                                                                    handleValueChange(fieldName, base64, test?.testCaseId);
+                                                                }}
+                                                                onFileInfoChange={({ name }) => {
+                                                                    console.log(`Selected file: ${name}`);
+                                                                }}
+                                                            />
+                                                        );
+                                                    }
+
                                                     return (
-                                                        <FileDropzone
-                                                            label={label}
-                                                            acceptedExtensions={[allowedMime]}
-                                                            onFileParsed={(base64, file) => {
-                                                                const mime = file?.type || "";
-                                                                let messageType = "File";
-
-                                                                if (mime.startsWith("image/")) messageType = "Image";
-                                                                else if (mime === "application/pdf") messageType = "PDF";
-                                                                else if (mime === "text/csv") messageType = "CSV";
-                                                                else if (mime === "application/json") messageType = "JSON";
-
-                                                                if (mime !== allowedMime) {
-                                                                    toast.error(`❌ Invalid file type. Expected: ${allowedMime}`);
-                                                                    return;
-                                                                }
-
-                                                                toast.success(`✅ ${messageType} loaded: ${file?.name}`);
-                                                                handleValueChange(fieldName, base64, test?.testCaseId);
-                                                            }}
-                                                            onFileInfoChange={({ name }) => {
-                                                                console.log(`Selected file: ${name}`);
-                                                            }}
+                                                        <FakerInputWithAutocomplete
+                                                            id={`${fieldName} ${test?.testCaseId} ${index}`}
+                                                            value={getFieldValue(test?.testCaseId ?? '', fieldName)}
+                                                            onChange={(val: string) => handleValueChange(fieldName ?? '', val, test?.testCaseId)}
+                                                            placeholder={`Enter ${fieldName}`}
                                                         />
                                                     );
-                                                }
-
-                                                return (
-                                                    <FakerInputWithAutocomplete
-                                                        id={`${fieldName} ${test?.testCaseId} ${index}`}
-                                                        value={getFieldValue(test?.testCaseId ?? '', fieldName)}
-                                                        onChange={(val: string) => handleValueChange(fieldName ?? '', val, test?.testCaseId)}
-                                                        placeholder={`Enter ${fieldName}`}
-                                                    />
-                                                );
-                                            })()}
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="flex flex-col gap-4">
-                                        <div className="self-end mb-3 flex gap-2 items-center border-2 border-primary/60 rounded-md hover:shadow-md p-1">
-                                            <span>Copy All steps</span>
-                                            <CopyToClipboard text={JSON.stringify(currentTestCase?.stepsData)} />
-                                        </div>
-                                        {steps.length > 0 && (
-                                            <StepActions
-                                                index={-1}
-                                                steps={steps}
-                                                test={{ ...test, index }}
-                                                setTestCasesData={setTestCasesData}
-                                            />
-                                        )}
-
-                                        {steps.map((step: any, i: number) => (
-                                            <div key={i} className="flex flex-col">
-                                                <InteractionItem
-                                                    data={step}
-                                                    index={i}
-                                                    isContext={false}
-                                                    onDelete={(stepIndex) => {
-                                                        const updatedSteps = [...steps];
-                                                        updatedSteps.splice(stepIndex, 1);
-                                                        const reindexed = updatedSteps.map((step, idx) => ({
-                                                            ...step,
-                                                            indexStep: idx + 1,
-                                                        }));
-                                                        setTestCasesData((prev) => {
-                                                            const updatedTests = [...prev];
-                                                            updatedTests[index] = {
-                                                                ...updatedTests[index],
-                                                                stepsData: reindexed,
-                                                            };
-                                                            return updatedTests;
-                                                        });
-                                                    }}
-                                                    onUpdate={(indexToUpdate, newData) => {
-                                                        const updatedSteps = [...steps];
-                                                        updatedSteps[indexToUpdate] = {
-                                                            ...updatedSteps[indexToUpdate],
-                                                            ...newData,
-                                                        };
-                                                        setTestCasesData((prev) => {
-                                                            const updatedTests = [...prev];
-                                                            updatedTests[index] = {
-                                                                ...updatedTests[index],
-                                                                stepsData: updatedSteps,
-                                                            };
-                                                            return updatedTests;
-                                                        });
-                                                    }}
-                                                />
+                                                })()}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="flex flex-col gap-4">
+                                            <div className="self-end mb-3 flex gap-2 items-center border-2 border-primary/60 rounded-md hover:shadow-md p-1">
+                                                <span>Copy All steps</span>
+                                                <CopyToClipboard text={JSON.stringify(currentTestCase?.stepsData)} />
+                                            </div>
+                                            {steps.length > 0 && (
                                                 <StepActions
-                                                    index={i}
+                                                    index={-1}
                                                     steps={steps}
                                                     test={{ ...test, index }}
                                                     setTestCasesData={setTestCasesData}
                                                 />
-                                            </div>
-                                        ))}
+                                            )}
 
-                                    </div>
-                                )}
-                            </AccordionContent>
+                                            {steps.map((step: any, i: number) => (
+                                                <div key={i} className="flex flex-col">
+                                                    <InteractionItem
+                                                        data={step}
+                                                        index={i}
+                                                        isContext={false}
+                                                        onDelete={(stepIndex) => {
+                                                            const updatedSteps = [...steps];
+                                                            updatedSteps.splice(stepIndex, 1);
+                                                            const reindexed = updatedSteps.map((step, idx) => ({
+                                                                ...step,
+                                                                indexStep: idx + 1,
+                                                            }));
+                                                            setTestCasesData((prev) => {
+                                                                const updatedTests = [...prev];
+                                                                updatedTests[index] = {
+                                                                    ...updatedTests[index],
+                                                                    stepsData: reindexed,
+                                                                };
+                                                                return updatedTests;
+                                                            });
+                                                        }}
+                                                        onUpdate={(indexToUpdate, newData) => {
+                                                            const updatedSteps = [...steps];
+                                                            updatedSteps[indexToUpdate] = {
+                                                                ...updatedSteps[indexToUpdate],
+                                                                ...newData,
+                                                            };
+                                                            setTestCasesData((prev) => {
+                                                                const updatedTests = [...prev];
+                                                                updatedTests[index] = {
+                                                                    ...updatedTests[index],
+                                                                    stepsData: updatedSteps,
+                                                                };
+                                                                return updatedTests;
+                                                            });
+                                                        }}
+                                                    />
+                                                    <StepActions
+                                                        index={i}
+                                                        steps={steps}
+                                                        test={{ ...test, index }}
+                                                        setTestCasesData={setTestCasesData}
+                                                    />
+                                                </div>
+                                            ))}
 
-                        </AccordionItem>
+                                        </div>
+                                    )}
+                                </AccordionContent>
+
+                            </AccordionItem>
+
+                        </>
+
                     );
                 }}
             />

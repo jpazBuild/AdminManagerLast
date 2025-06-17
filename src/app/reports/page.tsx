@@ -49,7 +49,7 @@ const Reports = () => {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
-
+        
         const data: ReportItem[] = await response.json();
 
         const summaries: { [key: string]: { totalCompleted: number; totalFailed: number; totalReports: number } } = {};
