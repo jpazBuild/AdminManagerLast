@@ -51,7 +51,10 @@ const Home = () => {
     };
     const BASE_URL = process.env.URL_API_INTEGRATION;
     const AUTH_HEADER = {
-        headers: { Authorization: `Bearer ${TOKEN_API}` },
+        headers: {
+            "Content-Type": "application/json",
+            // Authorization: `Bearer ${TOKEN_API}`
+        },
     };
 
     const fetchInitialData = async () => {
@@ -65,6 +68,7 @@ const Home = () => {
             setModules(data.response?.moduleName || []);
             setSubmodules(data.response?.subModuleName || []);
         } catch (error) {
+            toast.error("Error for obtaining initial data");
             console.error("Error al obtener los datos iniciales", error);
         } finally {
             setIsLoading(false);
