@@ -17,6 +17,7 @@ import FileDropzone from "./FileDropZone";
 import axios from "axios";
 import TestCaseActions from "./TestCaseActions";
 import { handleAxiosRequest } from "../../utils/handleAxiosRequest";
+import { TOKEN_API } from "@/config";
 
 interface TestStep {
     action: string;
@@ -297,7 +298,10 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
         const res = await handleAxiosRequest(() =>
             axios.delete(`${process.env.URL_API_INTEGRATION?.replace(/\/+$/, "")}/deleteAutomationFlow`, {
                 data: { testCaseId },
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${TOKEN_API}`
+                },
             }),
             "Test case deleted successfully"
         );
@@ -310,15 +314,24 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
     };
 
     const handleUpdateTestCase = async (test: TestCase) => {
-        const res = await handleAxiosRequest(() =>
-            axios.put(`${process.env.URL_API_INTEGRATION?.replace(/\/+$/, "")}/updateAutomationFlow`, test, {
-                headers: { "Content-Type": "application/json" },
-            }),
-            "Test case updated successfully"
-        );
+        try {
+            const url = `${process.env.URL_API_INTEGRATION?.replace(/\/+$/, "")}/updateAutomationFlow`;
 
-        if (res) {
-            onRefreshAfterUpdateOrDelete();
+            const response = await axios.put(url, test, {
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${TOKEN_API}`
+                },
+            });
+
+            toast.success("Test updated successfully");
+
+            if (response.status === 200) {
+                onRefreshAfterUpdateOrDelete();
+            }
+        } catch (error: any) {
+            console.error("Update failed:", error);
+            toast.error("Failed to update test case");
         }
     };
 
