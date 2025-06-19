@@ -14,6 +14,7 @@ import NoData from "../components/NoData";
 import { toast } from "sonner";
 import { SearchField } from "../components/SearchField";
 import { SelectField } from "../components/SelectField";
+import { TOKEN_API } from "@/config";
 
 const Home = () => {
     const [darkMode, setDarkMode] = useState(false);
@@ -48,64 +49,67 @@ const Home = () => {
     const toggleDropdown = () => {
         setIsDropdownOpenTC(!isDropdownOpenTC);
     };
+    const BASE_URL = process.env.URL_API_INTEGRATION;
+    const AUTH_HEADER = {
+        headers: { Authorization: `Bearer ${TOKEN_API}` },
+    };
 
     const fetchInitialData = async () => {
         setIsLoading(true);
         try {
-            const response = await fetch(`${process.env.URL_API_INTEGRATION}retrieveAutomationFlow?returnUniqueValues=true`);
+            const params = new URLSearchParams({ returnUniqueValues: "true" });
+            const response = await fetch(`${BASE_URL}retrieveAutomationFlow?${params}`, AUTH_HEADER);
             const data = await response.json();
-            setTags(data.response?.tagName);
-            setModules(data.response?.moduleName);
-            setSubmodules(data.response?.subModuleName);
+
+            setTags(data.response?.tagName || []);
+            setModules(data.response?.moduleName || []);
+            setSubmodules(data.response?.subModuleName || []);
         } catch (error) {
-            console.error('Error al obtener los datos', error);
+            console.error("Error al obtener los datos iniciales", error);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const fetchModulesByTag = async (tag: any) => {
+    const fetchModulesByTag = async (tag: string) => {
+        if (!tag) return;
         setIsLoading(true);
         try {
-            const response = await fetch(`${process.env.URL_API_INTEGRATION}retrieveAutomationFlow?returnUniqueValues=true&tagName=${tag}`);
+            const params = new URLSearchParams({ returnUniqueValues: "true", tagName: tag });
+            const response = await fetch(`${BASE_URL}retrieveAutomationFlow?${params}`, AUTH_HEADER);
             const data = await response.json();
-            setModules(data.response.moduleName);
+            setModules(data.response?.moduleName || []);
         } catch (error) {
-            console.error('Error al obtener los módulos para el tag', error);
+            console.error("Error al obtener los módulos para el tag", error);
         } finally {
             setIsLoading(false);
         }
     };
 
-    const fetchSubModulesByModule = async (mod: any) => {
+    const fetchSubModulesByModule = async () => {
+        if (!selectedTag && !selectedModule) return;
         setIsLoadingSubmodules(true);
         try {
-            const searchParams = new URLSearchParams();
+            const params = new URLSearchParams();
+            if (selectedTag) params.append("tagName", selectedTag);
+            if (selectedModule) params.append("moduleName", selectedModule);
 
-            if (selectedTag) {
-                searchParams.append("tagName", selectedTag);
-            }
-
-            if (selectedModule) {
-                searchParams.append("moduleName", selectedModule);
-            }
-
-            const response = await fetch(
-                `${process.env.URL_API_INTEGRATION}retrieveAutomationFlow?${searchParams.toString()}`
-            );
-
+            const response = await fetch(`${BASE_URL}retrieveAutomationFlow?${params}`);
             const data = await response.json();
+
             const uniqueSubmodules = Array.from(
-                new Set(data.response.map((item: any) => item.subModuleName).filter(Boolean))
+                new Set(
+                    (data.response || [])
+                        .map((item: any) => item.subModuleName)
+                        .filter(Boolean)
+                )
             );
 
             setSubmodules(uniqueSubmodules as Submodule[]);
-
         } catch (error) {
-            console.error('Error al obtener los subMódulos para el module', error);
+            console.error("Error al obtener los submódulos para el módulo", error);
         } finally {
             setIsLoadingSubmodules(false);
-
         }
     };
 
@@ -135,7 +139,7 @@ const Home = () => {
 
     useEffect(() => {
         if (selectedModule) {
-            fetchSubModulesByModule(selectedModule);
+            fetchSubModulesByModule();
         }
     }, [selectedModule]);
 
