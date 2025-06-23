@@ -57,7 +57,7 @@ const ApiFlowBuilder = () =>{
     }, [selectedFlow, selectedCollection]);
 
     useEffect(() => {
-        axios.get(`${URL_API_ALB}getPostmanElements`)
+        axios.get(`${URL_API_ALB}/getPostmanElements`)
             .then((r) => setAllTeams(r.data.teams as PostmanTeam[]));
     }, []);
 
@@ -94,7 +94,7 @@ const ApiFlowBuilder = () =>{
 
     const fetchEnvironment = async (teamId: number, envUid: string, name: string) => {
         try {
-            const { data } = await axios.post(`${URL_API_ALB}getPostmanEnvironment`, {
+            const { data } = await axios.post(`${URL_API_ALB}/getPostmanEnvironment`, {
                 teamId, environmentUid: envUid,
             });
             setSelectedEnv({ name, ...data })
