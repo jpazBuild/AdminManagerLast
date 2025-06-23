@@ -33,7 +33,7 @@ type PostmanTeam = {
     workspaces: PostmanWorkspace[];
 };
 
-export default function ApiFlowBuilder() {
+const ApiFlowBuilder = () =>{
     const [collections, setCollections] = useState<any[]>([]);
     const [flows, setFlows] = useState<any[]>([{ name: "Flow 1", apis: [] }]);
     const [selectedFlow, setSelectedFlow] = useState(0);
@@ -49,7 +49,6 @@ export default function ApiFlowBuilder() {
     const [selectedCollection, setSelectedCollection] = useState<any | null>(null); // NEW
     const [wsMessages, setWsMessages] = useState<any[]>([]);
     const [ws, setWs] = useState<WebSocket | null>(null);
-    console.log("URL_API_ALB ", URL_API_ALB);
 
     useEffect(() => {
         return () => {
@@ -737,3 +736,5 @@ export default function ApiFlowBuilder() {
         </DashboardHeader>
     );
 }
+
+export default ApiFlowBuilder;
