@@ -1,13 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { AiOutlineDashboard, AiOutlineFileText } from "react-icons/ai";
-import { CiDark } from "react-icons/ci";
 import { FaBars, FaTimes } from "react-icons/fa";
-import { WiDaySunny } from "react-icons/wi";
 import Logo from "../../../public/blossom_logo.svg";
+import { overflow } from "html2canvas/dist/types/css/property-descriptors/overflow";
 
-export const DashboardHeader = ({ children, onToggleDarkMode }: any) => {
+export const DashboardHeader = ({ children, onToggleDarkMode,overflow="overflow-y-auto" }: any) => {
     const [darkMode, setDarkMode] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -19,7 +17,7 @@ export const DashboardHeader = ({ children, onToggleDarkMode }: any) => {
     const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
 
     return (
-        <div className="min-h-screen flex flex-col">
+        <div className={`min-h-screen flex flex-col top-0 ${overflow}`}>
             <header
                 className={`fixed top-0 left-0 w-full shadow-md p-4 z-20 ${darkMode ? "bg-[#101827] text-gray-100" : "bg-gray-50 text-gray-900"
                     }`}
@@ -85,7 +83,7 @@ export const DashboardHeader = ({ children, onToggleDarkMode }: any) => {
                     </div>
                 )}
             </header>
-            <main className="flex-1 pt-20 overflow-y-auto">
+            <main className={`flex-1 pt-20 h-screen top-0 ${overflow}`}>
                 {children}
             </main>
         </div>

@@ -8,6 +8,7 @@ import "react-loading-skeleton/dist/skeleton.css";
 import { Dashboard } from "./Layouts/dashboard";
 import NotFound from "../../public/NotFoundResults.svg"
 import Image from "next/image";
+import { TOKEN_API } from "@/config";
 
 interface TestCase<T = object> {
   testCaseName: string;
@@ -87,6 +88,8 @@ export default function Home() {
       const apiUrl = `${process.env.URL_API_INTEGRATION}retrieveAutomationFlow?${params}`;
       const response = await fetch(apiUrl, {
         headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${TOKEN_API}`,
         },
       });
 

@@ -15,6 +15,11 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'blossom-automation-screenshots-dev.s3.us-east-2.amazonaws.com',
         pathname: '**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'blossom-automation-screenshots-test.s3.us-east-2.amazonaws.com',
+        pathname: '**',
       }
     ]
   },

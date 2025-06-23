@@ -53,7 +53,7 @@ const Home = () => {
     const AUTH_HEADER = {
         headers: {
             "Content-Type": "application/json",
-            // Authorization: `Bearer ${TOKEN_API}`
+            Authorization: `Bearer ${TOKEN_API}`
         },
     };
 
@@ -63,8 +63,6 @@ const Home = () => {
             const params = new URLSearchParams({ returnUniqueValues: "true" });
             const response = await fetch(`${BASE_URL}retrieveAutomationFlow?${params}`, AUTH_HEADER);
             const data = await response.json();
-
-            setTags(data.response?.tagName || []);
             setModules(data.response?.moduleName || []);
             setSubmodules(data.response?.subModuleName || []);
         } catch (error) {
