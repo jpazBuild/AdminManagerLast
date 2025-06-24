@@ -227,7 +227,6 @@ const Reports = () => {
       </div>
     </DashboardHeader>
   );
-
 };
 
 export default Reports;
