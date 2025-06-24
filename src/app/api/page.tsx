@@ -298,7 +298,7 @@ const ApiFlowBuilder = () =>{
                                                                                 key={c.id}
                                                                                 className="cursor-pointer flex items-center gap-2 text-xs hover:bg-primary/10 rounded p-1 pl-2"
                                                                                 onClick={async () => {
-                                                                                    const { data } = await axios.post("http://localhost:3003/local/getPostmanCollection",
+                                                                                    const { data } = await axios.post(`${URL_API_ALB}/getPostmanCollection`,
                                                                                         { teamId: team.teamId, collectionUid: c.uid });
                                                                                     if (data?.item) {
                                                                                         setCollections((prev) => [...prev, { ...data }]);
