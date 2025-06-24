@@ -11,12 +11,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
+    CheckCheck,
+    CheckCircle,
     ChevronDown, ChevronRight, FolderArchiveIcon, PlayIcon,
     Trash2Icon, WorkflowIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DashboardHeader } from "../Layouts/main";
 import { URL_API_ALB, URL_API_RUNNER } from "@/config";
+import { toast } from "sonner";
+import { FaCircleXmark, FaRegCircleXmark } from "react-icons/fa6";
 
 type PostmanCollection = { id: string; name: string; uid: string };
 type PostmanEnvironment = { id: string; name: string; uid: string };
@@ -33,7 +37,7 @@ type PostmanTeam = {
     workspaces: PostmanWorkspace[];
 };
 
-const ApiFlowBuilder = () =>{
+const ApiFlowBuilder = () => {
     const [collections, setCollections] = useState<any[]>([]);
     const [flows, setFlows] = useState<any[]>([{ name: "Flow 1", apis: [] }]);
     const [selectedFlow, setSelectedFlow] = useState(0);
@@ -57,8 +61,11 @@ const ApiFlowBuilder = () =>{
     }, [selectedFlow, selectedCollection]);
 
     useEffect(() => {
-        axios.get(`${URL_API_ALB}/getPostmanElements`)
-            .then((r) => setAllTeams(r.data.teams as PostmanTeam[]));
+        const fetchPostmanElements = async () => {
+            const response = await axios.get(`${URL_API_ALB}/getPostmanElements`)
+            setAllTeams(response?.data.teams as PostmanTeam[])
+        };
+        fetchPostmanElements();
     }, []);
 
     const addToFlow = (api: any) => {
@@ -111,11 +118,19 @@ const ApiFlowBuilder = () =>{
             return;
         }
 
+        const env: Record<string, any> = {};
+
+        selectedEnv?.values.forEach((v: any) => {
+            if (v.enabled) {
+                env[v.key] = v.value;
+            }
+        });
+
         const payload = {
             action: "runApis",
-            apis: flows[selectedFlow].apis.map((a: any) => ({ name: a.name })),
-            env: selectedEnv,
-            collection: selectedCollection,
+            id: "runApis Inline",
+            apis: flows[selectedFlow].apis,
+            env
         };
 
         if (!URL_API_RUNNER) {
@@ -127,7 +142,7 @@ const ApiFlowBuilder = () =>{
 
         socket.onopen = () => {
             socket.send(JSON.stringify(payload));
-            
+
             setWsMessages([{ type: "info", message: "✅ Flow sent via WebSocket." }]);
         };
 
@@ -135,11 +150,12 @@ const ApiFlowBuilder = () =>{
             try {
                 const message = JSON.parse(event.data);
                 const { response, routeKey, connectionId, testCaseId } = message;
+                console.log("WebSocket message received:", message);
 
                 setWsMessages((prev) => [...prev, { ...message }]);
 
             } catch (err) {
-                console.warn("Invalid WebSocket message:", event.data);
+                console.log("Invalid WebSocket message:", event.data);
                 setWsMessages((prev) => [...prev, {
                     type: "error",
                     raw: event.data,
@@ -149,12 +165,25 @@ const ApiFlowBuilder = () =>{
         };
 
         socket.onerror = (err) => {
-            console.error("WebSocket error:", err);
+            console.log("WebSocket error:", err);
             setWsMessages((prev) => [...prev, { type: "error", message: "WebSocket error." }]);
         };
 
-        socket.onclose = () => {
-            setWsMessages((prev) => [...prev, { type: "info", message: "🛑 WebSocket connection closed." }]);
+        socket.onclose = (event) => {
+            const isTooBig = event.code === 1009;
+            const message = isTooBig
+                ? "🚫 WebSocket closed (code 1009): Payload too large. AWS limit is 32KB. Try sending fewer APIs or reduce data size."
+                : `🛑 WebSocket closed (code ${event.code}): ${event.reason || "No reason provided by AWS."}`;
+
+            toast.error(message)
+            setWsMessages((prev) => [
+                ...prev,
+                {
+                    type: isTooBig ? "error" : "info",
+                    message,
+                    raw: JSON.stringify({ code: event.code, reason: event.reason, wasClean: event.wasClean }),
+                }
+            ]);
         };
 
         setWs(socket);
@@ -221,7 +250,13 @@ const ApiFlowBuilder = () =>{
                 PUT: "bg-yellow-100 text-yellow-800", DELETE: "bg-red-100 text-red-800",
             }[method?.toUpperCase()] || "bg-gray-100 text-gray-800";
         return <Badge variant="outline" className={cn("text-xs px-2 py-0.5 rounded", style)}>{method?.toUpperCase()}</Badge>;
-    }; 
+    };
+
+
+    console.log("collections ", collections);
+    console.log("wsMessages ", wsMessages);
+    console.log(".filter((msg)) ", wsMessages.filter((msg) => typeof msg?.response === "object"));
+    console.log("Array.isArray(msg?.response) ", wsMessages.filter((msg) => Array.isArray(msg?.response)));
 
     return (
         <DashboardHeader>
@@ -587,143 +622,157 @@ const ApiFlowBuilder = () =>{
                         </TabsContent>
 
                         <TabsContent value="results">
-                            <ScrollArea className="max-h-[600px] overflow-auto space-y-4 pr-2 flex flex-col gap-2 ">
-                            
+                            <ScrollArea className="overflow-auto space-y-4 pr-2 flex flex-col gap-2 ">
+
                                 {wsMessages
-                                    .filter((msg) => Array.isArray(msg?.response))
+                                    .filter((msg) => typeof msg?.response === "object" && msg?.response?.status)
                                     .map((msg, idx) => {
-                                        const requestBlock = msg?.response?.find((el: any) => el.type === "request");
-                                        if (!requestBlock) return null;
+                                        console.log("msg ", msg);
 
+                                        // const requestBlock = msg?.response?.find((el: any) => el.type === "request");
+                                        // if (!requestBlock) return null;
+                                        msg = msg?.response
+
+                                        console.log("msg response ",msg?.response);
+                                        
                                         return (
-                                        <Card key={idx} className="mb-2">
-                                            <CardContent className="p-4 text-primary">
-                                            <div
-                                                onClick={() =>
-                                                setExpandedCards((p) => ({ ...p, [idx]: !p[idx] }))
-                                                }
-                                                className="flex flex-col justify-between items-center cursor-pointer hover:bg-muted/20 p-2 rounded-md"
-                                            >
-                                                <div className="w-full flex items-center gap-2">
-                                                {expandedCards[idx] ? <ChevronDown /> : <ChevronRight />}
-                                                <span className="font-semibold">{requestBlock?.name}</span>
-                                                </div>
-                                                {requestBlock.status && (
-                                                    <div className="w-full mt-4 flex items-center gap-2 text-xs">
-                                                    <Badge
-                                                        variant={
-                                                        requestBlock?.status >= 200 && requestBlock?.status < 300
-                                                            ? "default"
-                                                            : "destructive"
+                                            <Card key={idx} className="mb-2">
+                                                <CardContent className="p-4 text-primary">
+                                                    <div
+                                                        onClick={() =>
+                                                            setExpandedCards((p) => ({ ...p, [idx]: !p[idx] }))
                                                         }
-                                                        className="text-xs text-white"
+                                                        className="flex justify-between items-center cursor-pointer hover:bg-muted/20 p-2 rounded-md"
                                                     >
-                                                        Status: {requestBlock.status}
-                                                    </Badge>
-                                                    {msg.item && (
-                                                        <span className="text-muted-foreground ml-2">{msg?.item}</span>
-                                                    )}
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {expandedCards[idx] && (
-                                                <>
-                                                 <div className="flex items-center gap-2 mt-2 mb-2">
-                                                    <MethodBadge method={requestBlock.request?.method} />
-                                                    <span className="text-xs text-muted-foreground break-all">
-                                                    {requestBlock?.request?.url}
-                                                    </span>
-                                                </div>
-                                                 <Tabs defaultValue="request" className="w-full">
-                                                    <TabsList className="flex border-b text-primary/70">
-                                                        <TabsTrigger value="headers-request">Headers-Request</TabsTrigger>
-                                                        <TabsTrigger value="request">Request</TabsTrigger>
-                                                        <TabsTrigger value="response">Response</TabsTrigger>
-
-                                                    </TabsList>
-                                                
-                                                <TabsContent value="headers-request" className="mt-4">
-                                                    <div className="space-y-2">
-                                                        {requestBlock.request?.headers &&
-                                                        Object.entries(requestBlock.request.headers).map(([key, value], hIdx) => (
-                                                            <div key={hIdx} className="flex items-center gap-2">
-                                                            <Input
-                                                                type="text"
-                                                                value={key}
-                                                                readOnly
-                                                                placeholder="Header Key"
-                                                                className="text-xs w-1/3 text-primary/90 bg-muted"
-                                                            />
-                                                            <Input
-                                                                type="text"
-                                                                value={String(value)}
-                                                                readOnly
-                                                                placeholder="Header Value"
-                                                                className="text-xs w-2/3 text-primary/90 bg-muted"
-                                                            />
+                                                        <div className="w-full flex flex-col gap-2">
+                                                            <div className="flex items-center gap-2">
+                                                                {expandedCards[idx] ? <ChevronDown /> : <ChevronRight />}
+                                                                <span className="font-semibold">{msg?.name}</span>
                                                             </div>
-                                                        ))}
-                                                    </div>
-                                                </TabsContent>
-  
-                                               <TabsContent value="request" className="mt-4">
-                                                     {requestBlock.request?.data?.query && (
-                                                <div className="mt-4">
-                                                    <p className="text-xs font-medium text-muted-foreground mb-1">Query</p>
-                                                    <div className="bg-muted rounded p-2 text-xs font-mono whitespace-pre-wrap">
-                                                    {(() => {
-                                                        const raw = requestBlock.request.data.query;
-                                                        try {
-                                                        const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
-                                                        return JSON.stringify(parsed, null, 2);
-                                                        } catch {
-                                                        return String(raw);
-                                                        }
-                                                    })()}
-                                                    </div>
-                                                </div>
-                                                )}
 
-                                               {requestBlock.request?.data?.variables && (
-                                                <div className="mt-4">
-                                                    <p className="text-xs font-medium text-muted-foreground mb-1">Variables</p>
-                                                    <div className="bg-muted rounded p-2 text-xs font-mono whitespace-pre-wrap">
-                                                    {(() => {
-                                                        const raw = requestBlock.request.data.variables;
-                                                        try {
-                                                        const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
-                                                        return JSON.stringify(parsed, null, 2);
-                                                        } catch {
-                                                        return String(raw);
-                                                        }
-                                                    })()}
+                                                            {msg.status && (
+                                                                <div className="w-full mt-4 flex items-center gap-2 text-xs">
+                                                                    <Badge
+                                                                        variant={
+                                                                            msg?.status >= 200 && msg?.status < 300
+                                                                                ? "default"
+                                                                                : "destructive"
+                                                                        }
+                                                                        className="text-xs text-white"
+                                                                    >
+                                                                        Status: {msg.status}
+                                                                    </Badge>
+                                                                    {msg.item && (
+                                                                        <span className="text-muted-foreground ml-2">{msg?.item}</span>
+                                                                    )}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        {msg?.success && ( 
+                                                            <CheckCircle className="text-green-500 w-5 h-5" />
+                                                        )}
+                                                        {!msg?.success && (
+                                                            <FaRegCircleXmark className="text-red-500 w-5 h-5" />
+                                                        )}
                                                     </div>
-                                                </div>
-                                                )}
-                                                </TabsContent>     
-                                              
 
-                                                <TabsContent value="response" className="mt-4">
-                                                    {requestBlock.response?.data && (
-                                                    <div className="mt-4">
-                                                    <p className="text-xs font-medium text-muted-foreground mb-1">
-                                                        Response
-                                                    </p>
-                                                    <div className="bg-muted rounded p-2 text-xs font-mono whitespace-pre-wrap">
-                                                        {JSON.stringify(requestBlock?.response?.data, null, 2)}
-                                                    </div>
-                                                    </div>
-                                                )}
-                                                </TabsContent>
-                                                
+                                                    {expandedCards[idx] && (
+                                                        <>
+                                                            <div className="flex items-center gap-2 mt-2 mb-2">
+                                                                <MethodBadge method={msg?.request?.method} />
+                                                                <span className="text-xs text-muted-foreground break-all">
+                                                                    {msg?.request?.url}
+                                                                </span>
+                                                            </div>
+                                                            <Tabs defaultValue="request" className="w-full">
+                                                                <TabsList className="flex border-b text-primary/70">
+                                                                    <TabsTrigger value="headers-request">Headers-Request</TabsTrigger>
+                                                                    <TabsTrigger value="request">Request</TabsTrigger>
+                                                                    <TabsTrigger value="response">Response</TabsTrigger>
 
-                                                
-                                                </Tabs>
-                                                </>
-                                            )}
-                                            </CardContent>
-                                        </Card>
+                                                                </TabsList>
+
+                                                                <TabsContent value="headers-request" className="mt-4">
+                                                                    <div className="space-y-2">
+                                                                        {msg.request?.headers &&
+                                                                            Object.entries(msg?.request?.headers).map(([key, value], hIdx) => (
+                                                                                <div key={hIdx} className="flex items-center gap-2">
+                                                                                    <Input
+                                                                                        type="text"
+                                                                                        value={key}
+                                                                                        readOnly
+                                                                                        placeholder="Header Key"
+                                                                                        className="text-xs w-1/3 text-primary/90 bg-muted"
+                                                                                    />
+                                                                                    <Input
+                                                                                        type="text"
+                                                                                        value={String(value)}
+                                                                                        readOnly
+                                                                                        placeholder="Header Value"
+                                                                                        className="text-xs w-2/3 text-primary/90 bg-muted"
+                                                                                    />
+                                                                                </div>
+                                                                            ))}
+                                                                    </div>
+                                                                </TabsContent>
+
+                                                                <TabsContent value="request" className="mt-4">
+                                                                    {msg.request?.data?.query && (
+                                                                        <div className="mt-4">
+                                                                            <p className="text-xs font-medium text-muted-foreground mb-1">Query</p>
+                                                                            <div className="bg-muted rounded p-2 text-xs font-mono whitespace-pre-wrap">
+                                                                                {(() => {
+                                                                                    const raw = msg?.request?.data?.query;
+                                                                                    try {
+                                                                                        const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+                                                                                        return JSON.stringify(parsed, null, 2);
+                                                                                    } catch {
+                                                                                        return String(raw);
+                                                                                    }
+                                                                                })()}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {msg?.request?.data?.variables && (
+                                                                        <div className="mt-4">
+                                                                            <p className="text-xs font-medium text-muted-foreground mb-1">Variables</p>
+                                                                            <div className="bg-muted rounded p-2 text-xs font-mono whitespace-pre-wrap">
+                                                                                {(() => {
+                                                                                    const raw = msg?.request?.data?.variables;
+                                                                                    try {
+                                                                                        const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+                                                                                        return JSON.stringify(parsed, null, 2);
+                                                                                    } catch {
+                                                                                        return String(raw);
+                                                                                    }
+                                                                                })()}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </TabsContent>
+
+
+                                                                <TabsContent value="response" className="mt-4">
+                                                                    {(msg?.response?.data || msg?.response) && (
+                                                                        <div className="mt-4">
+                                                                            <p className="text-xs font-medium text-muted-foreground mb-1">
+                                                                                Response
+                                                                            </p>
+                                                                            <div className="bg-muted rounded p-2 text-xs font-mono whitespace-pre-wrap">
+                                                                                {JSON.stringify(msg?.response?.data || msg?.response, null, 2) || "No response data"}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
+                                                                </TabsContent>
+
+
+
+                                                            </Tabs>
+                                                        </>
+                                                    )}
+                                                </CardContent>
+                                            </Card>
                                         );
                                     })}
 
