@@ -51,10 +51,7 @@ const Home = () => {
     };
     const BASE_URL = process.env.URL_API_INTEGRATION;
     const AUTH_HEADER = {
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${TOKEN_API}`
-        },
+        headers: { Authorization: `Bearer ${TOKEN_API}` },
     };
 
     const fetchInitialData = async () => {
@@ -63,10 +60,11 @@ const Home = () => {
             const params = new URLSearchParams({ returnUniqueValues: "true" });
             const response = await fetch(`${BASE_URL}retrieveAutomationFlow?${params}`, AUTH_HEADER);
             const data = await response.json();
+
+            setTags(data.response?.tagName || []);
             setModules(data.response?.moduleName || []);
             setSubmodules(data.response?.subModuleName || []);
         } catch (error) {
-            toast.error("Error for obtaining initial data");
             console.error("Error al obtener los datos iniciales", error);
         } finally {
             setIsLoading(false);
