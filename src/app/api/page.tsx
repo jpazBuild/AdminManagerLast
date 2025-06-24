@@ -127,6 +127,7 @@ const ApiFlowBuilder = () =>{
 
         socket.onopen = () => {
             socket.send(JSON.stringify(payload));
+            
             setWsMessages([{ type: "info", message: "✅ Flow sent via WebSocket." }]);
         };
 
@@ -514,7 +515,7 @@ const ApiFlowBuilder = () =>{
                                                                 <Textarea
                                                                     className="text-sm bg-primary/10 text-primary/90 border rounded p-2 mb-3"
                                                                     value={
-                                                                        api.event.find((e: any) => e.listen === "prerequest")
+                                                                        api?.event?.find((e: any) => e.listen === "prerequest")
                                                                             ?.script?.exec?.join("\n") || ""
                                                                     }
                                                                     onChange={(e) =>
@@ -566,7 +567,7 @@ const ApiFlowBuilder = () =>{
                                                                 <Textarea
                                                                     className="text-sm bg-primary/10 text-primary/90 border rounded p-2 mb-3"
                                                                     value={
-                                                                        api.event.find((e: any) => e.listen === "test")
+                                                                        api?.event?.find((e: any) => e.listen === "test")
                                                                             ?.script?.exec?.join("\n") || ""
                                                                     }
                                                                     onChange={(e) =>
