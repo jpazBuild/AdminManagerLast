@@ -18,6 +18,7 @@ export interface Tag {
 export interface TestCase {
     id: string;
     name: string;
+    testCaseName?: string;
     module: string;
     submodule: string[];
     subModuleName?: string;

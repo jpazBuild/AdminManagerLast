@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import { SearchField } from "../components/SearchField";
 import { SelectField } from "../components/SelectField";
 import { TOKEN_API } from "@/config";
+import TextInputWithClearButton from "../components/InputClear";
+import SearchTestCaseComboBox from "../components/SearchTestCaseComboBox";
 
 const Home = () => {
     const [darkMode, setDarkMode] = useState(false);
@@ -36,12 +38,15 @@ const Home = () => {
     const [testCasesUpdated, setTestCasesUpdated] = useState<TestCase[]>([]);
     const [isLoadingSubmodules, setIsLoadingSubmodules] = useState<boolean>(false);
     const [executeRun, setExecuteRun] = useState(false);
+    const [searchTestCaseName, setSearchTestCaseName] = useState("");
+
     useEffect(() => {
         if (Array.isArray(responseData)) {
             const uniqueCreators = Array.from(new Set(responseData.map((tc: any) => tc?.createdBy).filter(Boolean)));
             setAvailableCreators(uniqueCreators);
         }
     }, [responseData]);
+
     const handleToggleDarkMode = (darkMode: boolean) => {
         setDarkMode(darkMode);
     };
@@ -218,10 +223,23 @@ const Home = () => {
         setTestCasesUpdated(data)
     }
 
+    // const filteredTestCases = useMemo(() => {
+    //     if (!selectedCreatedBy || selectedCreatedBy === "All") return responseData;
+    //     return responseData.filter((tc: TestCase) => tc?.createdBy?.toLowerCase() === selectedCreatedBy?.toLowerCase());
+    // }, [responseData, selectedCreatedBy]);
     const filteredTestCases = useMemo(() => {
-        if (!selectedCreatedBy || selectedCreatedBy === "All") return responseData;
-        return responseData.filter((tc: TestCase) => tc?.createdBy?.toLowerCase() === selectedCreatedBy?.toLowerCase());
-    }, [responseData, selectedCreatedBy]);
+        return responseData.filter((tc: TestCase) => {
+            const matchesCreator =
+                !selectedCreatedBy || selectedCreatedBy === "All" || tc?.createdBy?.toLowerCase() === selectedCreatedBy?.toLowerCase();
+            console.log("tc?.name ", tc);
+
+            const matchesName =
+                !searchTestCaseName || tc?.testCaseName?.toLowerCase().includes(searchTestCaseName.toLowerCase());
+
+            return matchesCreator && matchesName;
+        });
+    }, [responseData, selectedCreatedBy, searchTestCaseName]);
+
 
     const selectAllChecked = responseData?.length > 0 && selectedCases?.length === responseData?.length;
 
@@ -269,38 +287,41 @@ const Home = () => {
                         disabled={!selectedModule || isLoadingSubmodules}
                     />
 
-                    <div className="flex lg:flex-row flex-wrap items-center gap-2">
-                        <Button
-                            onClick={handleSearch}
-                            disabled={isSearchButtonDisabled || isLoading}
-                            className={`bg-[#021d3d]/90 font-semibold tracking-wide hover:bg-[#021d3d]/95 text-white flex items-center gap-2
+                    <div className="flex items-center gap-2 w-full flex-col">
+
+                        <div className="flex items-center gap-2 w-full max-w-sm">
+                            <Button
+                                onClick={handleSearch}
+                                disabled={isSearchButtonDisabled || isLoading}
+                                className={`bg-[#021d3d]/90 font-semibold tracking-wide hover:bg-[#021d3d]/95 text-white flex items-center gap-2
                             ${isSearchButtonDisabled ? "opacity-50 cursor-not-allowed" : ""}
                             ${isLoading ? "opacity-50 cursor-not-allowed" : ""}
 
                                 `}
-                        >
-                            {isLoading ? "Searching..." : (
-                                <>
-                                    <FaSearch />
-                                    Search
-                                </>
-                            )}
-                        </Button>
-                        {selectedTag || selectedModule || selectedSubmodule ? (
-                            <Button
-                                variant="outline"
-                                onClick={() => {
-                                    setSelectedModule("");
-                                    setSelectedSubmodule("");
-                                    setSelectedTag("");
-                                }}
-                                className="ml-2 font-semibold tracking-wide"
                             >
-                                Clear Filters
+                                {isLoading ? "Searching..." : (
+                                    <>
+                                        <FaSearch />
+                                        Search
+                                    </>
+                                )}
                             </Button>
-                        ) : null}
+                            {selectedTag || selectedModule || selectedSubmodule ? (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        setSelectedModule("");
+                                        setSelectedSubmodule("");
+                                        setSelectedTag("");
+                                    }}
+                                    className="ml-2 font-semibold tracking-wide"
+                                >
+                                    Clear Filters
+                                </Button>
+                            ) : null}
+                        </div>
 
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex gap-2 w-full">
                             {selectedTag && (
                                 <div className="bg-primary/85 text-white/90 px-2 py-1 rounded-full text-sm flex items-center gap-2">
                                     <span>{selectedTag}</span>
@@ -345,6 +366,11 @@ const Home = () => {
                             )}
                         </div>
                         {availableCreators.length > 0 && (
+                            <label htmlFor="created-by" className="text-sm font-medium text-primary/90 mb-1 block">
+                                Filter by Created By
+                            </label>
+                        )}
+                        {availableCreators.length > 0 && (
                             <SelectField
                                 value={selectedCreatedBy}
                                 onChange={setSelectedCreatedBy}
@@ -356,11 +382,29 @@ const Home = () => {
 
                             />
                         )}
+                        {responseData?.length > 1 && (
+
+                            <SearchTestCaseComboBox
+                                label="Search by Test Case Name"
+                                value={searchTestCaseName}
+                                onChange={setSearchTestCaseName}
+                                options={responseData
+                                    .filter(tc => typeof tc.testCaseName === "string")
+                                    .map((tc) => ({
+                                        label: tc.testCaseName as string,
+                                        value: tc.testCaseName as string,
+                                    }))}
+                                placeholder="Search test case name..."
+                                className="w-full"
+                            />
+
+                        )}
+
                     </div>
                 </div>
                 <div className="border p-4 rounded-lg">
 
-                    {responseData?.length > 0 ? (
+                    {(responseData?.length > 0 && filteredTestCases.length > 0) ? (
                         <>
                             <div className="flex flex-col gap-2 mb-2">
                                 <button
@@ -368,7 +412,7 @@ const Home = () => {
                                     className="flex w-full items-center justify-between shadow-md p-2 font-semibold tracking-wide rounded-md"
                                 >
                                     <span className="text-xl font-semibold tracking-wide">Test cases </span>
-                                    <span>{filteredTestCases.length}</span>
+                                    <span className="text-primary/70">{filteredTestCases.length} results</span>
                                     {isDropdownOpenTC ? (
                                         <FaChevronUp className="" />
                                     ) : (
@@ -376,7 +420,7 @@ const Home = () => {
                                     )}
                                 </button>
 
-                                {isDropdownOpenTC && (
+                                {(isDropdownOpenTC)  && (
                                     <>
                                         <div className="flex justify-end gap-2 mt-2">
                                             <Checkbox

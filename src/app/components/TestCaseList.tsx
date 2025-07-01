@@ -80,6 +80,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
     const [viewMode, setViewMode] = useState<'data' | 'steps'>('data');
     const [testCasesData, setTestCasesData] = useState<TestCase[]>([]);
     const [openDialog, setOpenDialog] = useState(false);
+    const [openItems, setOpenItems] = useState<string[]>([]);
 
     useEffect(() => {
         if (typeof onTestCasesDataChange === "function") {
@@ -399,38 +400,51 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                 Export Dynamic Values
             </Button>
 
+
             <SortableTestCasesAccordion
                 testCases={testCasesData}
                 setTestCasesData={setTestCasesData}
+                openItems={openItems}
+                setOpenItems={setOpenItems}
                 renderItem={(test: TestCase, index: number) => {
                     const testFields = getDynamicFields(test);
                     const currentTestCase = testCasesData.find(tc => tc?.testCaseId === test?.testCaseId);
                     const steps = currentTestCase?.stepsData ?? [];
 
                     return (
-
                         <>
                             <TestCaseActions
                                 test={test}
                                 onDelete={handleDeleteTestCase}
-                                onUpdate={handleUpdateTestCase}
-                            />
+                                onUpdate={handleUpdateTestCase} />
 
                             <AccordionItem key={`${test?.testCaseId} ${index}`} value={test?.testCaseId ?? ''} className="border rounded-lg">
                                 <div className="flex items-center w-full h-auto bg-primary/5 p-0.5">
                                     <Checkbox
                                         id={test?.testCaseId ?? ''}
                                         checked={selectedCases?.includes(test?.testCaseId ?? '')}
-                                        onCheckedChange={() => toggleSelect(test?.testCaseId ?? '')}
-                                    />
-                                    <AccordionTrigger className="flex hover:no-underline">
+                                        onCheckedChange={() => toggleSelect(test?.testCaseId ?? '')} />
+                                    <AccordionTrigger
+                                        className="flex hover:no-underline"
+                                        onClick={() => {
+                                            setOpenItems((prev) =>
+                                                prev.includes(test.testCaseId ?? '')
+                                                    ? prev.filter(id => id !== test.testCaseId)
+                                                    : [...prev, test.testCaseId ?? '']
+                                            );
+                                        }}
+                                    >
                                         <div className="flex flex-col w-full h-auto">
                                             <div className="flex justify-between w-full gap-2 items-center p-1 rounded-br-xl text-[10px]">
                                                 <div className="flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-primary/20">
                                                     <span className="text-xs font-mono tracking-wide text-muted-foreground">
                                                         Id: {test?.testCaseId}
                                                     </span>
-                                                    {test?.testCaseId ? (<CopyToClipboard text={test.testCaseId ?? ''} />) : (toast.error("No ID found"))}
+                                                    {test?.testCaseId ? (
+                                                        <CopyToClipboard text={test.testCaseId ?? ''} />
+                                                    ) : (
+                                                        toast.error("No ID found")
+                                                    )}
                                                 </div>
                                                 <span className="text-xs break-words text-primary/80 shadow-md rounded-md px-2 py-1">
                                                     {test?.createdBy}
@@ -471,11 +485,9 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                                     )}
                                                 </div>
                                             )}
-
                                         </div>
                                     </AccordionTrigger>
                                 </div>
-
 
                                 <AccordionContent className="p-4 space-y-3">
                                     <div className="flex gap-2">
@@ -486,77 +498,11 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                         testFields.map((fieldName, index: number) => (
                                             <div key={`${fieldName} ${test?.testCaseId} ${index}`} className="flex items-center gap-3">
                                                 <Label className="w-32 break-words">{fieldName}</Label>
-
-                                                {(() => {
-                                                    const currentValue = getFieldValue(test?.testCaseId ?? '', fieldName);
-
-                                                    const valueMimeMatch = typeof currentValue === "string"
-                                                        ? currentValue.match(/^data:(.*?);base64,/)
-                                                        : null;
-                                                    const extractedMime = valueMimeMatch ? valueMimeMatch[1] : "";
-
-                                                    const mimeFromFieldName = (() => {
-                                                        const regex = /\.(application\/json|application\/pdf|text\/csv|image\/[a-zA-Z0-9.+-]+)$/;
-                                                        const match = fieldName?.match(regex);
-                                                        return match ? match[1] : "application/octet-stream";
-                                                    })();
-
-                                                    const allowedMime = mimeFromFieldName;
-
-                                                    const label = (() => {
-                                                        if (allowedMime.startsWith("image/")) return "Upload image";
-                                                        if (allowedMime === "application/pdf") return "Upload PDF";
-                                                        if (allowedMime === "text/csv") return "Upload CSV";
-                                                        if (allowedMime === "application/json") return "Upload JSON";
-                                                        return "Upload file";
-                                                    })();
-
-                                                    const isPossiblyFileField =
-                                                        fieldName?.includes('.') &&
-                                                        (
-                                                            fieldName?.startsWith("file.") ||
-                                                            allowedMime !== "application/octet-stream" ||
-                                                            (typeof currentValue === "string" && currentValue.startsWith("data:"))
-                                                        );
-
-                                                    if (isPossiblyFileField) {
-                                                        return (
-                                                            <FileDropzone
-                                                                label={label}
-                                                                acceptedExtensions={[allowedMime]}
-                                                                onFileParsed={(base64, file) => {
-                                                                    const mime = file?.type || "";
-                                                                    let messageType = "File";
-
-                                                                    if (mime.startsWith("image/")) messageType = "Image";
-                                                                    else if (mime === "application/pdf") messageType = "PDF";
-                                                                    else if (mime === "text/csv") messageType = "CSV";
-                                                                    else if (mime === "application/json") messageType = "JSON";
-
-                                                                    if (mime !== allowedMime) {
-                                                                        toast.error(`❌ Invalid file type. Expected: ${allowedMime}`);
-                                                                        return;
-                                                                    }
-
-                                                                    toast.success(`✅ ${messageType} loaded: ${file?.name}`);
-                                                                    handleValueChange(fieldName, base64, test?.testCaseId);
-                                                                }}
-                                                                onFileInfoChange={({ name }) => {
-                                                                    console.log(`Selected file: ${name}`);
-                                                                }}
-                                                            />
-                                                        );
-                                                    }
-
-                                                    return (
-                                                        <FakerInputWithAutocomplete
-                                                            id={`${fieldName} ${test?.testCaseId} ${index}`}
-                                                            value={getFieldValue(test?.testCaseId ?? '', fieldName)}
-                                                            onChange={(val: string) => handleValueChange(fieldName ?? '', val, test?.testCaseId)}
-                                                            placeholder={`Enter ${fieldName}`}
-                                                        />
-                                                    );
-                                                })()}
+                                                <FakerInputWithAutocomplete
+                                                    id={`${fieldName} ${test?.testCaseId} ${index}`}
+                                                    value={getFieldValue(test?.testCaseId ?? '', fieldName)}
+                                                    onChange={(val: string) => handleValueChange(fieldName ?? '', val, test?.testCaseId)}
+                                                    placeholder={`Enter ${fieldName}`} />
                                             </div>
                                         ))
                                     ) : (
@@ -570,8 +516,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                                     index={-1}
                                                     steps={steps}
                                                     test={{ ...test, index }}
-                                                    setTestCasesData={setTestCasesData}
-                                                />
+                                                    setTestCasesData={setTestCasesData} />
                                             )}
 
                                             {steps.map((step: any, i: number) => (
@@ -610,29 +555,22 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                                                 };
                                                                 return updatedTests;
                                                             });
-                                                        }}
-                                                    />
+                                                        }} />
                                                     <StepActions
                                                         index={i}
                                                         steps={steps}
                                                         test={{ ...test, index }}
-                                                        setTestCasesData={setTestCasesData}
-                                                    />
+                                                        setTestCasesData={setTestCasesData} />
                                                 </div>
                                             ))}
-
                                         </div>
                                     )}
                                 </AccordionContent>
-
                             </AccordionItem>
-
                         </>
-
                     );
                 }}
             />
-
         </div>
     );
 };
