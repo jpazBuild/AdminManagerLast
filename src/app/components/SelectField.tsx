@@ -78,7 +78,7 @@ export const SelectField = ({
               value={searchTerm}
               onChange={handleSearchChange}
               onClick={(e) => e.stopPropagation()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              className={`w-full text-primary/90 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary`}
             />
           </div>
 
@@ -93,7 +93,7 @@ export const SelectField = ({
               </SelectItem>
             ))
           ) : (
-            <div className="p-2 text-sm text-gray-500">No options found</div>
+            <div className="p-2 text-sm text-primary/40">No options found</div>
           )}
         </SelectContent>
       </Select>

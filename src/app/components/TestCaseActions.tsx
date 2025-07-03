@@ -10,9 +10,11 @@ interface Props {
     test: any;
     onDelete: (testCaseId: string) => void;
     onUpdate: (test: TestCase) => void;
+    isLoadingUpdate?: boolean;
+    isLoadingDelete?: boolean;
 }
 
-const TestCaseActions = ({ test, onDelete, onUpdate }: Props) => {
+const TestCaseActions = ({ test, onDelete, onUpdate,isLoadingUpdate,isLoadingDelete }: Props) => {
     const [openDialog, setOpenDialog] = useState(false);
 
     return (
@@ -20,12 +22,12 @@ const TestCaseActions = ({ test, onDelete, onUpdate }: Props) => {
             <Dialog open={openDialog} onOpenChange={setOpenDialog}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="text-lg font-semibold">
+                        <DialogTitle className="text-lg font-semibold text-primary/90">
                             Are you sure you want to delete this test case?
                         </DialogTitle>
                     </DialogHeader>
 
-                    <div className="text-sm text-muted-foreground px-1 breaks-words">
+                    <div className="text-sm px-1 breaks-words text-primary/60">
                         You are about to delete the test case <strong>{test?.testCaseName}</strong>.
                     </div>
 
@@ -67,7 +69,13 @@ const TestCaseActions = ({ test, onDelete, onUpdate }: Props) => {
                 onClick={() => onUpdate(test)}
             >
                 <Edit2 className="w-4 h-4" />
-                Update
+                {isLoadingUpdate ? (
+                    <span className="text-primary/60">
+                         Updating...   
+                    </span> 
+                ):(
+                    "Update"
+                )}
             </button>
             </div>
         </div>

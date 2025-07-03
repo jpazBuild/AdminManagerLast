@@ -52,7 +52,7 @@ export const SearchField = ({
           <div
             onClick={() => !disabled && setOpen(true)}
             className={cn(
-              "flex items-center justify-between w-full px-3 py-2 border rounded-md text-sm cursor-pointer bg-white",
+              "flex items-center text-primary/70 justify-between w-full px-3 py-2 border rounded-md text-sm cursor-pointer bg-white",
               !value && "text-muted-foreground",
               disabled && "opacity-50 cursor-not-allowed",
               className
@@ -61,7 +61,7 @@ export const SearchField = ({
             <span>{selectedOption ? selectedOption.label : placeholder}</span>
             {value ? (
               <X
-                className="ml-2 h-4 w-4 text-muted-foreground hover:text-red-500"
+                className="ml-2 h-4 w-4 text-muted-foreground hover:text-primary/60"
                 onClick={(e) => {
                   e.stopPropagation();
                   if (!disabled) handleClear();
@@ -73,7 +73,7 @@ export const SearchField = ({
           </div>
         </PopoverTrigger>
         {!disabled && (
-          <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]">
+          <PopoverContent className="p-0 text-primary/90 w-[var(--radix-popover-trigger-width)]">
             <Command>
               <CommandInput placeholder="Search tags..." />
               <CommandList>
@@ -86,6 +86,7 @@ export const SearchField = ({
                         onChange(opt?.value);
                         setOpen(false);
                       }}
+                      className="cursor-pointer !text-primary hover:bg-primary/10 focus:bg-primary/20"
                     >
                       {opt?.label}
                     </CommandItem>

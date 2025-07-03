@@ -17,17 +17,18 @@ import { SelectField } from "../components/SelectField";
 import { TOKEN_API } from "@/config";
 import TextInputWithClearButton from "../components/InputClear";
 import SearchTestCaseComboBox from "../components/SearchTestCaseComboBox";
+import { useTagsModules } from "../hooks/useTagsModules";
 
 const Home = () => {
     const [darkMode, setDarkMode] = useState(false);
-    const [modules, setModules] = useState<Module[]>([]);
-    const [submodules, setSubmodules] = useState<Submodule[]>([]);
-    const [tags, setTags] = useState<Tag[]>([]);
+    // const [modules, setModules] = useState<Module[]>([]);
+    // const [submodules, setSubmodules] = useState<Submodule[]>([]);
+    // const [tags, setTags] = useState<Tag[]>([]);
     const [selectedCases, setSelectedCases] = useState<string[]>([]);
-    const [selectedModule, setSelectedModule] = useState<string>("");
-    const [selectedSubmodule, setSelectedSubmodule] = useState<string>("");
-    const [selectedTag, setSelectedTag] = useState<string>("");
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+    // const [selectedModule, setSelectedModule] = useState<string>("");
+    // const [selectedSubmodule, setSelectedSubmodule] = useState<string>("");
+    // const [selectedTag, setSelectedTag] = useState<string>("");
+    // const [isLoading, setIsLoading] = useState<boolean>(false);
     const [maxBrowsers, setMaxBrowsers] = useState<number>(1)
     const [isHeadless, setIsHeadless] = useState<boolean>(true)
     const [isDropdownOpenTC, setIsDropdownOpenTC] = useState(true);
@@ -36,7 +37,7 @@ const Home = () => {
     const [selectedCreatedBy, setSelectedCreatedBy] = useState("");
     const [availableCreators, setAvailableCreators] = useState<string[]>([]);
     const [testCasesUpdated, setTestCasesUpdated] = useState<TestCase[]>([]);
-    const [isLoadingSubmodules, setIsLoadingSubmodules] = useState<boolean>(false);
+    // const [isLoadingSubmodules, setIsLoadingSubmodules] = useState<boolean>(false);
     const [executeRun, setExecuteRun] = useState(false);
     const [searchTestCaseName, setSearchTestCaseName] = useState("");
 
@@ -54,111 +55,102 @@ const Home = () => {
     const toggleDropdown = () => {
         setIsDropdownOpenTC(!isDropdownOpenTC);
     };
-    const BASE_URL = process.env.URL_API_INTEGRATION;
-    const AUTH_HEADER = {
-        headers: { Authorization: `Bearer ${TOKEN_API}` },
-    };
+    // const BASE_URL = process.env.URL_API_INTEGRATION;
+    // const AUTH_HEADER = {
+    //     headers: { Authorization: `Bearer ${TOKEN_API}` },
+    // };
 
-    const fetchInitialData = async () => {
-        setIsLoading(true);
-        try {
-            const params = new URLSearchParams({ returnUniqueValues: "true" });
-            const response = await fetch(`${BASE_URL}retrieveAutomationFlow?${params}`, AUTH_HEADER);
-            const data = await response.json();
+    // const fetchInitialData = async () => {
+    //     setIsLoading(true);
+    //     try {
+    //         const params = new URLSearchParams({ returnUniqueValues: "true" });
+    //         const response = await fetch(`${BASE_URL}retrieveAutomationFlow?${params}`, AUTH_HEADER);
+    //         const data = await response.json();
 
-            setTags(data.response?.tagName || []);
-            setModules(data.response?.moduleName || []);
-            setSubmodules(data.response?.subModuleName || []);
-        } catch (error) {
-            console.error("Error al obtener los datos iniciales", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    //         setTags(data.response?.tagName || []);
+    //         setModules(data.response?.moduleName || []);
+    //         setSubmodules(data.response?.subModuleName || []);
+    //     } catch (error) {
+    //         console.error("Error al obtener los datos iniciales", error);
+    //     } finally {
+    //         setIsLoading(false);
+    //     }
+    // };
 
-    const fetchModulesByTag = async (tag: string) => {
-        if (!tag) return;
-        setIsLoading(true);
-        try {
-            const params = new URLSearchParams({ returnUniqueValues: "true", tagName: tag });
-            const response = await fetch(`${BASE_URL}retrieveAutomationFlow?${params}`, AUTH_HEADER);
-            const data = await response.json();
-            setModules(data.response?.moduleName || []);
-        } catch (error) {
-            console.error("Error al obtener los módulos para el tag", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    // const fetchModulesByTag = async (tag: string) => {
+    //     if (!tag) return;
+    //     setIsLoading(true);
+    //     try {
+    //         const params = new URLSearchParams({ returnUniqueValues: "true", tagName: tag });
+    //         const response = await fetch(`${BASE_URL}retrieveAutomationFlow?${params}`, AUTH_HEADER);
+    //         const data = await response.json();
+    //         setModules(data.response?.moduleName || []);
+    //     } catch (error) {
+    //         console.error("Error al obtener los módulos para el tag", error);
+    //     } finally {
+    //         setIsLoading(false);
+    //     }
+    // };
 
-    const fetchSubModulesByModule = async () => {
-        if (!selectedTag && !selectedModule) return;
-        setIsLoadingSubmodules(true);
-        try {
-            const params = new URLSearchParams();
-            if (selectedTag) params.append("tagName", selectedTag);
-            if (selectedModule) params.append("moduleName", selectedModule);
+    // const fetchSubModulesByModule = async () => {
+    //     if (!selectedTag && !selectedModule) return;
+    //     setIsLoadingSubmodules(true);
+    //     try {
+    //         const params = new URLSearchParams();
+    //         if (selectedTag) params.append("tagName", selectedTag);
+    //         if (selectedModule) params.append("moduleName", selectedModule);
 
-            const response = await fetch(`${BASE_URL}retrieveAutomationFlow?${params}`);
-            const data = await response.json();
+    //         const response = await fetch(`${BASE_URL}retrieveAutomationFlow?${params}`);
+    //         const data = await response.json();
 
-            const uniqueSubmodules = Array.from(
-                new Set(
-                    (data.response || [])
-                        .map((item: any) => item.subModuleName)
-                        .filter(Boolean)
-                )
-            );
+    //         const uniqueSubmodules = Array.from(
+    //             new Set(
+    //                 (data.response || [])
+    //                     .map((item: any) => item.subModuleName)
+    //                     .filter(Boolean)
+    //             )
+    //         );
 
-            setSubmodules(uniqueSubmodules as Submodule[]);
-        } catch (error) {
-            console.error("Error al obtener los submódulos para el módulo", error);
-        } finally {
-            setIsLoadingSubmodules(false);
-        }
-    };
+    //         setSubmodules(uniqueSubmodules as Submodule[]);
+    //     } catch (error) {
+    //         console.error("Error al obtener los submódulos para el módulo", error);
+    //     } finally {
+    //         setIsLoadingSubmodules(false);
+    //     }
+    // };
 
-    const {
-        reports,
-        loading,
-        progress,
-        executeTests,
-        idReports,
-        stopTest,
-        stopped
-    } = useTestExecution();
 
-    useEffect(() => {
-        fetchInitialData();
-    }, []);
 
-    useEffect(() => {
-        setResponseData([]);
-    }, [selectedTag, selectedModule, selectedSubmodule]);
+    // useEffect(() => {
+    //     fetchInitialData();
+    // }, []);
 
-    useEffect(() => {
-        if (selectedTag) {
-            fetchModulesByTag(selectedTag);
-        }
-    }, [selectedTag]);
+    // useEffect(() => {
+    //     setResponseData([]);
+    // }, [selectedTag, selectedModule, selectedSubmodule]);
 
-    useEffect(() => {
-        if (selectedModule) {
-            fetchSubModulesByModule();
-        }
-    }, [selectedModule]);
+    // useEffect(() => {
+    //     if (selectedTag) {
+    //         fetchModulesByTag(selectedTag);
+    //     }
+    // }, [selectedTag]);
 
-    useEffect(() => {
-        setSelectedSubmodule("");
-    }, [selectedModule]);
+    // useEffect(() => {
+    //     if (selectedModule) {
+    //         fetchSubModulesByModule();
+    //     }
+    // }, [selectedModule]);
 
-    useEffect(() => {
-        setSelectedModule("");
-    }, [selectedTag]);
+    // useEffect(() => {
+    //     setSelectedSubmodule("");
+    // }, [selectedModule]);
+
+    // useEffect(() => {
+    //     setSelectedModule("");
+    // }, [selectedTag]);
 
     const handleSearch = async () => {
         setIsLoading(true);
-
         try {
             const searchParams = new URLSearchParams();
 
@@ -193,11 +185,36 @@ const Home = () => {
             console.error('Error to obtain data', error);
             toast.error('Error to obtain data');
             setResponseData([]);
-        } finally {
+        }finally {
             setIsLoading(false);
         }
     };
 
+    const {
+        tags,
+        modules,
+        submodules,
+        selectedTag,
+        selectedModule,
+        selectedSubmodule,
+        setSelectedTag,
+        setSelectedModule,
+        setSelectedSubmodule,
+        isLoading,
+        setIsLoading,
+        isLoadingSubmodules,
+        fetchInitialData,
+    } = useTagsModules();
+
+    const {
+        reports,
+        loading,
+        progress,
+        executeTests,
+        idReports,
+        stopTest,
+        stopped
+    } = useTestExecution();
 
     const toggleSelectAll = (checked: boolean) => {
         setSelectedCases(checked ? responseData.map((tc: any) => tc.testCaseId) : []);
@@ -258,7 +275,7 @@ const Home = () => {
                         label="Tag"
                         value={selectedTag}
                         onChange={setSelectedTag}
-                        options={tags?.map((tag: Tag) => ({
+                        options={tags?.map((tag) => ({
                             label: String(tag),
                             value: String(tag),
                         }))}
@@ -268,7 +285,7 @@ const Home = () => {
                         label="Module"
                         value={selectedModule}
                         onChange={setSelectedModule}
-                        options={modules?.map((mod: Tag) => ({
+                        options={modules?.map((mod) => ({
                             label: String(mod),
                             value: String(mod),
                         }))}
@@ -279,7 +296,7 @@ const Home = () => {
                         label="Submodule"
                         value={selectedSubmodule}
                         onChange={setSelectedSubmodule}
-                        options={submodules?.map((sub: Tag) => ({
+                        options={submodules?.map((sub: string) => ({
                             label: String(sub),
                             value: String(sub),
                         }))}
@@ -289,11 +306,11 @@ const Home = () => {
 
                     <div className="flex items-center gap-2 w-full flex-col">
 
-                        <div className="flex items-center gap-2 w-full max-w-sm">
+                        <div className="flex items-center gap-2 w-full">
                             <Button
                                 onClick={handleSearch}
                                 disabled={isSearchButtonDisabled || isLoading}
-                                className={`bg-[#021d3d]/90 font-semibold tracking-wide hover:bg-[#021d3d]/95 text-white flex items-center gap-2
+                                className={`bg-primary/90 font-semibold tracking-wide hover:bg-primary/95 text-white flex items-center gap-2
                             ${isSearchButtonDisabled ? "opacity-50 cursor-not-allowed" : ""}
                             ${isLoading ? "opacity-50 cursor-not-allowed" : ""}
 
@@ -321,7 +338,7 @@ const Home = () => {
                             ) : null}
                         </div>
 
-                        <div className="flex gap-2 w-full">
+                        <div className="flex items-center gap-2 w-full">
                             {selectedTag && (
                                 <div className="bg-primary/85 text-white/90 px-2 py-1 rounded-full text-sm flex items-center gap-2">
                                     <span>{selectedTag}</span>
@@ -379,6 +396,7 @@ const Home = () => {
                                     ...availableCreators.map(creator => ({ label: creator, value: creator }))
                                 ]}
                                 placeholder="Created By"
+                                className="text-primary"
 
                             />
                         )}
@@ -420,7 +438,7 @@ const Home = () => {
                                     )}
                                 </button>
 
-                                {(isDropdownOpenTC)  && (
+                                {(isDropdownOpenTC) && (
                                     <>
                                         <div className="flex justify-end gap-2 mt-2">
                                             <Checkbox

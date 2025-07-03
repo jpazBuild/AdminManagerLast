@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Eye, File } from "lucide-react";
+import { Eye, File, Search } from "lucide-react";
 import InteractionItem from "./Interaction";
 import TextInputWithClearButton from "./InputClear";
 import JSONDropzone from "./JSONDropzone";
@@ -18,6 +18,9 @@ import axios from "axios";
 import TestCaseActions from "./TestCaseActions";
 import { handleAxiosRequest } from "../../utils/handleAxiosRequest";
 import { TOKEN_API } from "@/config";
+import { SearchField } from "./SearchField";
+import { useTagsModules } from "../hooks/useTagsModules";
+import SortableTestCaseItem from "./SortableTestCaseItem";
 
 interface TestStep {
     action: string;
@@ -77,7 +80,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
 }) => {
     const [editMode, setEditMode] = useState<'global' | 'individual'>('global');
     const [dynamicValues, setDynamicValues] = useState<{ id: string; input: Record<string, string>; order?: number; testCaseName?: string; createdBy?: string }[]>([]);
-    const [viewMode, setViewMode] = useState<'data' | 'steps'>('data');
+    const [viewMode, setViewMode] = useState<'data' | 'steps' | 'editLocation'>('data');
     const [testCasesData, setTestCasesData] = useState<TestCase[]>([]);
     const [openDialog, setOpenDialog] = useState(false);
     const [openItems, setOpenItems] = useState<string[]>([]);
@@ -295,47 +298,6 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
         URL.revokeObjectURL(url);
     };
 
-    const handleDeleteTestCase = async (testCaseId: string) => {
-        const res = await handleAxiosRequest(() =>
-            axios.delete(`${process.env.URL_API_INTEGRATION?.replace(/\/+$/, "")}/deleteAutomationFlow`, {
-                data: { testCaseId },
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${TOKEN_API}`
-                },
-            }),
-            "Test case deleted successfully"
-        );
-
-        if (res) {
-            setTestCasesData(prev => prev.filter(tc => tc.testCaseId !== testCaseId));
-            setDynamicValues(prev => prev.filter(val => val.id !== testCaseId));
-            onRefreshAfterUpdateOrDelete();
-        }
-    };
-
-    const handleUpdateTestCase = async (test: TestCase) => {
-        try {
-            const url = `${process.env.URL_API_INTEGRATION?.replace(/\/+$/, "")}/updateAutomationFlow`;
-
-            const response = await axios.put(url, test, {
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${TOKEN_API}`
-                },
-            });
-
-            toast.success("Test updated successfully");
-
-            if (response.status === 200) {
-                onRefreshAfterUpdateOrDelete();
-            }
-        } catch (error: any) {
-            console.error("Update failed:", error);
-            toast.error("Failed to update test case");
-        }
-    };
-
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center gap-3 p-2 bg-card rounded-lg">
@@ -406,170 +368,26 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                 setTestCasesData={setTestCasesData}
                 openItems={openItems}
                 setOpenItems={setOpenItems}
-                renderItem={(test: TestCase, index: number) => {
-                    const testFields = getDynamicFields(test);
-                    const currentTestCase = testCasesData.find(tc => tc?.testCaseId === test?.testCaseId);
-                    const steps = currentTestCase?.stepsData ?? [];
-
-                    return (
-                        <>
-                            <TestCaseActions
-                                test={test}
-                                onDelete={handleDeleteTestCase}
-                                onUpdate={handleUpdateTestCase} />
-
-                            <AccordionItem key={`${test?.testCaseId} ${index}`} value={test?.testCaseId ?? ''} className="border rounded-lg">
-                                <div className="flex items-center w-full h-auto bg-primary/5 p-0.5">
-                                    <Checkbox
-                                        id={test?.testCaseId ?? ''}
-                                        checked={selectedCases?.includes(test?.testCaseId ?? '')}
-                                        onCheckedChange={() => toggleSelect(test?.testCaseId ?? '')} />
-                                    <AccordionTrigger
-                                        className="flex hover:no-underline"
-                                        onClick={() => {
-                                            setOpenItems((prev) =>
-                                                prev.includes(test.testCaseId ?? '')
-                                                    ? prev.filter(id => id !== test.testCaseId)
-                                                    : [...prev, test.testCaseId ?? '']
-                                            );
-                                        }}
-                                    >
-                                        <div className="flex flex-col w-full h-auto">
-                                            <div className="flex justify-between w-full gap-2 items-center p-1 rounded-br-xl text-[10px]">
-                                                <div className="flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-primary/20">
-                                                    <span className="text-xs font-mono tracking-wide text-muted-foreground">
-                                                        Id: {test?.testCaseId}
-                                                    </span>
-                                                    {test?.testCaseId ? (
-                                                        <CopyToClipboard text={test.testCaseId ?? ''} />
-                                                    ) : (
-                                                        toast.error("No ID found")
-                                                    )}
-                                                </div>
-                                                <span className="text-xs break-words text-primary/80 shadow-md rounded-md px-2 py-1">
-                                                    {test?.createdBy}
-                                                </span>
-                                            </div>
-                                            <h3 className="font-medium mt-2 px-2">{test?.testCaseName}</h3>
-
-                                            {testFields.length > 0 && (
-                                                <p className="text-xs px-2 break-all whitespace-pre-wrap text-primary/70">
-                                                    Dynamic fields: {testFields.join(", ")}
-                                                </p>
-                                            )}
-                                            <div className="flex justify-between w-full">
-                                                <span className="p-1 text-[11px] text-primary/80 rounded-md">
-                                                    {currentTestCase?.stepsData?.length} Steps
-                                                </span>
-
-                                                <span className="p-1 text-[9px] text-primary/80 rounded-md">
-                                                    {test?.createdAt}
-                                                </span>
-                                            </div>
-                                            {(test?.tagName || test?.moduleName || test?.subModuleName) && (
-                                                <div className="w-full flex flex-col lg:flex-row gap-1 rounded-md shadow-sm overflow-x-auto">
-                                                    {test?.tagName && (
-                                                        <span className="text-xs text-white bg-primary/85 px-2 py-1 rounded-full">
-                                                            {test?.tagName}
-                                                        </span>
-                                                    )}
-                                                    {test?.moduleName && (
-                                                        <span className="text-xs text-white bg-primary/65 px-2 py-1 rounded-full">
-                                                            {test?.moduleName}
-                                                        </span>
-                                                    )}
-                                                    {test?.subModuleName && (
-                                                        <span className="text-xs text-white bg-primary/50 px-2 py-1 rounded-full">
-                                                            {test?.subModuleName}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </AccordionTrigger>
-                                </div>
-
-                                <AccordionContent className="p-4 space-y-3">
-                                    <div className="flex gap-2">
-                                        <Button className={`bg-white hover:bg-white shadow-md text-primary/70 ${viewMode === 'data' ? 'border-b-4 border-primary' : ''}`} onClick={() => setViewMode('data')}>See Data <File className="ml-1" /></Button>
-                                        <Button className={`bg-white hover:bg-white shadow-md text-primary/70 ${viewMode === 'steps' ? 'border-b-4 border-primary' : ''}`} onClick={() => setViewMode('steps')}>See steps <Eye className="ml-1" /></Button>
-                                    </div>
-                                    {viewMode === 'data' ? (
-                                        testFields.map((fieldName, index: number) => (
-                                            <div key={`${fieldName} ${test?.testCaseId} ${index}`} className="flex items-center gap-3">
-                                                <Label className="w-32 break-words">{fieldName}</Label>
-                                                <FakerInputWithAutocomplete
-                                                    id={`${fieldName} ${test?.testCaseId} ${index}`}
-                                                    value={getFieldValue(test?.testCaseId ?? '', fieldName)}
-                                                    onChange={(val: string) => handleValueChange(fieldName ?? '', val, test?.testCaseId)}
-                                                    placeholder={`Enter ${fieldName}`} />
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="flex flex-col gap-4">
-                                            <div className="self-end mb-3 flex gap-2 items-center border-2 border-primary/60 rounded-md hover:shadow-md p-1">
-                                                <span>Copy All steps</span>
-                                                <CopyToClipboard text={JSON.stringify(currentTestCase?.stepsData)} />
-                                            </div>
-                                            {steps.length > 0 && (
-                                                <StepActions
-                                                    index={-1}
-                                                    steps={steps}
-                                                    test={{ ...test, index }}
-                                                    setTestCasesData={setTestCasesData} />
-                                            )}
-
-                                            {steps.map((step: any, i: number) => (
-                                                <div key={i} className="flex flex-col">
-                                                    <InteractionItem
-                                                        data={step}
-                                                        index={i}
-                                                        isContext={false}
-                                                        onDelete={(stepIndex) => {
-                                                            const updatedSteps = [...steps];
-                                                            updatedSteps.splice(stepIndex, 1);
-                                                            const reindexed = updatedSteps.map((step, idx) => ({
-                                                                ...step,
-                                                                indexStep: idx + 1,
-                                                            }));
-                                                            setTestCasesData((prev) => {
-                                                                const updatedTests = [...prev];
-                                                                updatedTests[index] = {
-                                                                    ...updatedTests[index],
-                                                                    stepsData: reindexed,
-                                                                };
-                                                                return updatedTests;
-                                                            });
-                                                        }}
-                                                        onUpdate={(indexToUpdate, newData) => {
-                                                            const updatedSteps = [...steps];
-                                                            updatedSteps[indexToUpdate] = {
-                                                                ...updatedSteps[indexToUpdate],
-                                                                ...newData,
-                                                            };
-                                                            setTestCasesData((prev) => {
-                                                                const updatedTests = [...prev];
-                                                                updatedTests[index] = {
-                                                                    ...updatedTests[index],
-                                                                    stepsData: updatedSteps,
-                                                                };
-                                                                return updatedTests;
-                                                            });
-                                                        }} />
-                                                    <StepActions
-                                                        index={i}
-                                                        steps={steps}
-                                                        test={{ ...test, index }}
-                                                        setTestCasesData={setTestCasesData} />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </AccordionContent>
-                            </AccordionItem>
-                        </>
-                    );
-                }}
+                renderItem={(test: TestCase, index: number) => (
+                    <SortableTestCaseItem
+                        test={test}
+                        index={index}
+                        selectedCases={selectedCases ?? []}
+                        toggleSelect={toggleSelect}
+                        setOpenItems={setOpenItems}
+                        openItems={openItems}
+                        viewMode={viewMode}
+                        setViewMode={setViewMode}
+                        setTestCasesData={setTestCasesData}
+                        testCasesData={testCasesData}
+                        getFieldValue={getFieldValue}
+                        handleValueChange={handleValueChange}
+                        testFields={getDynamicFields(test)}
+                        onRefreshAfterUpdateOrDelete={onRefreshAfterUpdateOrDelete}
+                        dynamicValues={dynamicValues}
+                        setDynamicValues={setDynamicValues}
+                    />
+                )}
             />
         </div>
     );

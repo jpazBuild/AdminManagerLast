@@ -5,6 +5,8 @@ import TextInputWithClearButton from "./InputClear";
 import Image from "next/image";
 import CopyToClipboard from "./CopyToClipboard";
 import DeleteButton from "./DeleteButton";
+import { Arrow } from "@radix-ui/react-popover";
+import { ArrowDown, ArrowUp } from "lucide-react";
 
 interface InteractionItemData {
     id: string;
@@ -125,8 +127,17 @@ const JSONBox = ({
     const toggleConditionalAssertExpand = () => setIsConditionalAssertExpanded(!isConditionalAssertExpanded);
     const toggleSelectorsConditionalAssertExpand = () => setIsSelectorConditionalAssertExpanded(!isSelectorConditionalAssertExpanded);
     const toggleAttributesConditionalAssertExpand = () => setIsAttributesConditionalAssertExpanded(!isAttributesConditionalAssertExpanded);
-    
+
+
     const renderSelectors = (selectors: any[], onChange?: (updated: any[]) => void) => {
+        const moveSelector = (fromIdx: number, toIdx: number) => {
+            if (toIdx < 0 || toIdx >= selectors.length) return;
+            const updated = [...selectors];
+            const [movedItem] = updated.splice(fromIdx, 1);
+            updated.splice(toIdx, 0, movedItem);
+            onChange?.(updated);
+        };
+
         return selectors?.map((selector, idx) => {
             const handleChange = (newValue: string) => {
                 const updated = [...selectors];
@@ -136,14 +147,38 @@ const JSONBox = ({
 
             return (
                 <div key={idx} className="py-2 px-3 rounded-b-md bg-white">
-                    <div className="py-2 px-3  rounded-md flex flex-col w-full items-center gap-2">
-                        <div className="w-full flex justify-between">
-                            <div className="w-full text-xs text-primary/60">{selector.type}</div>
-                            <ClipboardComponent
-                                size={14}
-                                text={selector?.locator}
-                            />
+                    <div className="py-2 px-3 rounded-md flex flex-col w-full items-center gap-2">
+                        <div className="w-full flex justify-between items-center">
+                            <span className="text-xs text-primary/80">{selector?.type}</span>
+
+                            <div className="flex items-center gap-2">
+                                <button
+                                    className="text-xs px-2 py-1 border rounded"
+                                    disabled={idx === 0}
+                                    onClick={() => moveSelector(idx, idx - 1)}
+                                    title="Mover arriba"
+                                >
+                                    <ArrowUp className="h-4 w-4" />
+                                </button>
+                                <button
+                                    className="text-xs px-2 py-1 border rounded"
+                                    disabled={idx === selectors.length - 1}
+                                    onClick={() => moveSelector(idx, idx + 1)}
+                                    title="Mover abajo"
+                                >
+                                    <ArrowDown className="h-4 w-4" />
+                                </button>
+
+                                <DeleteButton
+                                    onClick={() => {
+                                        const updated = selectors.filter((_, index) => index !== idx);
+                                        onChange?.(updated);
+                                    }}
+                                />
+                                <CopyToClipboard text={selector?.locator !== null && selector?.locator !== undefined ? String(selector?.locator) : ""} />
+                            </div>
                         </div>
+
                         <TextInputWithClearButton
                             id={selector?.locator}
                             value={selector?.locator}
@@ -154,16 +189,16 @@ const JSONBox = ({
                 </div>
             );
         });
-
     };
 
     const renderAttributes = (attributes: any, isOptionExpanded: boolean,
         onChange?: (updated: any) => void
     ) => {
+        console.log("attributes in renderAttributes:", attributes);
+        
         if (!attributes || Object.keys(attributes)?.length === 0) {
             return null;
         }
-
         return Object.entries(attributes).map(([key, value], idx) => {
             if (value === undefined) return null;
 
@@ -173,6 +208,8 @@ const JSONBox = ({
             };
 
             if (typeof value === "string" && value.startsWith("data:image")) {
+                console.log("Rendering image for key:", key, "with value:", value);
+
                 return (
                     <div key={idx} className="py-2 px-3  rounded-b-md text-primary/80">
                         <div className="w-full py-2 px-3  rounded-md flex flex-col items-center gap-2">
@@ -188,10 +225,8 @@ const JSONBox = ({
                     <div className="w-full py-2 px-3 rounded-md flex flex-col items-center gap-2">
                         <div className="w-full flex justify-between items-center">
                             <div className="w-full text-xs text-primary/60">{key}</div>
-                            <ClipboardComponent
-                                size={14}
-                                text={value}
-                            />
+                            <CopyToClipboard text={value !== null && value !== undefined ? String(value) : ""} />
+
                         </div>
                         {typeof value === "string" || typeof value === "number" ? (
                             <TextInputWithClearButton
@@ -407,116 +442,116 @@ const JSONBox = ({
 
                                                         {expandedOperations[idx] && (
                                                             <div className="pt-4">
-                                                        
-                                                        <div className="flex flex-col gap-2">
-                                                        {op?.id  && (<span className="text-primary/80">id: {op?.id}</span>)}
-                                                        <span className="text-primary/70">Operation Type: {op.operationType}</span>
-                                                        </div>
 
-                                                        {op?.element?.selectors && op?.element?.selectors?.length > 0 && (
-                                                            <>
-                                                                <div
-                                                                    onClick={toggleSelectorsConditionalAssertExpand}
-                                                                    className={`py-2 px-4 flex justify-between shadow-md items-center text-primary cursor-pointer rounded-md transition-all duration-300 ${isSelectorConditionalAssertExpanded ? "rounded-b-none border-l-4 border-primary" : "rounded-md"}`}
-                                                                >
-                                                                    <span className="font-medium">Selectors</span>
-                                                                    <span>{isSelectorConditionalAssertExpanded ? <FaChevronUp /> : <FaChevronDown />}</span>
+                                                                <div className="flex flex-col gap-2">
+                                                                    {op?.id && (<span className="text-primary/80">id: {op?.id}</span>)}
+                                                                    <span className="text-primary/70">Operation Type: {op.operationType}</span>
                                                                 </div>
-                                                                {isSelectorConditionalAssertExpanded && (
+
+                                                                {op?.element?.selectors && op?.element?.selectors?.length > 0 && (
                                                                     <>
-                                                                        {renderSelectors(op?.element?.selectors, (updated) => {
-                                                                            const updatedConditionalAssert = {
-                                                                                ...conditionalAssert,
-                                                                                operationsPlan: conditionalAssert.operationsPlan.map((item: any, index: number) =>
-                                                                                    index === idx ? { ...item, element: { ...item.element, selectors: updated } } : item
-                                                                                ),
-                                                                            };
-                                                                            setConditionalAssert(updatedConditionalAssert);
-                                                                            onChange?.({ ...value, conditionalElement: updatedConditionalAssert });
-                                                                        }
+                                                                        <div
+                                                                            onClick={toggleSelectorsConditionalAssertExpand}
+                                                                            className={`py-2 px-4 flex justify-between shadow-md items-center text-primary cursor-pointer rounded-md transition-all duration-300 ${isSelectorConditionalAssertExpanded ? "rounded-b-none border-l-4 border-primary" : "rounded-md"}`}
+                                                                        >
+                                                                            <span className="font-medium">Selectors</span>
+                                                                            <span>{isSelectorConditionalAssertExpanded ? <FaChevronUp /> : <FaChevronDown />}</span>
+                                                                        </div>
+                                                                        {isSelectorConditionalAssertExpanded && (
+                                                                            <>
+                                                                                {renderSelectors(op?.element?.selectors, (updated) => {
+                                                                                    const updatedConditionalAssert = {
+                                                                                        ...conditionalAssert,
+                                                                                        operationsPlan: conditionalAssert.operationsPlan.map((item: any, index: number) =>
+                                                                                            index === idx ? { ...item, element: { ...item.element, selectors: updated } } : item
+                                                                                        ),
+                                                                                    };
+                                                                                    setConditionalAssert(updatedConditionalAssert);
+                                                                                    onChange?.({ ...value, conditionalElement: updatedConditionalAssert });
+                                                                                }
+                                                                                )}
+
+                                                                            </>
                                                                         )}
 
                                                                     </>
+
                                                                 )}
 
-                                                            </>
+                                                                {op?.element?.attributes && Object.keys(op?.element?.attributes)?.length > 0 && (
+                                                                    <>
+                                                                        <div
+                                                                            onClick={toggleAttributesConditionalAssertExpand}
+                                                                            className={`py-2 px-4 flex justify-between shadow-md items-center text-primary cursor-pointer rounded-md transition-all duration-300 ${isAttributesConditionalAssertExpanded ? "rounded-b-none border-l-4 border-primary" : "rounded-md"}`}
+                                                                        >
+                                                                            <span className="font-medium">Attributes</span>
+                                                                            <span>{isAttributesConditionalAssertExpanded ? <FaChevronUp /> : <FaChevronDown />}</span>
+                                                                        </div>
+                                                                        {isAttributesConditionalAssertExpanded && (
+                                                                            <div className="pt-4">
+                                                                                {renderAttributes(op?.element?.attributes, true, (updated) => {
+                                                                                    const updatedConditionalAssert = {
+                                                                                        ...conditionalAssert,
+                                                                                        operationsPlan: conditionalAssert.operationsPlan.map((item: any, index: number) =>
+                                                                                            index === idx ? { ...item, element: { ...item.element, attributes: updated } } : item
+                                                                                        ),
+                                                                                    };
+                                                                                    setConditionalAssert(updatedConditionalAssert);
+                                                                                    onChange?.({ ...value, conditionalElement: updatedConditionalAssert });
+                                                                                }
+                                                                                )}
 
-                                                        )}
+                                                                            </div>
+                                                                        )}
+                                                                    </>
+                                                                )}
 
-                                                        {op?.element?.attributes && Object.keys(op?.element?.attributes)?.length > 0 && (
-                                                            <>
-                                                                <div
-                                                                    onClick={toggleAttributesConditionalAssertExpand}
-                                                                    className={`py-2 px-4 flex justify-between shadow-md items-center text-primary cursor-pointer rounded-md transition-all duration-300 ${isAttributesConditionalAssertExpanded ? "rounded-b-none border-l-4 border-primary" : "rounded-md"}`}
-                                                                >
-                                                                    <span className="font-medium">Attributes</span>
-                                                                    <span>{isAttributesConditionalAssertExpanded ? <FaChevronUp /> : <FaChevronDown />}</span>
-                                                                </div>
-                                                                {isAttributesConditionalAssertExpanded && (
+                                                                {op?.element?.coordinates && Object.keys(op?.element?.coordinates)?.length > 0 && (
                                                                     <div className="pt-4">
-                                                                        {renderAttributes(op?.element?.attributes, true, (updated) => {
+                                                                        {renderAttributes(op?.element?.coordinates, true, (updated) => {
                                                                             const updatedConditionalAssert = {
                                                                                 ...conditionalAssert,
                                                                                 operationsPlan: conditionalAssert.operationsPlan.map((item: any, index: number) =>
-                                                                                    index === idx ? { ...item, element: { ...item.element, attributes: updated } } : item
+                                                                                    index === idx ? { ...item, element: { ...item.element, coordinates: updated } } : item
                                                                                 ),
                                                                             };
                                                                             setConditionalAssert(updatedConditionalAssert);
                                                                             onChange?.({ ...value, conditionalElement: updatedConditionalAssert });
-                                                                        }
-                                                                        )}
-
+                                                                        })}
                                                                     </div>
                                                                 )}
-                                                            </>
-                                                        )}
-                                                       
-                                                        {op?.element?.coordinates && Object.keys(op?.element?.coordinates)?.length > 0 && (
-                                                            <div className="pt-4">
-                                                                {renderAttributes(op?.element?.coordinates, true, (updated) => {
-                                                                    const updatedConditionalAssert = {
-                                                                        ...conditionalAssert,
-                                                                        operationsPlan: conditionalAssert.operationsPlan.map((item: any, index: number) =>
-                                                                            index === idx ? { ...item, element: { ...item.element, coordinates: updated } } : item
-                                                                        ),
-                                                                    };
-                                                                    setConditionalAssert(updatedConditionalAssert);
-                                                                    onChange?.({ ...value, conditionalElement: updatedConditionalAssert });
-                                                                })}
-                                                            </div>
-                                                        )}
-                                                        {op.regex != "" && (
-                                                            <div className="pt-4">
-                                                                <TextInputWithClearButton
-                                                                    id={op?.regex}
-                                                                    label="Regex"
-                                                                    value={op?.regex}
-                                                                    onChangeHandler={(e) => {
-                                                                        const updatedConditionalAssert = {
-                                                                            ...conditionalAssert,
-                                                                            operationsPlan: conditionalAssert.operationsPlan.map((item: any, index: number) =>
-                                                                                index === idx ? { ...item, regex: e.target.value } : item
-                                                                            ),
-                                                                        };
-                                                                        setConditionalAssert(updatedConditionalAssert);
-                                                                        onChange?.({ ...value, conditionalElement: updatedConditionalAssert });
-                                                                    }}
-                                                                    placeholder="regex"
-                                                                />
-                                                            </div>
-                                                        )}
-                                                        {op?.element?.image && (
-                                                            <div className="pt-4 flex flex-col gap-2">
-                                                                <span className="text-primary/70">Image</span>
-                                                                <Image
-                                                                    src={op.element.image}
-                                                                    alt={`image ${op.id}`}
-                                                                    height={40}
-                                                                    width={100}
-                                                                    className="object-contain w-auto h-[100px]"
-                                                                />
-                                                            </div>
-                                                        )}
+                                                                {op.regex != "" && (
+                                                                    <div className="pt-4">
+                                                                        <TextInputWithClearButton
+                                                                            id={op?.regex}
+                                                                            label="Regex"
+                                                                            value={op?.regex}
+                                                                            onChangeHandler={(e) => {
+                                                                                const updatedConditionalAssert = {
+                                                                                    ...conditionalAssert,
+                                                                                    operationsPlan: conditionalAssert.operationsPlan.map((item: any, index: number) =>
+                                                                                        index === idx ? { ...item, regex: e.target.value } : item
+                                                                                    ),
+                                                                                };
+                                                                                setConditionalAssert(updatedConditionalAssert);
+                                                                                onChange?.({ ...value, conditionalElement: updatedConditionalAssert });
+                                                                            }}
+                                                                            placeholder="regex"
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                                {op?.element?.image && (
+                                                                    <div className="pt-4 flex flex-col gap-2">
+                                                                        <span className="text-primary/70">Image</span>
+                                                                        <Image
+                                                                            src={op.element.image}
+                                                                            alt={`image ${op.id}`}
+                                                                            height={40}
+                                                                            width={100}
+                                                                            className="object-contain w-auto h-[100px]"
+                                                                        />
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         )}
 
