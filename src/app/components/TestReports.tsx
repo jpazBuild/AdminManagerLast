@@ -222,7 +222,7 @@ const TestReports = ({ reports, progress, selectedTest, testData, stopped }: any
                             </Card>
 
                             {isExpanded && dataSteps && (
-                                <div className="p-2">
+                                <div className="p-1">
                                     <ReportUI
                                         testcaseId={reportId}
                                         data={test}

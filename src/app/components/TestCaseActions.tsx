@@ -1,10 +1,8 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogClose } from "@/components/ui/dialog";
-import { FaTrashAlt, FaEdit } from "react-icons/fa";
 import { toast } from "sonner";
 import { TestCase } from "../home/types";
-import { Edit2, Trash, Trash2Icon } from "lucide-react";
+import { Edit2, Trash2Icon } from "lucide-react";
 
 interface Props {
     test: any;

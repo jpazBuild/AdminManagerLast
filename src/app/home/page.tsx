@@ -18,6 +18,7 @@ import { TOKEN_API } from "@/config";
 import TextInputWithClearButton from "../components/InputClear";
 import SearchTestCaseComboBox from "../components/SearchTestCaseComboBox";
 import { useTagsModules } from "../hooks/useTagsModules";
+import { FaXmark } from "react-icons/fa6";
 
 const Home = () => {
     const [darkMode, setDarkMode] = useState(false);
@@ -266,6 +267,10 @@ const Home = () => {
         selectedCases.includes(tc.testCaseId)
     );
 
+    const anyLoading = Object.values(loading).some(Boolean);
+    const everyStopped = Object.values(stopped).every(Boolean)
+    console.log(selectedCases.length === 0 || isLoading || anyLoading || !everyStopped);
+    
     return (
         <DashboardHeader onToggleDarkMode={handleToggleDarkMode}>
             <div className="w-full p-4 flex flex-col gap-4 justify-center mx-auto text-primary">
@@ -306,11 +311,11 @@ const Home = () => {
 
                     <div className="flex items-center gap-2 w-full flex-col">
 
-                        <div className="flex items-center gap-2 w-full">
+                        <div className="flex items-center gap-2 pb-2 w-full justify-center">
                             <Button
                                 onClick={handleSearch}
                                 disabled={isSearchButtonDisabled || isLoading}
-                                className={`bg-primary/90 font-semibold tracking-wide hover:bg-primary/95 text-white flex items-center gap-2
+                                className={`bg-primary/90 shadow-md font-semibold tracking-wide rounded-xl hover:bg-primary/95 text-white flex items-center gap-2
                             ${isSearchButtonDisabled ? "opacity-50 cursor-not-allowed" : ""}
                             ${isLoading ? "opacity-50 cursor-not-allowed" : ""}
 
@@ -331,16 +336,16 @@ const Home = () => {
                                         setSelectedSubmodule("");
                                         setSelectedTag("");
                                     }}
-                                    className="ml-2 font-semibold tracking-wide"
+                                    className="ml-2 shadow-md font-semibold tracking-wide rounded-xl"
                                 >
                                     Clear Filters
                                 </Button>
                             ) : null}
                         </div>
 
-                        <div className="flex items-center gap-2 w-full">
+                        <div className="flex items-center gap-2 w-full flex-wrap">
                             {selectedTag && (
-                                <div className="bg-primary/85 text-white/90 px-2 py-1 rounded-full text-sm flex items-center gap-2">
+                                <div className="bg-primary/85 shadow-md text-white/90 px-2 py-1 rounded-full text-sm flex items-center gap-2">
                                     <span>{selectedTag}</span>
                                     <button
                                         onClick={() => {
@@ -349,12 +354,12 @@ const Home = () => {
                                         }
                                         className="text-white/90 hover:text-white"
                                     >
-                                        ×
+                                        <FaXmark/>
                                     </button>
                                 </div>
                             )}
                             {selectedModule && (
-                                <div className="bg-primary/65 text-white px-2 py-1 rounded-full text-sm flex items-center gap-1">
+                                <div className="bg-primary/65 shadow-md text-white px-2 py-1 rounded-full text-sm flex items-center gap-1">
                                     <span>{selectedModule}</span>
                                     <button
                                         onClick={() => {
@@ -363,13 +368,13 @@ const Home = () => {
                                         }
                                         className="text-white/90 hover:text-white"
                                     >
-                                        ×
+                                        <FaXmark/>
                                     </button>
                                 </div>
                             )}
 
                             {selectedSubmodule && (
-                                <div className="bg-primary/50 text-white px-2 py-1 rounded-full text-sm flex items-center gap-1">
+                                <div className="bg-primary/50 shadow-md text-white px-2 py-1 rounded-full text-sm flex items-center gap-1">
                                     <span>{selectedSubmodule}</span>
                                     <button
                                         onClick={() => {
@@ -377,7 +382,7 @@ const Home = () => {
                                         }}
                                         className="text-white/90 hover:text-white"
                                     >
-                                        ×
+                                        <FaXmark/>
                                     </button>
                                 </div>
                             )}
@@ -420,7 +425,7 @@ const Home = () => {
 
                     </div>
                 </div>
-                <div className="border p-4 rounded-lg">
+                <div className="border p-2 rounded-lg">
 
                     {(responseData?.length > 0 && filteredTestCases.length > 0) ? (
                         <>

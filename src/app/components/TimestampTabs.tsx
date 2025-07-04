@@ -85,7 +85,7 @@ export const TimestampTabs = ({ reports = [], onStatusComputed }: any) => {
             </div>
 
             <div className="space-y-6">
-                <div className="p-2 flex gap-3 flex-wrap pb-2">
+                <div className="p-2 flex gap-3 overflow-x-auto pb-2">
                     {reports?.map((report: any, idx: number) => {
                         const statusEntry = reportStatus.find((r:any) => r?.timestamp === report?.timestamp);
                         const isCompleted = statusEntry?.completed;
@@ -112,11 +112,11 @@ export const TimestampTabs = ({ reports = [], onStatusComputed }: any) => {
                     })}
                 </div>
 
-                <div className="rounded-md p-4 bg-white shadow-sm">
+                <div className="rounded-md p-2 bg-white shadow-sm">
                     <h3 className="font-semibold text-primary/80 mb-2">
                         Report {new Date(selectedReport?.timestamp).toLocaleString()}
                     </h3>
-                    <div className="list-disc pl-6 text-sm text-gray-600 flex flex-col gap-4">
+                    <div className="p-2 text-sm text-gray-600 flex flex-col gap-4 max-h-[80vh] overflow-y-auto">
                         {selectedReport?.events.map((ev: any, idx: any) => (
                             <StepCard
                                 key={ev?.indexStep}

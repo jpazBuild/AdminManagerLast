@@ -1,25 +1,10 @@
 import { useState, useMemo, useEffect } from "react";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Eye, File, Search } from "lucide-react";
-import InteractionItem from "./Interaction";
 import TextInputWithClearButton from "./InputClear";
 import JSONDropzone from "./JSONDropzone";
-import CopyToClipboard from "./CopyToClipboard";
-import { toast } from "sonner";
-import StepActions from "./StepActions";
-import { FakerInputWithAutocomplete } from "./FakerInput";
 import SortableTestCasesAccordion from "./SortableItem";
-import FileDropzone from "./FileDropZone";
-import axios from "axios";
-import TestCaseActions from "./TestCaseActions";
-import { handleAxiosRequest } from "../../utils/handleAxiosRequest";
-import { TOKEN_API } from "@/config";
-import { SearchField } from "./SearchField";
-import { useTagsModules } from "../hooks/useTagsModules";
 import SortableTestCaseItem from "./SortableTestCaseItem";
 
 interface TestStep {
@@ -320,7 +305,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
 
 
             {editMode === 'global' && uniqueDynamicFields.length > 0 && (
-                <div className="p-4 bg-card rounded-lg border space-y-3">
+                <div className="p-2 bg-card rounded-lg border space-y-3">
                     <h3 className="font-medium">Global Dynamic Fields</h3>
                     {uniqueDynamicFields.map((fieldName) => (
                         <div key={fieldName} className="flex items-center gap-3">
@@ -376,8 +361,6 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                         toggleSelect={toggleSelect}
                         setOpenItems={setOpenItems}
                         openItems={openItems}
-                        viewMode={viewMode}
-                        setViewMode={setViewMode}
                         setTestCasesData={setTestCasesData}
                         testCasesData={testCasesData}
                         getFieldValue={getFieldValue}
@@ -386,6 +369,8 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                         onRefreshAfterUpdateOrDelete={onRefreshAfterUpdateOrDelete}
                         dynamicValues={dynamicValues}
                         setDynamicValues={setDynamicValues}
+                        viewMode={viewMode}
+                        setViewMode={setViewMode}
                     />
                 )}
             />
