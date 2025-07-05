@@ -100,7 +100,7 @@ const StepCard = ({ step, stepData, index, handleImageClick }: StepCardProps) =>
                 <div className="self-center">
                     <Popover>
                         <PopoverTrigger asChild>
-                            <button className="bg-primary text-white p-2 rounded-full shadow-md hover:bg-primary/90 transition">
+                            <button className="bg-primary cursor-pointer text-white p-2 rounded-full shadow-md hover:bg-primary/90 transition">
                                 <FiTarget size={18} />
                             </button>
                         </PopoverTrigger>
@@ -109,7 +109,7 @@ const StepCard = ({ step, stepData, index, handleImageClick }: StepCardProps) =>
                             <ul className="text-sm space-y-1">
                                 {stepData?.data?.selectors.map((selector: { type: string; locator: string }, idx: number) => (
                                     <li key={idx} className="border-b py-1">
-                                        <div className="text-xs text-primary break-words text-muted-foreground">
+                                        <div className="text-xs text-primary break-words">
                                             <strong>{selector.type}</strong>: {selector.locator}
                                         </div>
                                     </li>

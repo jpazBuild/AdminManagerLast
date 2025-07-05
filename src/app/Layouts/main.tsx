@@ -26,7 +26,7 @@ export const DashboardHeader = ({ children, onToggleDarkMode,overflow="overflow-
                     <div className="flex items-center gap-4 lg:hidden">
                         <button
                             onClick={toggleMobileMenu}
-                            className="text-2xl p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-[#021d3d]"
+                            className="text-2xl cursor-pointer p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-[#021d3d]"
                         >
                             {mobileMenuOpen ? <FaTimes /> : <FaBars />}
                         </button>
@@ -59,7 +59,7 @@ export const DashboardHeader = ({ children, onToggleDarkMode,overflow="overflow-
                             onClick={(e) => e.stopPropagation()}
                         >
                             <button
-                                className={`self-end text-2xl transition-all ${darkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-600 hover:text-gray-800"
+                                className={`self-end cursor-pointer text-2xl transition-all ${darkMode ? "text-gray-400 hover:text-gray-200" : "text-gray-600 hover:text-gray-800"
                                     }`}
                                 onClick={() => setMobileMenuOpen(false)}
                             >

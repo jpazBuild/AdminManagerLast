@@ -31,6 +31,15 @@ const nextConfig: NextConfig = {
     URL_API_RUNNER: process.env.URL_API_RUNNER,
     URL_API_ALB: process.env.URL_ALB_API_RUNNER,
   },
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/home',
+        permanent: false, // Temporal (HTTP 307)
+      },
+    ];
+  },
 };
 
 export default nextConfig;

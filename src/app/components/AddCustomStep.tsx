@@ -123,20 +123,20 @@ const AddCustomStep = ({
 
           <div className="flex justify-between items-center">
             <button
-              className="text-xs text-primary/80 hover:text-primary/90"
+              className="text-xs cursor-pointer text-primary/80 hover:text-primary/90"
               onClick={handleBeautify}
             >
               Beautify JSON
             </button>
             <div className="flex gap-2">
               <button
-                className="shadow-md bg-primary/80 flex items-center gap-2 px-2 py-1 rounded-md text-xs text-white"
+                className="shadow-md cursor-pointer bg-primary/80 flex items-center gap-2 px-2 py-1 rounded-md text-xs text-white"
                 onClick={handleAdd}
               >
                 <Check size={16} /> <span>Insert</span>
               </button>
               <button
-                className="shadow-md bg-white/80 border-2 border-primary/80 flex items-center gap-2 px-2 py-1 rounded-md text-xs text-primary/90"
+                className="shadow-md cursor-pointer bg-white/80 border-2 border-primary/80 flex items-center gap-2 px-2 py-1 rounded-md text-xs text-primary/90"
                 onClick={() => {
                   setOpen(false);
                   setJsonText("");

@@ -132,7 +132,7 @@ export default function Home() {
                   value={filters[field as keyof typeof filters]}
                   onChange={handleInputChange}
                   placeholder={`Filter by ${field}`}
-                  className={`bg-transparent backdrop:bg-transparent decoration-transparent p-3 pr-10 border rounded-md focus:ring-2 transition-colors duration-300 w-full ${filters[field as keyof typeof filters]
+                  className={`bg-transparent backdrop:bg-transparent decoration-transparent p-3 pr-10 rounded-md focus:ring-2 transition-colors duration-300 w-full ${filters[field as keyof typeof filters]
                     ? darkMode
                       ? "text-gray-100 border-gray-500"
                       : "text-gray-900 border-[#021d3d]"
@@ -145,7 +145,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => handleClearField(field)}
-                    className={`absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 focus:outline-none`}
+                    className={`absolute cursor-pointer right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 focus:outline-none`}
                   >
                     &#x2715;
                   </button>
@@ -155,7 +155,7 @@ export default function Home() {
           </div>
           <button
             onClick={fetchData}
-            className={`mt-4 px-6 py-2 rounded-md font-semibold transition-colors duration-300 ${darkMode ? "bg-[#021d3d] text-white hover:bg-[#021d3d]" : "bg-[#021d3d] text-white hover:bg-[#021d3d]"}`}
+            className={`mt-4 cursor-pointer px-6 py-2 rounded-md font-semibold transition-colors duration-300 ${darkMode ? "bg-[#021d3d] text-white hover:bg-[#021d3d]" : "bg-[#021d3d] text-white hover:bg-[#021d3d]"}`}
           >
             {loading ? "Searching..." : "Search"}
           </button>

@@ -20,7 +20,7 @@ const StepActions = ({ index, steps, test, setTestCasesData }: any) => {
                 <Button
                     size="sm"
                     variant={"outline"}
-                    className={`text-xs w-fit`}
+                    className={`text-xs cursor-pointer w-fit cursor-pointer`}
                     onClick={() => {
                         setViewActionStep((prev) => prev === 'wait' ? 'none' : 'wait');
                         setWaitInputs((prev) => ({
@@ -35,7 +35,7 @@ const StepActions = ({ index, steps, test, setTestCasesData }: any) => {
                 <Button
                     size="sm"
                     variant={"outline"}
-                    className={`text-xs w-fit`}
+                    className={`text-xs cursor-pointer w-fit cursor-pointer`}
                     onClick={() => {
                         setViewActionStep((prev) => prev === 'customStep' ? 'none' : 'customStep')
                     }}
@@ -61,7 +61,7 @@ const StepActions = ({ index, steps, test, setTestCasesData }: any) => {
                                 placeholder="Wait (ms)"
                             />
                             <button
-                                className="text-xs text-gray-400 hover:text-primary/70 p-1"
+                                className="text-xs cursor-pointer text-gray-400 hover:text-primary/70 p-1"
                                 onClick={() => {
                                     const ms = parseInt(waitInputs[index] || "", 10);
                                     if (!isNaN(ms)) {
@@ -98,7 +98,7 @@ const StepActions = ({ index, steps, test, setTestCasesData }: any) => {
                                 <Check size={16} />
                             </button>
                             <button
-                                className="text-xs text-gray-400 hover:text-primary/70 p-1"
+                                className="text-xs cursor-pointer text-gray-400 hover:text-primary/70 p-1"
                                 onClick={() =>
                                     setWaitInputs((prev) => ({
                                         ...prev,

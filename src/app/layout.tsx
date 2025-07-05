@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import './globals.css'
 import { Toaster } from "@/components/ui/sonner"
 
 const geistSans = Geist({
@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Admin | Manager",
   description: "Blossom Admin Manager Automation",
+  icons: {
+    icon: "/Blossom_logo_2.svg",
+  },
 };
 
 export default function RootLayout({

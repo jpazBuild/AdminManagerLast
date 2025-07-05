@@ -73,7 +73,7 @@ const SearchTestCaseComboBox = ({
         </PopoverTrigger>
 
         {!disabled && (
-          <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]">
+          <PopoverContent className="p-0 w-full">
             <Command>
               <CommandInput placeholder="Search test case name..." />
               <CommandList>

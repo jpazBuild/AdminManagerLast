@@ -148,6 +148,8 @@ export const useTestExecution = () => {
         socket.onmessage = (event) => {
             try {
                 const message = JSON.parse(event.data);
+                console.log("📬 Mensaje recibido:", message);
+                
                 const { response, routeKey, connectionId, testCaseId } = message;
                 const id = String(testCaseId);
                 if (stopped[id]) return;

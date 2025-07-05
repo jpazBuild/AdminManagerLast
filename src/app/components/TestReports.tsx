@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "../../components/ui/card";
-import { Badge } from "../../components/ui/badge";
-import { Progress } from "../../components/ui/progress";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 import ReportUI from "./Report";
-import { Button } from "@/components/ui/button";
 import { useTestExecution } from "../hooks/useTestExecution";
 import { StopCircle, XCircle, Clock, Download as DownloadIcon } from "lucide-react";
 import { handleDownloadHTMLReport } from "../hooks/HTMLReport";
@@ -128,13 +127,13 @@ const TestReports = ({ reports, progress, selectedTest, testData, stopped }: any
                             <div className="flex gap-2 self-end">
                                 <button
                                     onClick={() => handleDownloadHTMLReport(totalSuccess, totalFailed, totalTests, totalExecutionTime, reports, testData,selectedTest)}
-                                    className="flex items-center gap-2 text-xs border-primary/60 border-2 text-primary/60 font-semibold px-4 py-2 rounded hover:shadow-md"
+                                    className="flex cursor-pointer items-center gap-2 text-xs border-primary/60 border-2 text-primary/60 font-semibold px-4 py-2 rounded hover:shadow-md"
                                 >
                                     <DownloadIcon size={16} /> HTML Report
                                 </button>
                                 <button
                                     onClick={() => handleDownloadPDFReport(totalTests,totalSuccess, totalFailed, totalExecutionTime, reports, testData,selectedTest)}
-                                    className="flex items-center gap-2 text-xs border-primary/60 border-2 text-primary/60 font-semibold px-2 rounded hover:shadow-md"
+                                    className="flex cursor-pointer cursor-pointer items-center gap-2 text-xs border-primary/60 border-2 text-primary/60 font-semibold px-2 rounded hover:shadow-md"
                                 >
                                     <DownloadIcon size={16} /> PDF Report
                                 </button>
@@ -170,10 +169,10 @@ const TestReports = ({ reports, progress, selectedTest, testData, stopped }: any
                                         e.stopPropagation();
                                         stopTest(reportId, connectionId, reports.find((p: any) => p.testCaseId === test.testCaseId)?.socket);
                                     }}
-                                    className="self-end flex items-center gap-2 p-1 text-primary"
+                                    className="self-end cursor-pointer flex items-center shadow-md rounded-md cursor-pointer border gap-2 p-1 hover:text-primary/90 text-primary/70"
                                     title="Stop Test"
                                 >
-                                    Stop <StopCircle className="w-5 h-5 text-red-500 hover:text-red-700" />
+                                    <StopCircle className="w-5 h-5 text-red-600 animate-pulse" /> Stop 
                                 </button>
                             )}
 

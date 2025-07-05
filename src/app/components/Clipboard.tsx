@@ -5,7 +5,7 @@ const ClipboardComponent = ({text,size=18,className="bg-gray-100 rounded-md bord
         <>
             <button
                 onClick={() => navigator.clipboard.writeText(text)}
-                className={`p-1 ${className} focus:outline-none focus:ring-1 `}
+                className={`p-1 ${className} cursor-pointer focus:outline-none focus:ring-1 `}
                 title="Copy to clipboard"
             >
                 <FiClipboard size={size} />

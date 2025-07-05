@@ -26,14 +26,14 @@ export const Dashboard = ({children,onToggleDarkMode}:any) => {
             <header className="lg:hidden flex items-center justify-between p-4  shadow-md">
                 <button
                     onClick={toggleMobileMenu}
-                    className="text-2xl p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-[#021d3d]/50"
+                    className="text-2xl cursor-pointer p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-[#021d3d]/50"
                 >
                     {mobileMenuOpen ? <FaTimes /> : <FaBars />}
                 </button>
                 <h1 className="text-xl font-bold">Admin Manager</h1>
                 <button
                     onClick={toggleDarkMode}
-                    className="text-2xl p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-[#021d3d]/50"
+                    className="text-2xl p-2 cursor-pointer rounded-md focus:outline-none focus:ring-2 focus:ring-[#021d3d]/50"
                 >
                     {darkMode ? <WiDaySunny /> : <CiDark />}
                 </button>
@@ -53,7 +53,7 @@ export const Dashboard = ({children,onToggleDarkMode}:any) => {
                             />
                             <button
                                 onClick={toggleMobileMenu}
-                                className="lg:hidden text-2xl p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-[#021d3d]/50"
+                                className="lg:hidden cursor-pointer text-2xl p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-[#021d3d]/50"
                             >
                                 <FaTimes />
                             </button>
@@ -81,7 +81,7 @@ export const Dashboard = ({children,onToggleDarkMode}:any) => {
                     <div className="mt-8">
                         <button
                             onClick={toggleDarkMode}
-                            className={`flex items-center gap-4 text-lg w-full px-4 py-2 rounded-md font-semibold transition-colors duration-300 ${darkMode ? "bg-white text-gray-800 hover:bg-gray-300" : "bg-gray-800 text-white hover:bg-gray-900"}`}
+                            className={`flex cursor-pointer items-center gap-4 text-lg w-full px-4 py-2 rounded-md font-semibold transition-colors duration-300 ${darkMode ? "bg-white text-gray-800 hover:bg-gray-300" : "bg-gray-800 text-white hover:bg-gray-900"}`}
                         >
                             {darkMode ? (
                                 <>

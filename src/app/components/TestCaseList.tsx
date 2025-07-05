@@ -1,11 +1,12 @@
 import { useState, useMemo, useEffect } from "react";
-import { Switch } from "@/components/ui/switch";
+import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import TextInputWithClearButton from "./InputClear";
 import JSONDropzone from "./JSONDropzone";
 import SortableTestCasesAccordion from "./SortableItem";
 import SortableTestCaseItem from "./SortableTestCaseItem";
+import { Download } from "lucide-react";
 
 interface TestStep {
     action: string;
@@ -283,14 +284,18 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
         URL.revokeObjectURL(url);
     };
 
+    console.log("TestCases Data:", testCasesData);
+
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center gap-3 p-2 bg-card rounded-lg">
                 <div className="flex items-center gap-2">
+
                     <Switch
                         id="edit-mode"
                         checked={editMode === 'global'}
                         onCheckedChange={(checked) => setEditMode(checked ? 'global' : 'individual')}
+                        aria-label="Toggle Edit Mode"
                     />
                     <Label htmlFor="edit-mode" className="font-medium">
                         {editMode === 'global' ? 'Editing all tests' : 'Editing individual tests'}
@@ -305,10 +310,10 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
 
 
             {editMode === 'global' && uniqueDynamicFields.length > 0 && (
-                <div className="p-2 bg-card rounded-lg border space-y-3">
+                <div className="p-2 rounded-lg space-y-3 shadow-md border-t-4 border-primary/60">
                     <h3 className="font-medium">Global Dynamic Fields</h3>
                     {uniqueDynamicFields.map((fieldName) => (
-                        <div key={fieldName} className="flex items-center gap-3">
+                        <div key={fieldName} className="flex flex-wrap items-center gap-3">
                             <Label className="w-32">{fieldName}</Label>
                             <TextInputWithClearButton
                                 id={fieldName}
@@ -329,23 +334,27 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                     ))}
                 </div>
             )}
-            <div className="flex gap-3 items-center text-xs text-muted-foreground mb-1">
-                <div className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-full text-primary/85 bg-primary/85 inline-block" />
-                    <span>Tag</span>
+
+            <div className="flex justify-between items-center px-2">
+                <div className="flex gap-3 items-center text-xs text-muted-foreground mb-1">
+                    <div className="flex items-center gap-1">
+                        <span className="w-3 h-3 rounded-full text-primary/85 bg-primary/85 inline-block" />
+                        <span>Tag</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <span className="w-3 h-3 rounded-full text-primary/65 bg-primary/65 inline-block" />
+                        <span>Module</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <span className="w-3 h-3 rounded-full text-primary/50 bg-primary/50 inline-block" />
+                        <span>Submodule</span>
+                    </div>
                 </div>
-                <div className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-full text-primary/65 bg-primary/65 inline-block" />
-                    <span>Module</span>
-                </div>
-                <div className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded-full text-primary/50 bg-primary/50 inline-block" />
-                    <span>Submodule</span>
-                </div>
+                <Button onClick={handleExportAsDataObject} variant="outline" className="self-end mt-2 cursor-pointer text-xs flex items-center gap-2">
+                    <Download /> Export Dynamic Values
+                </Button>
             </div>
-            <Button onClick={handleExportAsDataObject} variant="outline" className="text-xs">
-                Export Dynamic Values
-            </Button>
+
 
 
             <SortableTestCasesAccordion

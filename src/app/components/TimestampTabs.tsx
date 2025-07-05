@@ -95,7 +95,7 @@ export const TimestampTabs = ({ reports = [], onStatusComputed }: any) => {
                             <div key={report?.timestamp} className="flex flex-col items-center">
                                 <button
                                     onClick={() => setSelectedIndex(idx)}
-                                    className={`px-4 py-2 text-sm rounded-md font-medium transition ${idx === selectedIndex
+                                    className={`px-4 py-2 text-sm cursor-pointer rounded-md font-medium transition ${idx === selectedIndex
                                             ? "bg-primary text-white"
                                             : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                         }`}

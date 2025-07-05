@@ -1,120 +1,62 @@
 "use client"
-import * as React from "react"
-import { Label, Pie, PieChart } from "recharts"
+import React from "react";
+import { ResponsivePie } from "@nivo/pie";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-} from "../../components/ui/card"
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "../../components/ui/chart"
+} from "@/components/ui/card";
 
-export function ExecutionSummary({ totalSuccess, totalFailed, totalPending, successRate }: any) {
-  const totalTests = totalSuccess + totalFailed + totalPending;
+export function ExecutionSummary({ totalSuccess, totalFailed, totalPending }: any) {
+  const total = totalSuccess + totalFailed + totalPending;
+  const data = [
+    { id: "Success", label: "Success", value: totalSuccess, color: "#4CAF50" },
+    { id: "Failed", label: "Failed", value: totalFailed, color: "#F44336" },
+    { id: "Pending", label: "Pending", value: totalPending, color: "#FF9800" },
+  ].filter(entry => entry.value > 0);
 
-  const chartData = [
-    { category: "Success", count: totalSuccess, fill: "#4CAF50" },
-    { category: "Failed", count: totalFailed, fill: "#F44336" },
-    { category: "Pending", count: totalPending, fill: "#FF9800" },
-  ];
+  if (total === 0) return null;
 
-  const chartConfig = {
-    success: { label: "Success", color: "#4CAF50" },
-    failure: { label: "Failed", color: "#F44336" },
-    pending: { label: "Pending", color: "#FF9800" }
-  };
-  
-
-  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }: any) => {
-    if (percent === 0) return null
-    const RADIAN = Math.PI / 180
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5
-    const x = cx + radius * Math.cos(-midAngle * RADIAN)
-    const y = cy + radius * Math.sin(-midAngle * RADIAN)
-  
-    return (
-      <text
-        x={x}
-        y={y}
-        fill="white"
-        textAnchor={"middle"}
-        dominantBaseline="central"
-        className="p-2 text-xs font-semibold text-primary fill-primary"
-      >
-        {`${(percent * 100).toFixed(0)}%`}
-      </text>
-    )
-  }
-  
   return (
-    totalTests > 0 && (
-      <Card className="flex flex-col text-primary">
-        <CardHeader className="items-center pb-0">
-          <CardTitle>Summary</CardTitle>
-        </CardHeader>
-        <CardContent className="flex-1 pb-0">
-          <ChartContainer
-            config={chartConfig}
-            className="mx-auto aspect-square max-h-[250px]"
-          >
-            <PieChart className="text-primary">
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent hideLabel />}
-              />
-              <Pie
-                data={chartData}
-                dataKey="count"
-                nameKey="category"
-                innerRadius={40}
-                outerRadius={100}
-                strokeWidth={5}
-                label={renderCustomizedLabel}
-                
-              >
-                <Label
-                  content={({ viewBox }) => {
-                    if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                      const { cx, cy } = viewBox
-                      return (
-                        <text
-                          x={cx}
-                          y={cy}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                          className="text-primary"
-                        >
-                          <tspan
-                            x={cx}
-                            y={(Number(cy) ?? 0) - 12}
-                            className="!fill-primary text-3xl font-bold"
-                          >
-                            {totalTests.toLocaleString()}
-                          </tspan>
-                          <tspan
-                            x={cx}
-                            y={(Number(cy) ?? 0) + 12}
-                            className="fill-primary/90 text-sm"
-                          >
-                            Tests
-                          </tspan>
-                        </text>
-                      )
-                    }
-                    return null
-                  }}
-                />
-
-              </Pie>
-            </PieChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-    )
-  )
+    <Card className="flex flex-col">
+      <CardHeader className="items-center pb-0 text-primary">
+        <CardTitle>Summary</CardTitle>
+      </CardHeader>
+      <CardContent className="flex-1 pb-0 flex flex-col items-center">
+        <div className="relative w-[220px] h-[220px]">
+          <ResponsivePie
+            data={data}
+            margin={{ top: 24, right: 24, bottom: 24, left: 24 }}
+            innerRadius={0.65}
+            padAngle={1.5}
+            colors={{ datum: "data.color" }}
+            enableArcLabels={false}
+            enableArcLinkLabels={false}
+            borderWidth={2}
+            borderColor="#fff"
+            tooltip={({ datum }) => (
+              <div className="px-3 py-2 rounded-lg bg-[#f0f0f0] text-[#223853] shadow font-medium text-sm">
+                <span className="inline-block w-3 h-3 rounded-full mr-2" style={{ background: datum.color }} />
+                {datum.label}: <b>{datum.value}</b>
+              </div>
+            )}
+            animate={true}
+          />
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <span className="text-3xl font-bold text-[#223853] opacity-85 leading-tight">{total}</span>
+            <span className="text-[#223853] text-base font-medium -mt-1">Tests</span>
+          </div>
+        </div>
+        <div className="flex justify-around w-full mt-3 text-xs">
+          {data.map((entry) => (
+            <span key={entry.id} className="flex items-center gap-2">
+              <span className="inline-block w-3 h-3 rounded-full" style={{ background: entry.color }}></span>
+              <span className="font-medium text-[#223853]">{entry.label}: {entry.value}</span>
+            </span>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
-

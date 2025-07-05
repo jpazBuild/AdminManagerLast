@@ -10,7 +10,7 @@ const DeleteButton = ({ onClick }: { onClick: () => void }) => {
             <Button
                 size="icon"
                 variant="destructive"
-                className="w-6 h-6 p-1 bg-primary/20 hover:bg-primary/20 text-primary/90 transition"
+                className="w-6 h-6 p-1 cursor-pointer bg-primary/20 hover:bg-primary/20 text-primary/90 transition"
                 onClick={() => {
                     onClick();
                     setConfirming(false);
@@ -22,7 +22,7 @@ const DeleteButton = ({ onClick }: { onClick: () => void }) => {
             <Button
                 size="icon"
                 variant="ghost"
-                className="w-6 h-6 p-1 text-muted-foreground hover:bg-primary/10 hover:text-primary/90 transition"
+                className="w-6 h-6 p-1 cursor-pointer text-muted-foreground hover:bg-primary/10 hover:text-primary/90 transition"
                 onClick={() => setConfirming(false)}
                 title="Cancel"
             >
@@ -33,7 +33,7 @@ const DeleteButton = ({ onClick }: { onClick: () => void }) => {
         <Button
             size="icon"
             variant="ghost"
-            className="w-6 h-6 p-1 hover:bg-primary/10 hover:text-primary/90 transition"
+            className="w-6 h-6 p-1 cursor-pointer hover:bg-primary/10 hover:text-primary/90 transition"
             onClick={() => setConfirming(true)}
             title="Delete step"
         >

@@ -218,7 +218,7 @@ const ApiFlowBuilder = () => {
                 <div key={curPath} className="mt-2">
                     <button
                         onClick={() => setExpandedFolders((p) => ({ ...p, [curPath]: !p[curPath] }))}
-                        className="flex items-center gap-2 text-left text-sm font-medium hover:bg-muted p-2 rounded-md transition break-words"
+                        className="flex cursor-pointer items-center gap-2 text-left text-sm font-medium hover:bg-muted p-2 rounded-md transition break-words"
                     >
                         {expandedFolders[curPath] ? <ChevronDown /> : <ChevronRight />}
                         <FolderArchiveIcon className="w-4 h-4" /> {api.name}
@@ -277,7 +277,7 @@ const ApiFlowBuilder = () => {
                                         <div key={i} className="mb-1">
                                             <button
                                                 onClick={() => setExpandedCollection(expandedCollection === i ? null : i)}
-                                                className="w-full flex justify-between items-center gap-2 text-sm font-semibold hover:bg-muted p-2 rounded-md"
+                                                className="w-full cursor-pointer flex justify-between items-center gap-2 text-sm font-semibold hover:bg-muted p-2 rounded-md"
                                             >
                                                 <div className="flex items-center gap-2">
                                                     {expandedCollection === i ? <ChevronDown /> : <ChevronRight />}
@@ -306,7 +306,7 @@ const ApiFlowBuilder = () => {
                                         <div key={team.teamId} className="mb-2">
                                             <button
                                                 onClick={() => setExpandedTeams((p) => ({ ...p, [team.teamId]: !p[team.teamId] }))}
-                                                className="w-full flex items-center gap-2 text-sm font-semibold hover:bg-muted p-2 rounded-md"
+                                                className="w-full cursor-pointer flex items-center gap-2 text-sm font-semibold hover:bg-muted p-2 rounded-md"
                                             >
                                                 {expandedTeams[team.teamId] ? <ChevronDown /> : <ChevronRight />}
                                                 {team.teamName}
@@ -318,7 +318,7 @@ const ApiFlowBuilder = () => {
                                                     <div key={ws.id} className="ml-3 mt-1">
                                                         <button
                                                             onClick={() => setExpandedWorkspaces((p) => ({ ...p, [wsKey]: !p[wsKey] }))}
-                                                            className="w-full flex items-center gap-2 text-sm font-medium hover:bg-muted/50 p-2 rounded-md"
+                                                            className="w-full cursor-pointer flex items-center gap-2 text-sm font-medium hover:bg-muted/50 p-2 rounded-md"
                                                         >
                                                             {expandedWorkspaces[wsKey] ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                                                             <WorkflowIcon className="w-4 h-4" /> {ws.name}
@@ -430,7 +430,7 @@ const ApiFlowBuilder = () => {
                     <div className="flex justify-between items-center mb-6">
                         <h1 className="text-3xl font-bold text-primary">Build Your API Flow</h1>
                         <div className="flex gap-2">
-                            <Button onClick={handleRunApis} className="text-white" disabled={!selectedEnv || !selectedCollection}>
+                            <Button onClick={handleRunApis} className="text-white cursor-pointer" disabled={!selectedEnv || !selectedCollection}>
                                 <WorkflowIcon className="w-4 h-4" /> Send Flow
                             </Button>
                         </div>
@@ -462,6 +462,7 @@ const ApiFlowBuilder = () => {
                                                         variant="ghost"
                                                         size="icon"
                                                         onClick={(e) => { e.stopPropagation(); removeFromFlow(idx); }}
+                                                        className="text-primary/50 hover:text-primary/60"
                                                     >
                                                         <Trash2Icon className="w-4 h-4" />
                                                     </Button>
@@ -476,7 +477,7 @@ const ApiFlowBuilder = () => {
                                                                 onChange={(e) => updateFlowField(idx, "url", e.target.value)}
                                                                 className="text-xs"
                                                             />
-                                                            <Button variant="outline" size="icon" onClick={() => executeApi(api, idx)}>
+                                                            <Button variant="outline" className="cursor-pointer" size="icon" onClick={() => executeApi(api, idx)}>
                                                                 <PlayIcon className="w-4 h-4" />
                                                             </Button>
                                                         </div>
@@ -525,6 +526,7 @@ const ApiFlowBuilder = () => {
                                                                                         up.splice(hIdx, 1);
                                                                                         updateFlowField(idx, "headers", up);
                                                                                     }}
+                                                                                    className="cursor-pointer"
                                                                                 >
                                                                                     <Trash2Icon className="w-4 h-4 text-primary/90" />
                                                                                 </Button>
@@ -540,6 +542,7 @@ const ApiFlowBuilder = () => {
                                                                                 { key: "", value: "" },
                                                                             ])
                                                                         }
+                                                                        className="cursor-pointer"
                                                                     >
                                                                         Add Header
                                                                     </Button>

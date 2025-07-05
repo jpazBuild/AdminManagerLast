@@ -15,12 +15,14 @@ interface Props {
 const TestCaseActions = ({ test, onDelete, onUpdate,isLoadingUpdate,isLoadingDelete }: Props) => {
     const [openDialog, setOpenDialog] = useState(false);
 
+    console.log("TestCaseActions testasasasdfccdc:", test);
+    
     return (
         <div className="flex gap-2 px-2 mt-2">
             <Dialog open={openDialog} onOpenChange={setOpenDialog}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="text-lg font-semibold text-primary/90">
+                        <DialogTitle className="text-lg font-semibold text-primary/80">
                             Are you sure you want to delete this test case?
                         </DialogTitle>
                     </DialogHeader>
@@ -32,7 +34,7 @@ const TestCaseActions = ({ test, onDelete, onUpdate,isLoadingUpdate,isLoadingDel
                     <DialogFooter className="mt-4 flex justify-end gap-2">
                         <button
                             onClick={() => setOpenDialog(false)}
-                            className="text-primary/80 px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                            className="text-primary/80 cursor-pointer px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                         >
                             Cancel
                         </button>
@@ -45,7 +47,7 @@ const TestCaseActions = ({ test, onDelete, onUpdate,isLoadingUpdate,isLoadingDel
                                     toast.error("No testCaseId found");
                                 }
                             }}
-                            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                            className="bg-red-500 cursor-pointer text-white px-4 py-2 rounded hover:bg-red-600"
                         >
                             Yes, Delete
                         </button>
@@ -55,7 +57,7 @@ const TestCaseActions = ({ test, onDelete, onUpdate,isLoadingUpdate,isLoadingDel
 
             <div className="place-self-end flex gap-2 mb-2">
                 <button
-                className="flex items-center gap-1 text-primary/80 text-sm hover:text-red-500"
+                className="flex items-center cursor-pointer gap-1 text-primary/80 text-sm hover:text-red-500"
                 onClick={() => setOpenDialog(true)}
             >
                 <Trash2Icon className="w-4 h-4" />
@@ -63,7 +65,7 @@ const TestCaseActions = ({ test, onDelete, onUpdate,isLoadingUpdate,isLoadingDel
             </button>
 
             <button
-                className="flex items-center gap-1 text-primary/80 text-sm hover:text-primary"
+                className="flex items-center cursor-pointer gap-1 text-primary/80 text-sm hover:text-primary"
                 onClick={() => onUpdate(test)}
             >
                 <Edit2 className="w-4 h-4" />

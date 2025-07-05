@@ -56,8 +56,8 @@ export const SelectField = ({
   };
 
   return (
-    <div className="flex flex-col gap-2 w-full">
-      {label && <label className="font-medium text-sm text-primary/90">{label}</label>}
+    <div className="flex flex-col gap-2 w-full bg-white">
+      {label && <label className="font-medium text-sm text-primary/90 ">{label}</label>}
 
       <Select
         value={value}
@@ -65,6 +65,7 @@ export const SelectField = ({
         disabled={disabled}
         open={isOpen}
         onOpenChange={setIsOpen}
+        
       >
         <SelectTrigger className={`w-full ${className}`}>
           <SelectValue placeholder={placeholder} />

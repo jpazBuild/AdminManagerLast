@@ -336,7 +336,7 @@ const CreateForm = () => {
                 <Button
                     onClick={handleSubmit}
                     disabled={!isFormValid || isLoading}
-                    className={`w-full md:w-auto font-semibold tracking-wide mt-4 rounded-lg transition-all duration-300 ${isLoading || !isFormValid ? "opacity-50 cursor-not-allowed text-white" : "bg-primary/80 text-white hover:bg-primary/90"}`}
+                    className={`w-full cursor-pointer md:w-auto font-semibold tracking-wide mt-4 rounded-lg transition-all duration-300 ${isLoading || !isFormValid ? "opacity-50 cursor-not-allowed text-white" : "bg-primary/80 text-white hover:bg-primary/90"}`}
                 >
                     {isLoading ? "Creating..." : <><FaPlus /> Create</>}
                 </Button>

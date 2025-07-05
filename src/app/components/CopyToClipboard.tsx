@@ -16,7 +16,7 @@ const CopyToClipboard = ({ text }: { text: string }) => {
         <Button asChild
             variant="ghost"
             size="icon"
-            className="w-6 h-6 p-1 hover:bg-accent/30 transition"
+            className="w-6 h-6 p-1 cursor-pointer hover:bg-accent/30 transition"
             onClick={handleCopy}
             title="Copy ID"
         >

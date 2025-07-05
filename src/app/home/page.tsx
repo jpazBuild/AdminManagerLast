@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect, useMemo } from "react";
-import { Button } from "../../components/ui/button";
-import { Checkbox } from "../../components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Submodule, Tag, TestCase, Module } from "./types";
 import { DashboardHeader } from "../Layouts/main";
 import TestSettings from "../components/TestSettings";
@@ -14,22 +14,14 @@ import NoData from "../components/NoData";
 import { toast } from "sonner";
 import { SearchField } from "../components/SearchField";
 import { SelectField } from "../components/SelectField";
-import { TOKEN_API } from "@/config";
-import TextInputWithClearButton from "../components/InputClear";
 import SearchTestCaseComboBox from "../components/SearchTestCaseComboBox";
 import { useTagsModules } from "../hooks/useTagsModules";
 import { FaXmark } from "react-icons/fa6";
+import { Filter, Loader } from "lucide-react";
 
 const Home = () => {
     const [darkMode, setDarkMode] = useState(false);
-    // const [modules, setModules] = useState<Module[]>([]);
-    // const [submodules, setSubmodules] = useState<Submodule[]>([]);
-    // const [tags, setTags] = useState<Tag[]>([]);
     const [selectedCases, setSelectedCases] = useState<string[]>([]);
-    // const [selectedModule, setSelectedModule] = useState<string>("");
-    // const [selectedSubmodule, setSelectedSubmodule] = useState<string>("");
-    // const [selectedTag, setSelectedTag] = useState<string>("");
-    // const [isLoading, setIsLoading] = useState<boolean>(false);
     const [maxBrowsers, setMaxBrowsers] = useState<number>(1)
     const [isHeadless, setIsHeadless] = useState<boolean>(true)
     const [isDropdownOpenTC, setIsDropdownOpenTC] = useState(true);
@@ -38,10 +30,9 @@ const Home = () => {
     const [selectedCreatedBy, setSelectedCreatedBy] = useState("");
     const [availableCreators, setAvailableCreators] = useState<string[]>([]);
     const [testCasesUpdated, setTestCasesUpdated] = useState<TestCase[]>([]);
-    // const [isLoadingSubmodules, setIsLoadingSubmodules] = useState<boolean>(false);
     const [executeRun, setExecuteRun] = useState(false);
     const [searchTestCaseName, setSearchTestCaseName] = useState("");
-
+    const [isMobile, setIsMobile] = useState(false);
     useEffect(() => {
         if (Array.isArray(responseData)) {
             const uniqueCreators = Array.from(new Set(responseData.map((tc: any) => tc?.createdBy).filter(Boolean)));
@@ -56,99 +47,6 @@ const Home = () => {
     const toggleDropdown = () => {
         setIsDropdownOpenTC(!isDropdownOpenTC);
     };
-    // const BASE_URL = process.env.URL_API_INTEGRATION;
-    // const AUTH_HEADER = {
-    //     headers: { Authorization: `Bearer ${TOKEN_API}` },
-    // };
-
-    // const fetchInitialData = async () => {
-    //     setIsLoading(true);
-    //     try {
-    //         const params = new URLSearchParams({ returnUniqueValues: "true" });
-    //         const response = await fetch(`${BASE_URL}retrieveAutomationFlow?${params}`, AUTH_HEADER);
-    //         const data = await response.json();
-
-    //         setTags(data.response?.tagName || []);
-    //         setModules(data.response?.moduleName || []);
-    //         setSubmodules(data.response?.subModuleName || []);
-    //     } catch (error) {
-    //         console.error("Error al obtener los datos iniciales", error);
-    //     } finally {
-    //         setIsLoading(false);
-    //     }
-    // };
-
-    // const fetchModulesByTag = async (tag: string) => {
-    //     if (!tag) return;
-    //     setIsLoading(true);
-    //     try {
-    //         const params = new URLSearchParams({ returnUniqueValues: "true", tagName: tag });
-    //         const response = await fetch(`${BASE_URL}retrieveAutomationFlow?${params}`, AUTH_HEADER);
-    //         const data = await response.json();
-    //         setModules(data.response?.moduleName || []);
-    //     } catch (error) {
-    //         console.error("Error al obtener los módulos para el tag", error);
-    //     } finally {
-    //         setIsLoading(false);
-    //     }
-    // };
-
-    // const fetchSubModulesByModule = async () => {
-    //     if (!selectedTag && !selectedModule) return;
-    //     setIsLoadingSubmodules(true);
-    //     try {
-    //         const params = new URLSearchParams();
-    //         if (selectedTag) params.append("tagName", selectedTag);
-    //         if (selectedModule) params.append("moduleName", selectedModule);
-
-    //         const response = await fetch(`${BASE_URL}retrieveAutomationFlow?${params}`);
-    //         const data = await response.json();
-
-    //         const uniqueSubmodules = Array.from(
-    //             new Set(
-    //                 (data.response || [])
-    //                     .map((item: any) => item.subModuleName)
-    //                     .filter(Boolean)
-    //             )
-    //         );
-
-    //         setSubmodules(uniqueSubmodules as Submodule[]);
-    //     } catch (error) {
-    //         console.error("Error al obtener los submódulos para el módulo", error);
-    //     } finally {
-    //         setIsLoadingSubmodules(false);
-    //     }
-    // };
-
-
-
-    // useEffect(() => {
-    //     fetchInitialData();
-    // }, []);
-
-    // useEffect(() => {
-    //     setResponseData([]);
-    // }, [selectedTag, selectedModule, selectedSubmodule]);
-
-    // useEffect(() => {
-    //     if (selectedTag) {
-    //         fetchModulesByTag(selectedTag);
-    //     }
-    // }, [selectedTag]);
-
-    // useEffect(() => {
-    //     if (selectedModule) {
-    //         fetchSubModulesByModule();
-    //     }
-    // }, [selectedModule]);
-
-    // useEffect(() => {
-    //     setSelectedSubmodule("");
-    // }, [selectedModule]);
-
-    // useEffect(() => {
-    //     setSelectedModule("");
-    // }, [selectedTag]);
 
     const handleSearch = async () => {
         setIsLoading(true);
@@ -186,11 +84,17 @@ const Home = () => {
             console.error('Error to obtain data', error);
             toast.error('Error to obtain data');
             setResponseData([]);
-        }finally {
+        } finally {
             setIsLoading(false);
         }
     };
 
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+        return () => window.removeEventListener("resize", checkMobile);
+    }, []);
     const {
         tags,
         modules,
@@ -240,11 +144,6 @@ const Home = () => {
     const onTestCasesDataChange = (data: any) => {
         setTestCasesUpdated(data)
     }
-
-    // const filteredTestCases = useMemo(() => {
-    //     if (!selectedCreatedBy || selectedCreatedBy === "All") return responseData;
-    //     return responseData.filter((tc: TestCase) => tc?.createdBy?.toLowerCase() === selectedCreatedBy?.toLowerCase());
-    // }, [responseData, selectedCreatedBy]);
     const filteredTestCases = useMemo(() => {
         return responseData.filter((tc: TestCase) => {
             const matchesCreator =
@@ -270,11 +169,11 @@ const Home = () => {
     const anyLoading = Object.values(loading).some(Boolean);
     const everyStopped = Object.values(stopped).every(Boolean)
     console.log(selectedCases.length === 0 || isLoading || anyLoading || !everyStopped);
-    
+
     return (
         <DashboardHeader onToggleDarkMode={handleToggleDarkMode}>
             <div className="w-full p-4 flex flex-col gap-4 justify-center mx-auto text-primary">
-                <div className="flex flex-wrap gap-4 mb-4 mt-2">
+                <div className="flex flex-wrap gap-4 mb-4 mt-2 w-full">
                     <h2 className="font-semibold tracking-wide text-xl">Filters Test Cases</h2>
                     <SearchField
                         label="Tag"
@@ -284,7 +183,7 @@ const Home = () => {
                             label: String(tag),
                             value: String(tag),
                         }))}
-                        placeholder="Tag"
+                        placeholder="Select a tag"
                     />
                     <SearchField
                         label="Module"
@@ -294,7 +193,7 @@ const Home = () => {
                             label: String(mod),
                             value: String(mod),
                         }))}
-                        placeholder="Module"
+                        placeholder="Select a module"
                     />
 
                     <SearchField
@@ -305,41 +204,44 @@ const Home = () => {
                             label: String(sub),
                             value: String(sub),
                         }))}
-                        placeholder="Submodule"
+                        placeholder="Select a submodule"
                         disabled={!selectedModule || isLoadingSubmodules}
                     />
 
-                    <div className="flex items-center gap-2 w-full flex-col">
+                    <div className="flex items-center gap-2 flex-col w-full">
 
-                        <div className="flex items-center gap-2 pb-2 w-full justify-center">
-                            <Button
+                        <div className={`flex ${isMobile ? "flex-col":""} md:justify-center lg:justify-center items-center gap-2 pb-2 w-full`}>
+                            <button
                                 onClick={handleSearch}
                                 disabled={isSearchButtonDisabled || isLoading}
-                                className={`bg-primary/90 shadow-md font-semibold tracking-wide rounded-xl hover:bg-primary/95 text-white flex items-center gap-2
-                            ${isSearchButtonDisabled ? "opacity-50 cursor-not-allowed" : ""}
-                            ${isLoading ? "opacity-50 cursor-not-allowed" : ""}
+                                className={`bg-primary/90  w-full justify-center md:w-50 lg:w-50 px-4 py-2 shadow-md cursor-pointer font-semibold tracking-wide rounded-xl hover:bg-primary/95 text-white flex items-center gap-2
+                            ${isSearchButtonDisabled ? "!bg-primary/10 !cursor-not-allowed" : ""}
+                            ${isLoading ? "!bg-primary/10 !cursor-not-allowed" : ""}
 
                                 `}
                             >
-                                {isLoading ? "Searching..." : (
+                                {isLoading ? <>
+                                    <Loader className="h-5 w-5 text-primary/80 animate-spin" />
+                                    <span className="text-primary/90">Searching...</span>
+                                
+                                </> : (
                                     <>
                                         <FaSearch />
                                         Search
                                     </>
                                 )}
-                            </Button>
+                            </button>
                             {selectedTag || selectedModule || selectedSubmodule ? (
-                                <Button
-                                    variant="outline"
+                                <button
                                     onClick={() => {
                                         setSelectedModule("");
                                         setSelectedSubmodule("");
                                         setSelectedTag("");
                                     }}
-                                    className="ml-2 shadow-md font-semibold tracking-wide rounded-xl"
+                                    className=" w-full px-4 py-2 justify-center text-primary/70 flex md:w-50 lg:w-50 items-center gap-2 shadow-md cursor-pointer font-semibold tracking-wide rounded-xl"
                                 >
-                                    Clear Filters
-                                </Button>
+                                    <Filter/> Clear Filters
+                                </button>
                             ) : null}
                         </div>
 
@@ -352,9 +254,9 @@ const Home = () => {
                                             setSelectedTag("")
                                         }
                                         }
-                                        className="text-white/90 hover:text-white"
+                                        className="cursor-pointer text-white/90 hover:text-white"
                                     >
-                                        <FaXmark/>
+                                        <FaXmark />
                                     </button>
                                 </div>
                             )}
@@ -366,9 +268,9 @@ const Home = () => {
                                             setSelectedModule("")
                                         }
                                         }
-                                        className="text-white/90 hover:text-white"
+                                        className="cursor-pointer text-white/90 hover:text-white"
                                     >
-                                        <FaXmark/>
+                                        <FaXmark />
                                     </button>
                                 </div>
                             )}
@@ -380,9 +282,9 @@ const Home = () => {
                                         onClick={() => {
                                             setSelectedSubmodule("");
                                         }}
-                                        className="text-white/90 hover:text-white"
+                                        className="cursor-pointer text-white/90 hover:text-white"
                                     >
-                                        <FaXmark/>
+                                        <FaXmark />
                                     </button>
                                 </div>
                             )}
@@ -393,21 +295,22 @@ const Home = () => {
                             </label>
                         )}
                         {availableCreators.length > 0 && (
-                            <SelectField
+
+                            <SearchField
+
+                                label="Created By"
                                 value={selectedCreatedBy}
                                 onChange={setSelectedCreatedBy}
                                 options={[
                                     { label: "All", value: "All" },
                                     ...availableCreators.map(creator => ({ label: creator, value: creator }))
                                 ]}
-                                placeholder="Created By"
-                                className="text-primary"
-
+                                placeholder="Select Creator"
+                                className="w-full text-primary/70"
                             />
                         )}
                         {responseData?.length > 1 && (
-
-                            <SearchTestCaseComboBox
+                            <SearchField
                                 label="Search by Test Case Name"
                                 value={searchTestCaseName}
                                 onChange={setSearchTestCaseName}
@@ -425,14 +328,14 @@ const Home = () => {
 
                     </div>
                 </div>
-                <div className="border p-2 rounded-lg">
+                <div className="p-2 rounded-lg border border-primary/30">
 
                     {(responseData?.length > 0 && filteredTestCases.length > 0) ? (
                         <>
                             <div className="flex flex-col gap-2 mb-2">
                                 <button
                                     onClick={toggleDropdown}
-                                    className="flex w-full items-center justify-between shadow-md p-2 font-semibold tracking-wide rounded-md"
+                                    className="border-l-4 flex w-full cursor-pointer items-center justify-between shadow-md p-2 font-semibold tracking-wide rounded-md"
                                 >
                                     <span className="text-xl font-semibold tracking-wide">Test cases </span>
                                     <span className="text-primary/70">{filteredTestCases.length} results</span>
@@ -479,7 +382,7 @@ const Home = () => {
                                         executeTests(selectedTests, testData, maxBrowsers, isHeadless);
                                     }}
                                     disabled={selectedCases.length === 0 || isLoading}
-                                    className={`px-4 py-2 font-semibold tracking-wide mt-4 rounded-lg transition-all duration-300 ${darkMode
+                                    className={`cursor-pointer px-4 py-2 font-semibold tracking-wide mt-4 rounded-lg transition-all duration-300 ${darkMode
                                         ? "bg-white text-[#021d3d] hover:bg-gray-200"
                                         : "bg-[#021d3d] text-white hover:bg-[rgb(2,29,61)]"}
                                         ${isLoading || selectedCases.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}

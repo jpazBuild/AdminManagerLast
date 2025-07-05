@@ -208,7 +208,7 @@ const Reports = () => {
             <button
               onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
               disabled={currentPage === 1}
-              className="px-4 py-2 bg-primary/20 text-primary rounded hover:bg-primary/30 disabled:opacity-50"
+              className="px-4 py-2 bg-primary/20 cursor-pointer text-primary rounded hover:bg-primary/30 disabled:opacity-50"
             >
               Previous
             </button>
@@ -218,7 +218,7 @@ const Reports = () => {
             <button
               onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="px-4 py-2 bg-primary/20 text-primary rounded hover:bg-primary/30 disabled:opacity-50"
+              className="px-4 py-2 cursor-pointer bg-primary/20 text-primary rounded hover:bg-primary/30 disabled:opacity-50"
             >
               Next
             </button>

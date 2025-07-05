@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
     AccordionItem,
     AccordionTrigger,
@@ -17,6 +17,7 @@ import { handleAxiosRequest } from "@/utils/handleAxiosRequest";
 import axios from "axios";
 import { TOKEN_API } from "@/config";
 import ReportTestCaseList from "./ReportsHistoricTestCaseList";
+import { useLockScrollBubbling } from "../hooks/useLockScrollBubbling";
 
 interface TestStep {
     action: string;
@@ -75,15 +76,15 @@ const SortableTestCaseItem: React.FC<Props> = ({
     dynamicValues,
     setDynamicValues,
 }) => {
-    const [editTag, setEditTag] = useState(test.tagName || "");
-    const [editModule, setEditModule] = useState(test.moduleName || "");
-    const [editSubmodule, setEditSubmodule] = useState(test.subModuleName || "");
     const [isLoadingUpdate, setIsLoadingUpdate] = useState(false);
     const currentTestCase = testCasesData.find(tc => tc?.testCaseId === test?.testCaseId);
     const steps = currentTestCase?.stepsData ?? [];
     const [updatedTest, setUpdatedTest] = useState<TestCase>(test);
-    const [hasPendingChanges, setHasPendingChanges] = useState(false);
     const [viewMode, setViewMode] = useState<'data' | 'steps' | 'editLocation' | 'Historic reports'>('data');
+    const dataScrollRef = useRef<HTMLDivElement>(null!);
+    const stepsScrollRef = useRef<HTMLDivElement>(null!);
+    useLockScrollBubbling(dataScrollRef);
+    useLockScrollBubbling(stepsScrollRef);
 
     const handleDelete = async () => {
         const res = await handleAxiosRequest(() =>
@@ -104,25 +105,17 @@ const SortableTestCaseItem: React.FC<Props> = ({
         }
     };
 
-    const handleFieldChange = (updatedFields: Partial<TestCase>) => {
-        setUpdatedTest(prev => ({ ...prev, ...updatedFields }));
-        setHasPendingChanges(true);
-    };
-
-    const handleUpdateConfirm = async () => {
+    const handleUpdateConfirm = async (test: any) => {
         setIsLoadingUpdate(true);
-        console.log("Updating test case:", updatedTest);
-        
         try {
-            const url = `${process.env.URL_API_INTEGRATION?.replace(/\/+$/, "")}/updateAutomationFlow`;
 
-            const response = await axios.put(url, updatedTest, {
+            const url = `${process.env.URL_API_INTEGRATION?.replace(/\/+$/, "")}/updateAutomationFlow`;
+            const response = await axios.put(url, test, {
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${TOKEN_API}`
                 },
             });
-
             toast.success("Test updated successfully");
 
             if (response?.status === 200) {
@@ -139,19 +132,20 @@ const SortableTestCaseItem: React.FC<Props> = ({
     return (
         <div className="w-full shadow-md rounded-md border-t-4 border-primary/60 pt-1">
             <TestCaseActions
-                test={updatedTest}
+                test={currentTestCase}
                 onDelete={handleDelete}
                 onUpdate={handleUpdateConfirm}
                 isLoadingUpdate={isLoadingUpdate}
             />
 
 
-            <AccordionItem value={test.testCaseId ?? ''} className="border rounded-lg">
+            <AccordionItem value={test.testCaseId ?? ''} className="rounded-lg">
                 <div className="flex items-center w-full bg-primary/5 p-0.5">
                     <Checkbox
                         id={test.testCaseId ?? ''}
                         checked={selectedCases.includes(test.testCaseId ?? '')}
                         onCheckedChange={() => toggleSelect(test.testCaseId ?? '')}
+                        className="cursor-pointer"
                     />
                     <AccordionTrigger
                         className="flex hover:no-underline"
@@ -206,27 +200,27 @@ const SortableTestCaseItem: React.FC<Props> = ({
                     </AccordionTrigger>
                 </div>
 
-                <AccordionContent className="p-2 space-y-3">
+                <AccordionContent className="p-2 w-full">
                     <div className="flex gap-2 overflow-x-auto">
                         {/* 'editLocation' */}
-                        {['data', 'steps','Historic reports'].map(mode => (
+                        {['data', 'steps', 'Historic reports'].map(mode => (
                             <button
                                 key={mode}
-                                className={`rounded-md flex gap-2 p-2 items-center bg-white shadow-md text-primary/70 ${viewMode === mode ? 'border-b-4 border-primary' : ''}`}
+                                className={`cursor-pointer rounded-md flex gap-2 p-2 cursor-pointer items-center bg-white shadow-md text-primary/70 ${viewMode === mode ? 'border-b-4 border-primary' : ''}`}
                                 onClick={() => setViewMode(mode as any)}
                             >
 
                                 {mode === 'editLocation' ? <Locate className="ml-1 h-6 w-6" /> :
-                                    mode === 'data' ? <File className="ml-1" /> : mode === 'Historic reports' ? <FileChartColumn className="h-6 w-6"/>: <Eye className="ml-1" /> }
+                                    mode === 'data' ? <File className="ml-1" /> : mode === 'Historic reports' ? <FileChartColumn className="h-6 w-6" /> : <Eye className="ml-1" />}
                                 {mode === 'editLocation' ? 'Edit Location' :
-                                    mode === 'data' ? 'See Data' : mode === 'Historic reports' ? 'Historic reports': 'See Steps'}
+                                    mode === 'data' ? 'See Data' : mode === 'Historic reports' ? 'Historic reports' : 'See Steps'}
                             </button>
                         ))}
                     </div>
-                    
+
 
                     {viewMode === 'Historic reports' && test.testCaseId && (
-                        <ReportTestCaseList 
+                        <ReportTestCaseList
                             test={{ ...test, testCaseId: test.testCaseId }}
                             visible={true}
                             viewMode={viewMode}
@@ -237,20 +231,25 @@ const SortableTestCaseItem: React.FC<Props> = ({
                         test={updatedTest}
                         onUpdate={handleFieldChange}
                     /> */}
-                    {viewMode === 'data' && testFields.map((field, idx) => (
-                        <div key={`${field}-${idx}`} className="flex items-center gap-3">
-                            <Label className="w-32">{field}</Label>
-                            <FakerInputWithAutocomplete
-                                id={`${field}-${test.testCaseId}`}
-                                value={getFieldValue(test.testCaseId ?? '', field)}
-                                onChange={(val) => handleValueChange(field, val, test.testCaseId ?? '')}
-                                placeholder={`Enter ${field}`}
-                            />
+                    {viewMode === 'data' && (
+                        <div ref={dataScrollRef} className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 mt-4 p-2">
+                            {testFields.map((field, idx) => (
+                                <div key={`${field}-${idx}`} className="flex flex-col gap-4 px-1">
+                                    <Label className="w-32 text-primary/90">{field}</Label>
+                                    <FakerInputWithAutocomplete
+                                        id={`${field}-${test.testCaseId}`}
+                                        value={getFieldValue(test.testCaseId ?? '', field)}
+                                        onChange={(val) => handleValueChange(field, val, test.testCaseId ?? '')}
+                                        placeholder={`Enter ${field}`}
+                                    />
+                                </div>
+                            ))}
                         </div>
-                    ))}
+                    )}
+
 
                     {viewMode === 'steps' && (
-                        <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1">
+                        <div ref={stepsScrollRef} className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1">
                             <div className="self-end mb-3 flex gap-1 items-center border-2 border-primary/60 rounded-md p-1">
                                 <span>Copy All steps</span>
                                 <CopyToClipboard text={JSON.stringify(steps)} />
@@ -270,11 +269,14 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                             });
                                         }}
                                         onUpdate={(idx, newStep) => {
-                                            const updated = [...steps];
-                                            updated[idx] = { ...updated[idx], ...newStep };
+
                                             setTestCasesData(prev => {
                                                 const newData = [...prev];
-                                                newData[index] = { ...newData[index], stepsData: updated };
+                                                const tc = { ...newData[index] };
+                                                const stepsData = [...(tc.stepsData || [])];
+                                                stepsData[idx] = { ...stepsData[idx], ...newStep };
+                                                tc.stepsData = stepsData;
+                                                newData[index] = tc;
                                                 return newData;
                                             });
                                         }}
@@ -283,6 +285,12 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                 </div>
                             ))}
                         </div>
+
+                        // <>
+                        //     <pre className="bg-primary/20 text-primary p-4 rounded-md overflow-auto text-xs font-mono max-h-64">
+                        //         <code>{JSON.stringify(testCasesData.find(tc => tc?.testCaseId === test?.testCaseId), null, 2)}</code>
+                        //     </pre>
+                        // </>
                     )}
                 </AccordionContent>
             </AccordionItem>

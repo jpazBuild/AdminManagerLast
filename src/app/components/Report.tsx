@@ -125,17 +125,17 @@ export const ImageModalWithZoom = ({ isOpen, imageUrl, onClose }: ImageModalProp
             >
                 <button
                     onClick={onClose}
-                    className="absolute top-2 right-2 text-primary text-3xl font-bold z-20"
+                    className="absolute cursor-pointer top-2 right-2 text-primary text-3xl font-bold z-20"
                 >
                     <FaXmark />
                 </button>
 
                 {showImage && (
                     <div className="absolute bottom-4 right-4 z-20 flex gap-2 bg-white p-2 rounded-md shadow">
-                        <button onClick={() => setZoom((z) => Math.max(z - 0.1, 1))}>
+                        <button className="cursor-pointer" onClick={() => setZoom((z) => Math.max(z - 0.1, 1))}>
                             <FaSearchMinus />
                         </button>
-                        <button onClick={() => setZoom((z) => Math.min(z + 0.1, 5))}>
+                        <button className="cursor-pointer" onClick={() => setZoom((z) => Math.min(z + 0.1, 5))}>
                             <FaSearchPlus />
                         </button>
                     </div>

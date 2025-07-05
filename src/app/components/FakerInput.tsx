@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { AiOutlineClose } from "react-icons/ai";
 import { faker } from "@faker-js/faker";
 import ReactDOM from "react-dom";
+import TextInputWithClearButton from "./InputClear";
 
 export const FakerInputWithAutocomplete = ({
     value,
@@ -133,13 +134,13 @@ export const FakerInputWithAutocomplete = ({
                     onKeyDown={handleKeyDown}
                     placeholder={placeholder}
                     autoComplete="off"
-                    className="w-full p-2 pr-10 rounded-md text-primary/80 focus:outline-none focus:ring-2 focus:ring-primary/90 shadow-md"
+                    className="w-full p-2 pr-10 rounded-md bg-primary/10 text-primary/80 focus:outline-none focus:ring-2 focus:ring-primary/90 shadow-md"
                 />
                 {value && (
                     <button
                         type="button"
                         onClick={handleClear}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary/80 hover:text-primary/90"
+                        className="absolute cursor-pointer right-3 top-1/2 transform -translate-y-1/2 text-primary/80 hover:text-primary/90"
                     >
                         <AiOutlineClose className="w-4 h-4" />
                     </button>
