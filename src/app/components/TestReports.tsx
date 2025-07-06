@@ -165,7 +165,7 @@ const TestReports = ({ reports,setLoading, progress, selectedTest, testData, sto
                     console.log(" stopped[reportId] ", stopped[reportId], " reportId ", reportId, " connectionId ", connectionId, " test ", test);
 
                     return (
-                        <div key={reportId} id={reportId} className="">
+                        <div key={reportId} id={reportId} className="p-2 flex flex-col gap-2">
                             {progressValue < 100 && !stopped[reportId] && (
 
                                 <button

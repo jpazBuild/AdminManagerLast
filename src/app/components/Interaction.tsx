@@ -39,6 +39,7 @@ interface DisplayImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
     alt?: string;
 }
 
+
 function DisplayImageWithFetch({
     src,
     alt,
@@ -48,37 +49,48 @@ function DisplayImageWithFetch({
     alt?: string;
     [key: string]: any;
 }) {
-    const [valid, setValid] = React.useState(true);
+    const [isError, setIsError] = React.useState(false);
 
     React.useEffect(() => {
-        if (!src) return;
-        if (
-            typeof src === "string" &&
-            (src.startsWith("/") || src.startsWith("images/"))
-        ) {
-            fetch(src)
-                .then((res) => setValid(res.ok))
-                .catch(() => setValid(false));
-        }
+        setIsError(false); // reset error when src changes
     }, [src]);
 
-    if (!valid) {
+    if (!src || isError) {
+        // SVG clásico "imagen no disponible"
         return (
-            <span className="text-xs break-all bg-gray-100 px-3 py-2 rounded-md">
-                {typeof src === "string" ? src : "Image could not be loaded."}
-            </span>
+            <div className="flex flex-col items-center justify-center bg-gray-100 px-3 py-4 rounded-md max-h-32 min-h-[6rem] min-w-[8rem]">
+                <svg
+                    className="w-10 h-10 text-gray-400 mb-2"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.5}
+                    viewBox="0 0 24 24"
+                >
+                    <rect x="3" y="3" width="18" height="18" rx="2" fill="#e5e7eb"/>
+                    <circle cx="8.5" cy="8.5" r="1.5" fill="#cbd5e1" />
+                    <path d="M21 17l-5-5-7 7" stroke="#94a3b8" strokeWidth={2} />
+                </svg>
+                <span className="text-xs text-gray-400 break-all">
+                    Image no available
+                </span>
+            </div>
         );
     }
 
     return (
         <img
             src={src}
-            alt={alt}
+            alt={alt || "Imagen"}
+            onError={() => setIsError(true)}
             className="max-h-32 w-auto rounded-md shadow-sm"
             {...props}
         />
     );
 }
+
+
+
+
 
 
 
@@ -111,7 +123,7 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
 
     const DropdownHeader = useCallback(({ label, panelKey }: { label: string; panelKey: string }) => (
         <div
-            className="flex justify-between items-center bg-white cursor-pointer rounded-md border-l-6 border-primary p-3 hover:bg-primary/10 transition-colors"
+            className="flex justify-between items-center bg-white cursor-pointer rounded-md border-l-6 border-primary p-2 hover:bg-primary/10 transition-colors"
             onClick={() => togglePanel(panelKey)}
         >
             <span className="text-primary/80 font-semibold">{label}</span>
@@ -222,7 +234,7 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
             <DropdownHeader label="Show Options" panelKey="showOptions" />
 
             {openPanels.showOptions && (
-                <div className="p-4 space-y-4">
+                <div className="p-1 space-y-4">
                     {processedData.hasNavigation && (
                         <div className="border border-gray-200 rounded-lg overflow-hidden">
                             <DropdownHeader label="Navigate Data" panelKey="navigateData" />
@@ -426,14 +438,14 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
                         )} */}
 
                         {openPanels.jsonPreview && (
-                            <div className="p-4">
+                            <div className="pt-2">
                                 {!editingJson ? (
                                     <>
-                                        <pre className="bg-primary/20 text-primary p-4 rounded-md overflow-auto text-xs font-mono max-h-64">
+                                        <pre className="bg-primary/20 text-primary p-2 rounded-md overflow-auto text-xs font-mono max-h-64">
                                             <code>{jsonValue}</code>
                                         </pre>
                                         <button
-                                            className="flex items-center gap-1 px-3 py-1 mt-2 px-3 py-1 text-xs rounded bg-primary/10 text-primary hover:bg-primary/20"
+                                            className="flex items-center gap-1 mt-2 px-3 py-1 rounded bg-primary/10 text-primary text-md hover:bg-primary/20"
                                             onClick={() => setEditingJson(true)}
                                         >
                                             <FaEdit className="w-4 h-4"/> Edit JSON
@@ -449,17 +461,17 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
                                             spellCheck={false}
                                         />
                                         {jsonError && (
-                                            <div className="text-red-600 text-xs mt-1">{jsonError}</div>
+                                            <div className="text-red-600 text-md mt-1">{jsonError}</div>
                                         )}
                                         <div className="flex gap-2 mt-2">
                                             <button
-                                                className="flex items-center gap-1 px-3 py-1 text-xs rounded bg-primary text-white hover:bg-primary/90"
+                                                className="flex items-center gap-1 px-3 py-1 text-md rounded bg-primary text-white hover:bg-primary/90"
                                                 onClick={handleSave}
                                             >
                                                 <Save className="w-4 h-4"/> Save
                                             </button>
                                             <button
-                                                className="flex items-center gap-1 px-3 py-1 text-xs rounded bg-gray-200 text-primary hover:bg-gray-300"
+                                                className="flex items-center gap-1 px-3 py-1 text-md rounded bg-gray-200 text-primary hover:bg-gray-300"
                                                 onClick={() => {
                                                     setJsonValue(JSON.stringify(value, null, 2));
                                                     setEditingJson(false);
@@ -483,7 +495,7 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
 const InteractionItem = ({ data, index, onDelete, onUpdate }: InteractionItemProps) => {
     return (
         <div key={data.id} data-index={index} className="flex flex-col gap-4">
-            <div className="relative flex flex-col gap-2 py-2 px-2 text-primary rounded-md border-l-4 border-primary shadow-lg transition-all duration-300">
+            <div className="relative flex flex-col gap-2 py-2 px-1 text-primary rounded-md border-l-4 border-primary shadow-lg transition-all duration-300">
                 <div className="flex justify-center items-center w-full">
                     <div className="flex flex-col">
                         <p className="font-semibold text-center">{data.action}</p>
