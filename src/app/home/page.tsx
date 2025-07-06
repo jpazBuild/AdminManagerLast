@@ -18,6 +18,8 @@ import SearchTestCaseComboBox from "../components/SearchTestCaseComboBox";
 import { useTagsModules } from "../hooks/useTagsModules";
 import { FaXmark } from "react-icons/fa6";
 import { Filter, Loader } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch"
 
 const Home = () => {
     const [darkMode, setDarkMode] = useState(false);
@@ -33,6 +35,7 @@ const Home = () => {
     const [executeRun, setExecuteRun] = useState(false);
     const [searchTestCaseName, setSearchTestCaseName] = useState("");
     const [isMobile, setIsMobile] = useState(false);
+    const [editMode, setEditMode] = useState<'global' | 'individual'>('global');
     useEffect(() => {
         if (Array.isArray(responseData)) {
             const uniqueCreators = Array.from(new Set(responseData.map((tc: any) => tc?.createdBy).filter(Boolean)));
@@ -210,7 +213,7 @@ const Home = () => {
 
                     <div className="flex items-center gap-2 flex-col w-full">
 
-                        <div className={`flex ${isMobile ? "flex-col":""} md:justify-center lg:justify-center items-center gap-2 pb-2 w-full`}>
+                        <div className={`flex ${isMobile ? "flex-col" : ""} md:justify-center lg:justify-center items-center gap-2 pb-2 w-full`}>
                             <button
                                 onClick={handleSearch}
                                 disabled={isSearchButtonDisabled || isLoading}
@@ -221,9 +224,9 @@ const Home = () => {
                                 `}
                             >
                                 {isLoading ? <>
-                                    <Loader className="h-5 w-5 text-primary/80 animate-spin" />
+                                    <Loader className="h-5 w-5 text-xl text-primary/80 animate-spin" />
                                     <span className="text-primary/90">Searching...</span>
-                                
+
                                 </> : (
                                     <>
                                         <FaSearch />
@@ -238,9 +241,9 @@ const Home = () => {
                                         setSelectedSubmodule("");
                                         setSelectedTag("");
                                     }}
-                                    className=" w-full px-4 py-2 justify-center text-primary/70 flex md:w-50 lg:w-50 items-center gap-2 shadow-md cursor-pointer font-semibold tracking-wide rounded-xl"
+                                    className=" w-full px-4 border text-md border-primary/60 py-2 justify-center text-primary/70 flex md:w-50 lg:w-50 items-center gap-2 shadow-md cursor-pointer font-semibold tracking-wide rounded-xl"
                                 >
-                                    <Filter/> Clear Filters
+                                    <Filter /> Clear Filters
                                 </button>
                             ) : null}
                         </div>
@@ -348,8 +351,23 @@ const Home = () => {
 
                                 {(isDropdownOpenTC) && (
                                     <>
-                                        <div className="flex justify-end gap-2 mt-2">
-                                            <Checkbox
+                                        <div className="flex justify-between gap-2 mt-2">
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2">
+
+                                                    <Switch
+                                                        id="edit-mode"
+                                                        checked={editMode === 'global'}
+                                                        onCheckedChange={(checked) => setEditMode && setEditMode(checked ? 'global' : 'individual')}
+                                                        aria-label="Toggle Edit Mode"
+                                                    />
+                                                    <Label htmlFor="edit-mode" className="font-medium">
+                                                        {editMode === 'global' ? 'Editing all tests' : 'Editing individual tests'}
+                                                    </Label>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Checkbox
                                                 id="select-all"
                                                 checked={selectAllChecked}
                                                 onCheckedChange={toggleSelectAll}
@@ -357,12 +375,14 @@ const Home = () => {
                                                     ? "bg-white border-gray-300 text-primary focus:ring-primary hover:bg-gray-100"
                                                     : "bg-primary border-gray-600 text-white focus:ring-white hover:bg-primary/90 "}`}
                                             />
-                                            <label htmlFor="select-all" className="cursor-pointer">
+                                            <label htmlFor="select-all" className="cursor-pointer text-primary/80 text-sm">
                                                 Select All
                                             </label>
+                                            </div>
                                         </div>
                                         <TestCaseList testCases={filteredTestCases} selectedCases={selectedCases} toggleSelect={toggleSelect} onDataChange={onDataChangeRead}
                                             onTestCasesDataChange={onTestCasesDataChange} onRefreshAfterUpdateOrDelete={fetchInitialData}
+                                            editMode={editMode} setEditMode={setEditMode}
                                         />
                                         <TestSettings
                                             onBrowserLimitChange={handleBrowserLimitChange}

@@ -49,6 +49,8 @@ interface TestCaseListProps {
     onStepsUpdate?: (id: string, steps: TestStep[]) => void;
     onTestCasesDataChange?: (data: TestCase[]) => void;
     onRefreshAfterUpdateOrDelete: () => void;
+    editMode?: 'global' | 'individual';
+    setEditMode?: (mode: 'global' | 'individual') => void;
 }
 
 interface DynamicValues {
@@ -62,9 +64,11 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
     toggleSelect,
     onDataChange,
     onTestCasesDataChange,
-    onRefreshAfterUpdateOrDelete
+    onRefreshAfterUpdateOrDelete,
+    editMode = 'global',
+    setEditMode,
 }) => {
-    const [editMode, setEditMode] = useState<'global' | 'individual'>('global');
+    // const [editMode, setEditMode] = useState<'global' | 'individual'>('global');
     const [dynamicValues, setDynamicValues] = useState<{ id: string; input: Record<string, string>; order?: number; testCaseName?: string; createdBy?: string }[]>([]);
     const [viewMode, setViewMode] = useState<'data' | 'steps' | 'editLocation'>('data');
     const [testCasesData, setTestCasesData] = useState<TestCase[]>([]);
@@ -289,25 +293,17 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center gap-3 p-2 bg-card rounded-lg">
-                <div className="flex items-center gap-2">
 
-                    <Switch
-                        id="edit-mode"
-                        checked={editMode === 'global'}
-                        onCheckedChange={(checked) => setEditMode(checked ? 'global' : 'individual')}
-                        aria-label="Toggle Edit Mode"
+                <div className="w-full">
+
+                    <JSONDropzone
+                        onJSONParsed={handleParsedJSON}
+                        onFileInfoChange={({ loaded, name }) => {
+                            if (loaded && setEditMode) setEditMode('individual');
+                        }}
                     />
-                    <Label htmlFor="edit-mode" className="font-medium">
-                        {editMode === 'global' ? 'Editing all tests' : 'Editing individual tests'}
-                    </Label>
                 </div>
-                <JSONDropzone onJSONParsed={handleParsedJSON}
-                    onFileInfoChange={({ loaded, name }) => {
-                        if (loaded) setEditMode('individual')
-                    }}
-                />
             </div>
-
 
             {editMode === 'global' && uniqueDynamicFields.length > 0 && (
                 <div className="p-2 rounded-lg space-y-3 shadow-md border-t-4 border-primary/60">
@@ -335,8 +331,9 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                 </div>
             )}
 
-            <div className="flex justify-between items-center px-2">
-                <div className="flex gap-3 items-center text-xs text-muted-foreground mb-1">
+            <div className="flex flex-col sm:flex-row md:flex-col justify-between items-center px-2">
+
+                <div className="w-full flex gap-3 items-center text-xs text-muted-foreground mb-1">
                     <div className="flex items-center gap-1">
                         <span className="w-3 h-3 rounded-full text-primary/85 bg-primary/85 inline-block" />
                         <span>Tag</span>

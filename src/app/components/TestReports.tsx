@@ -169,7 +169,7 @@ const TestReports = ({ reports, progress, selectedTest, testData, stopped }: any
                                         e.stopPropagation();
                                         stopTest(reportId, connectionId, reports.find((p: any) => p.testCaseId === test.testCaseId)?.socket);
                                     }}
-                                    className="self-end cursor-pointer flex items-center shadow-md rounded-md cursor-pointer border gap-2 p-1 hover:text-primary/90 text-primary/70"
+                                    className="self-end flex items-center shadow-md rounded-md cursor-pointer border gap-2 p-1 hover:text-primary/90 text-primary/70"
                                     title="Stop Test"
                                 >
                                     <StopCircle className="w-5 h-5 text-red-600 animate-pulse" /> Stop 

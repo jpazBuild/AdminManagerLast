@@ -206,7 +206,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                         {['data', 'steps', 'Historic reports'].map(mode => (
                             <button
                                 key={mode}
-                                className={`cursor-pointer rounded-md flex gap-2 p-2 cursor-pointer items-center bg-white shadow-md text-primary/70 ${viewMode === mode ? 'border-b-4 border-primary' : ''}`}
+                                className={` rounded-md flex gap-2 p-2 cursor-pointer items-center bg-white shadow-md text-primary/70 ${viewMode === mode ? 'border-b-4 border-primary' : ''}`}
                                 onClick={() => setViewMode(mode as any)}
                             >
 
@@ -250,7 +250,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
                     {viewMode === 'steps' && (
                         <div ref={stepsScrollRef} className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1">
-                            <div className="self-end mb-3 flex gap-1 items-center border-2 border-primary/60 rounded-md p-1">
+                            <div className="self-end mt-4 mb-3 flex gap-1 items-center border-2 border-primary/60 rounded-md p-1">
                                 <span>Copy All steps</span>
                                 <CopyToClipboard text={JSON.stringify(steps)} />
                             </div>
