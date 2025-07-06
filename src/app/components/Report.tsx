@@ -17,6 +17,7 @@ interface ReportUIProps {
     dataStepsTotal: Array<{ indexStep: number }>;
     progressValue: number;
     data: Array<{ [key: string]: string | number | boolean | null }>;
+    stopped: any
 }
 interface ImageModalProps {
     isOpen: boolean;
@@ -209,6 +210,7 @@ const ReportUI = ({
     testcaseId,
     dataStepsTotal,
     progressValue,
+    stopped
 }: ReportUIProps) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedImage, setSelectedImage] = useState<string>("");
@@ -242,17 +244,32 @@ const ReportUI = ({
 
     if (!report || typeof report !== "object") return null;
 
+    // const result: StepEvent[] = Object.values(report)
+    //     .filter((step): step is StepEvent =>
+    //         typeof step === "object" &&
+    //         step !== null &&
+    //         typeof (step as any)?.indexStep === "number"
+    //     )
+    //     .map((step) => ({
+    //         ...step
+    //     }));
     const result: StepEvent[] = Object.values(report)
         .filter((step): step is StepEvent =>
             typeof step === "object" &&
             step !== null &&
             typeof (step as any)?.indexStep === "number"
         )
-        .map((step) => ({
-            ...step
-        }));
+        .map((step) => {
+            // Si el test está detenido y este step está en processing, márcalo como stopped
+            if (stopped && (step.status === "processing" || !step.status)) {
+                return { ...step, status: "stopped" }
+            }
+            return step
+        });
 
-
+    console.log("ejemplo stopped", stopped, testcaseId);
+    console.log("result report",stopped, result, report);
+    
     return (
         <>
             <div
@@ -269,6 +286,7 @@ const ReportUI = ({
                                     stepData={step as StepData}
                                     index={Number(step.indexStep) + 1}
                                     handleImageClick={() => handleImageClick(step?.screenshot)}
+                                    stopped={stopped}
                                 />
                             </div>
                         );

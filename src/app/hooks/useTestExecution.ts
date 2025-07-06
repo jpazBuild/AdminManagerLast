@@ -64,7 +64,8 @@ export const useTestExecution = () => {
             setError("WebSocket URL is not configured.");
             return;
         }
-
+        console.log("🔗 Conectando al WebSocket:", URL_API_RUNNER);
+        
         const socket = new WebSocket(URL_API_RUNNER);
         const totalSteps = testCase.stepsData.length + 2;
 
@@ -243,6 +244,7 @@ export const useTestExecution = () => {
     };
 
     const stopTest = (testCaseId: string, connectionId: string, socket: WebSocket | undefined) => {
+        setLoading(prev => ({ ...prev, [testId]: false }));
         const testId = String(testCaseId);
         if (!socket || socket.readyState !== WebSocket.OPEN) return;
         if (!connectionId) return;
@@ -254,6 +256,7 @@ export const useTestExecution = () => {
         };
         socket.send(JSON.stringify(payload));
         socket.close();
+        setLoading(prev => ({ ...prev, [testId]: false }));
         setStopped(prev => ({ ...prev, [testId]: true }));
     };
 
@@ -269,5 +272,7 @@ export const useTestExecution = () => {
         executeTests,
         stopTest,
         stopped,
+        setStopped,
+        setLoading
     };
 };

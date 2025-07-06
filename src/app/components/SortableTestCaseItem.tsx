@@ -157,7 +157,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                             )
                         }
                     >
-                        <div className="flex flex-col w-full">
+                        <div className="flex flex-col w-full break-words">
                             <div className="flex justify-between gap-2 p-1 text-[10px]">
                                 <div className="flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-primary/20">
                                     <span className="text-xs font-mono text-muted-foreground">
@@ -169,12 +169,23 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                     {test.createdBy}
                                 </span>
                             </div>
-                            <h3 className="font-medium mt-2 px-2">{test.testCaseName}</h3>
+                            <h3 className="font-medium mt-2 px-2 break-words">{test.testCaseName}</h3>
+                            
                             {testFields.length > 0 && (
-                                <p className="text-xs px-2 text-primary/70">
-                                    Dynamic fields: {testFields.join(", ")}
-                                </p>
+                                <div className="flex flex-wrap items-center gap-1 px-2 py-0.5 w-full">
+                                    <span className="text-xs text-primary/70">Dynamic fields:</span>
+                                    {testFields.map((field) => (
+                                        <span
+                                            key={field}
+                                            className="text-xs text-primary/70 px-2 py-0.5 rounded-full bg-primary/5 max-w-[220px] break-words truncate"
+                                            title={field}
+                                        >
+                                            {field}
+                                        </span>
+                                    ))}
+                                </div>
                             )}
+
                             <div className="flex justify-between px-2 text-[11px] text-primary/80">
                                 <span>{steps.length} Steps</span>
                                 <span className="text-[9px]">{test.createdAt}</span>
@@ -234,8 +245,8 @@ const SortableTestCaseItem: React.FC<Props> = ({
                     {viewMode === 'data' && (
                         <div ref={dataScrollRef} className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 mt-4 p-2">
                             {testFields.map((field, idx) => (
-                                <div key={`${field}-${idx}`} className="flex flex-col gap-4 px-1">
-                                    <Label className="w-32 text-primary/90">{field}</Label>
+                                <div key={`${field}-${idx}`} className="flex flex-col gap-4 px-1 break-words">
+                                    <Label className="w-full text-primary/90 break-words max-w-[480px] truncate">{field}</Label>
                                     <FakerInputWithAutocomplete
                                         id={`${field}-${test.testCaseId}`}
                                         value={getFieldValue(test.testCaseId ?? '', field)}

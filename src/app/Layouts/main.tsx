@@ -5,7 +5,7 @@ import { FaBars, FaTimes } from "react-icons/fa";
 import Logo from "../../../public/blossom_logo.svg";
 import { overflow } from "html2canvas/dist/types/css/property-descriptors/overflow";
 
-export const DashboardHeader = ({ children, onToggleDarkMode,overflow="overflow-y-auto" }: any) => {
+export const DashboardHeader = ({ children, onToggleDarkMode, overflow = "overflow-y-auto" }: any) => {
     const [darkMode, setDarkMode] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -23,6 +23,8 @@ export const DashboardHeader = ({ children, onToggleDarkMode,overflow="overflow-
                     }`}
             >
                 <div className="flex items-center justify-between mx-auto">
+                    <Image src={Logo} alt="Blossom Logo" className="h-10 w-auto bg-white/90 rounded-md p-2 shadow-md" />
+
                     <div className="flex items-center gap-4 lg:hidden">
                         <button
                             onClick={toggleMobileMenu}
@@ -31,14 +33,13 @@ export const DashboardHeader = ({ children, onToggleDarkMode,overflow="overflow-
                             {mobileMenuOpen ? <FaTimes /> : <FaBars />}
                         </button>
                     </div>
-                    <Image src={Logo} alt="Blossom Logo" className="h-10 w-auto bg-white/90 rounded-md p-2 shadow-md" />
-                    
-                    {mobileMenuOpen ? "" : <Link
+
+                    {/* {mobileMenuOpen ? "" : <Link
                         href="/home/create"
                         className="inline-block px-4 py-2 rounded-xl bg-[#223853] text-white font-medium shadow-sm transition hover:bg-[#1a2f44] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#223853]"
                     >
                         Create
-                    </Link>}                    
+                    </Link>}                     */}
                     <h1 className="text-xl hidden sm:block font-bold">Admin Manager</h1>
                     {/* <button
                         onClick={toggleDarkMode}
@@ -65,12 +66,12 @@ export const DashboardHeader = ({ children, onToggleDarkMode,overflow="overflow-
                             >
                                 ✕
                             </button>
-                            <Link
+                            {/* <Link
                                 href="/home/create"
                                 className="inline-block px-4 py-2 rounded-xl bg-[#223853] text-white font-medium shadow-sm transition hover:bg-[#1a2f44] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#223853]"
                             >
                                 Create
-                            </Link>
+                            </Link> */}
                             {/* <Link href="/" className={`flex items-center gap-2 text-lg transition-all ${darkMode ? "hover:text-white/90" : "hover:text-[#021d3d]"
                                 }`}>
                                 <AiOutlineDashboard className="text-2xl" /> Dashboard

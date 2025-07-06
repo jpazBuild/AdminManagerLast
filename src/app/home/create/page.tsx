@@ -55,33 +55,34 @@ const CreateForm = () => {
                 return;
             }
 
-            // const response = await fetch(
-            //     `${process.env.URL_API_INTEGRATION}retrieveAutomationFlow?returnUniqueValues=`,
-            //     {
-            //         method: "GET",
-            //         cache: "no-store",
-            //     }
-            // );
+            const response = await fetch(
+                `${process.env.URL_API_INTEGRATION}retrieveAutomationFlow?returnUniqueValues=`,
+                {
+                    method: "GET",
+                    cache: "no-store",
+                }
+            );
 
 
-            const myHeaders = new Headers();
-            myHeaders.append("Content-Type", "application/json");
-            myHeaders.append("authorization", "Bearer eyJwcm92aWRlciI6IkhPTUVfQ1UiLCJ0b2tlbiI6ImFUVlRhR1pwZERkclZrNVVWak5vT2xGRE1GVXlRVXhFV2pCQmJWZE1Sblp4WW0xUyJ9");
+            // const myHeaders = new Headers();
+            // myHeaders.append("Content-Type", "application/json");
+            // myHeaders.append("authorization", "Bearer eyJwcm92aWRlciI6IkhPTUVfQ1UiLCJ0b2tlbiI6ImFUVlRhR1pwZERkclZrNVVWak5vT2xGRE1GVXlRVXhFV2pCQmJWZE1Sblp4WW0xUyJ9");
 
-            const requestOptions = {
-                method: "GET",
-                headers: myHeaders,
-                redirect: "follow" as RequestRedirect
-            };
+            // const requestOptions = {
+            //     method: "GET",
+            //     headers: myHeaders,
+            //     redirect: "follow" as RequestRedirect
+            // };
 
-            const response = await fetch("https://blossom-integrations-hub-development.blossomdev.com/dev/v2/automation/flow/retrieveAutomationFlow?returnUniqueValues=true", requestOptions)
-            console.log("Response Full:", response);
+            // const response = await fetch("https://blossom-integrations-hub-development.blossomdev.com/dev/v2/automation/flow/retrieveAutomationFlow?returnUniqueValues=true", requestOptions)
+            // console.log("Response Full:", response);
 
-            if (!response.ok) {
-                throw new Error(`Error ${response.status}: ${response.statusText}`);
-            }
+            // if (!response.ok) {
+            //     throw new Error(`Error ${response.status}: ${response.statusText}`);
+            // }
 
             const data = await response.json();
+            
             const allModulesData = data.allModules;
             const modules: string[] = allModulesData.map((module: Module) => module.moduleName);
             const uniqueModules = [...new Set(modules)].sort();

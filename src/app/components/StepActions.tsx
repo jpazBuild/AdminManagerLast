@@ -20,7 +20,7 @@ const StepActions = ({ index, steps, test, setTestCasesData }: any) => {
                 <Button
                     size="sm"
                     variant={"outline"}
-                    className={`text-xs cursor-pointer w-fit cursor-pointer`}
+                    className={`text-xs w-fit cursor-pointer`}
                     onClick={() => {
                         setViewActionStep((prev) => prev === 'wait' ? 'none' : 'wait');
                         setWaitInputs((prev) => ({
@@ -35,7 +35,7 @@ const StepActions = ({ index, steps, test, setTestCasesData }: any) => {
                 <Button
                     size="sm"
                     variant={"outline"}
-                    className={`text-xs cursor-pointer w-fit cursor-pointer`}
+                    className={`text-xs w-fit cursor-pointer`}
                     onClick={() => {
                         setViewActionStep((prev) => prev === 'customStep' ? 'none' : 'customStep')
                     }}

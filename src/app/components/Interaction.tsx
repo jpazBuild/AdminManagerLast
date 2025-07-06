@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
-import { FaChevronDown, FaChevronUp } from "react-icons/fa";
+import { FaChevronDown, FaChevronUp, FaEdit } from "react-icons/fa";
 import TextInputWithClearButton from "./InputClear";
 import CopyToClipboard from "./CopyToClipboard";
 import DeleteButton from "./DeleteButton";
 import React, { useCallback, useMemo } from 'react';
-import { Copy, Trash2 } from "lucide-react";
+import { Copy, Save, Trash2 } from "lucide-react";
+import { FaXmark } from "react-icons/fa6";
 
 interface InteractionItemData {
     id: string;
@@ -34,56 +35,73 @@ interface PanelState {
 }
 
 interface DisplayImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
-  src: string;
-  alt?: string;
+    src: string;
+    alt?: string;
 }
 
 function DisplayImageWithFetch({
-  src,
-  alt,
-  ...props
+    src,
+    alt,
+    ...props
 }: {
-  src: string;
-  alt?: string;
-  [key: string]: any;
+    src: string;
+    alt?: string;
+    [key: string]: any;
 }) {
-  const [valid, setValid] = React.useState(true);
+    const [valid, setValid] = React.useState(true);
 
-  React.useEffect(() => {
-    if (!src) return;
-    if (
-      typeof src === "string" &&
-      (src.startsWith("/") || src.startsWith("images/"))
-    ) {
-      fetch(src)
-        .then((res) => setValid(res.ok))
-        .catch(() => setValid(false));
+    React.useEffect(() => {
+        if (!src) return;
+        if (
+            typeof src === "string" &&
+            (src.startsWith("/") || src.startsWith("images/"))
+        ) {
+            fetch(src)
+                .then((res) => setValid(res.ok))
+                .catch(() => setValid(false));
+        }
+    }, [src]);
+
+    if (!valid) {
+        return (
+            <span className="text-xs break-all bg-gray-100 px-3 py-2 rounded-md">
+                {typeof src === "string" ? src : "Image could not be loaded."}
+            </span>
+        );
     }
-  }, [src]);
 
-  if (!valid) {
     return (
-      <span className="text-xs break-all bg-gray-100 px-3 py-2 rounded-md">
-        {typeof src === "string" ? src : "Image could not be loaded."}
-      </span>
+        <img
+            src={src}
+            alt={alt}
+            className="max-h-32 w-auto rounded-md shadow-sm"
+            {...props}
+        />
     );
-  }
-
-  return (
-    <img
-      src={src}
-      alt={alt}
-      className="max-h-32 w-auto rounded-md shadow-sm"
-      {...props}
-    />
-  );
 }
 
 
 
 const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
     const [openPanels, setOpenPanels] = useState<PanelState>({});
+    const [editingJson, setEditingJson] = useState(false);
+    const [jsonValue, setJsonValue] = useState(JSON.stringify(value, null, 2));
+    const [jsonError, setJsonError] = useState<string | null>(null);
 
+    useEffect(() => {
+        if (!editingJson) setJsonValue(JSON.stringify(value, null, 2));
+    }, [value, editingJson]);
+
+    function handleSave() {
+        try {
+            const parsed = JSON.parse(jsonValue);
+            setJsonError(null);
+            setEditingJson(false);
+            onChange?.(parsed); // Propaga el nuevo objeto hacia arriba
+        } catch (err: any) {
+            setJsonError("Invalid JSON: " + err.message);
+        }
+    }
     const togglePanel = useCallback((name: string) => {
         setOpenPanels(prev => ({
             ...prev,
@@ -353,7 +371,7 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
                             />
                         </div>
                     )}
-                    
+
                     {processedData.hasValueToAssert && (
                         <div className="border border-gray-200 rounded-lg p-4">
                             <FieldEditor
@@ -399,11 +417,60 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
                     )}
                     <div className="border border-gray-200 rounded-lg overflow-hidden">
                         <DropdownHeader label="JSON Preview" panelKey="jsonPreview" />
-                        {openPanels.jsonPreview && (
+                        {/* {openPanels.jsonPreview && (
                             <div className="p-4">
                                 <pre className="bg-primary/20 text-primary p-4 rounded-md overflow-auto text-xs font-mono max-h-64">
                                     <code>{JSON.stringify(value, null, 2)}</code>
                                 </pre>
+                            </div>
+                        )} */}
+
+                        {openPanels.jsonPreview && (
+                            <div className="p-4">
+                                {!editingJson ? (
+                                    <>
+                                        <pre className="bg-primary/20 text-primary p-4 rounded-md overflow-auto text-xs font-mono max-h-64">
+                                            <code>{jsonValue}</code>
+                                        </pre>
+                                        <button
+                                            className="flex items-center gap-1 px-3 py-1 mt-2 px-3 py-1 text-xs rounded bg-primary/10 text-primary hover:bg-primary/20"
+                                            onClick={() => setEditingJson(true)}
+                                        >
+                                            <FaEdit className="w-4 h-4"/> Edit JSON
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <textarea
+                                            className="focus:outline-none focus:ring-0 focus:border-primary w-full p-3 rounded-md bg-primary/20 border border-primary/20 font-mono text-xs text-primary min-h-[180px] max-h-64"
+                                            value={jsonValue}
+                                            onChange={e => setJsonValue(e.target.value)}
+                                            autoFocus
+                                            spellCheck={false}
+                                        />
+                                        {jsonError && (
+                                            <div className="text-red-600 text-xs mt-1">{jsonError}</div>
+                                        )}
+                                        <div className="flex gap-2 mt-2">
+                                            <button
+                                                className="flex items-center gap-1 px-3 py-1 text-xs rounded bg-primary text-white hover:bg-primary/90"
+                                                onClick={handleSave}
+                                            >
+                                                <Save className="w-4 h-4"/> Save
+                                            </button>
+                                            <button
+                                                className="flex items-center gap-1 px-3 py-1 text-xs rounded bg-gray-200 text-primary hover:bg-gray-300"
+                                                onClick={() => {
+                                                    setJsonValue(JSON.stringify(value, null, 2));
+                                                    setEditingJson(false);
+                                                    setJsonError(null);
+                                                }}
+                                            >
+                                               <FaXmark className="w-4 h-4"/> Cancel
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>

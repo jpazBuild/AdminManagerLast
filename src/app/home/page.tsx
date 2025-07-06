@@ -121,7 +121,9 @@ const Home = () => {
         executeTests,
         idReports,
         stopTest,
-        stopped
+        stopped,
+        setLoading,
+        setStopped
     } = useTestExecution();
 
     const toggleSelectAll = (checked: boolean) => {
@@ -169,6 +171,8 @@ const Home = () => {
         selectedCases.includes(tc.testCaseId)
     );
 
+    console.log("isLoading isLoading ",loading,stopped);
+    
     const anyLoading = Object.values(loading).some(Boolean);
     const everyStopped = Object.values(stopped).every(Boolean)
     console.log(selectedCases.length === 0 || isLoading || anyLoading || !everyStopped);
@@ -401,13 +405,13 @@ const Home = () => {
                                         }
                                         executeTests(selectedTests, testData, maxBrowsers, isHeadless);
                                     }}
-                                    disabled={selectedCases.length === 0 || isLoading}
+                                    disabled={selectedCases.length === 0 || (isLoading || anyLoading)}
                                     className={`cursor-pointer px-4 py-2 font-semibold tracking-wide mt-4 rounded-lg transition-all duration-300 ${darkMode
                                         ? "bg-white text-[#021d3d] hover:bg-gray-200"
                                         : "bg-[#021d3d] text-white hover:bg-[rgb(2,29,61)]"}
-                                        ${isLoading || selectedCases.length === 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+                                        ${(isLoading || anyLoading) || selectedCases.length === 0 ? "opacity-50 !cursor-not-allowed" : ""}`}
                                 >
-                                    {isLoading ? "Executing..." : (<>
+                                    {(isLoading || anyLoading)  ? "Executing..." : (<>
                                         <span className="flex items-center gap-2"><FiPlay /> Run Tests</span>
                                     </>)}
                                 </button>
@@ -415,7 +419,7 @@ const Home = () => {
 
                             </div>
                             {executeRun && (
-                                <TestReports stopped={stopped} testData={testData} reports={reports} idReports={idReports} progress={progress} selectedCases={selectedCases} selectedTest={selectedTests} darkMode={darkMode} />
+                                <TestReports stopped={stopped} setStopped={setStopped} setLoading={setLoading} testData={testData} reports={reports} idReports={idReports} progress={progress} selectedCases={selectedCases} selectedTest={selectedTests} darkMode={darkMode} />
 
                             )}
                         </>

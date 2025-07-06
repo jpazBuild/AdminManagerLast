@@ -51,7 +51,7 @@ const JSONDropzone = ({
         setIsDragging(true);
       }}
       onDragLeave={() => setIsDragging(false)}
-      className={`border-2 text-primary border-dashed hover:bg-primary/10 hover:border-primary rounded-md px-4 py-6 transition-colors cursor-pointer ${
+      className={`max-w-80 border-2 text-primary border-dashed hover:bg-primary/10 hover:border-primary rounded-md px-4 py-6 transition-colors cursor-pointer ${
         isDragging ? "border-primary bg-primary/10" : "border-primary/30 bg-white"
       }`}
     >

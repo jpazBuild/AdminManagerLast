@@ -15,7 +15,6 @@ interface Props {
 const TestCaseActions = ({ test, onDelete, onUpdate,isLoadingUpdate,isLoadingDelete }: Props) => {
     const [openDialog, setOpenDialog] = useState(false);
 
-    console.log("TestCaseActions testasasasdfccdc:", test);
     
     return (
         <div className="flex gap-2 px-2 mt-2">

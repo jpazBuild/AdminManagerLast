@@ -294,7 +294,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
         <div className="space-y-4">
             <div className="flex justify-between items-center gap-3 p-2 bg-card rounded-lg">
 
-                <div className="w-full">
+                <div className="flex justify-center w-full">
 
                     <JSONDropzone
                         onJSONParsed={handleParsedJSON}
