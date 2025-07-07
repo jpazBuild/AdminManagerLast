@@ -83,8 +83,8 @@ const SortableTestCaseItem: React.FC<Props> = ({
     const [viewMode, setViewMode] = useState<'data' | 'steps' | 'editLocation' | 'Historic reports'>('data');
     const dataScrollRef = useRef<HTMLDivElement>(null!);
     const stepsScrollRef = useRef<HTMLDivElement>(null!);
-    useLockScrollBubbling(dataScrollRef);
-    useLockScrollBubbling(stepsScrollRef);
+    // useLockScrollBubbling(dataScrollRef);
+    // useLockScrollBubbling(stepsScrollRef);
 
     const handleDelete = async () => {
         const res = await handleAxiosRequest(() =>
@@ -243,7 +243,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                         onUpdate={handleFieldChange}
                     /> */}
                     {viewMode === 'data' && (
-                        <div ref={dataScrollRef} className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 mt-4 p-2">
+                        <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 mt-4 p-2">
                             {testFields.map((field, idx) => (
                                 <div key={`${field}-${idx}`} className="flex flex-col gap-4 px-1 break-words">
                                     <Label className="w-full text-primary/90 break-words max-w-[480px] truncate">{field}</Label>
@@ -260,8 +260,8 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
 
                     {viewMode === 'steps' && (
-                        <div ref={stepsScrollRef} className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1">
-                            <div className="self-end mt-4 mb-3 flex gap-1 items-center border-2 border-primary/60 rounded-md p-1">
+                        <div className="flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1">
+                            <div className="self- end mt-4 mb-3 flex gap-1 items-center border-2 border-primary/60 rounded-md p-1">
                                 <span>Copy All steps</span>
                                 <CopyToClipboard text={JSON.stringify(steps)} />
                             </div>
