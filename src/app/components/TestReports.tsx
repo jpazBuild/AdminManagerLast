@@ -10,7 +10,7 @@ import { handleDownloadHTMLReport } from "../hooks/HTMLReport";
 import { handleDownloadPDFReport } from "@/lib/PDFReport";
 import { ExecutionSummary } from "./ExecutionSummary";
 
-const TestReports = ({ reports,setLoading, progress, selectedTest, testData, stopped, setStopped }: any) => {
+const TestReports = ({ reports, setLoading, progress, selectedTest, testData, stopped, setStopped }: any) => {
     const [expandedReports, setExpandedReports] = useState<Record<string, boolean>>({});
     const { stopTest } = useTestExecution();
 
@@ -151,7 +151,7 @@ const TestReports = ({ reports,setLoading, progress, selectedTest, testData, sto
                 </div>
             )}
 
-            <div className="space-y-6">
+            <div className="">
                 {selectedTest.map((test: any) => {
                     const progressValue = progress.find((p: any) => p.testCaseId === test.testCaseId)?.percent || 0;
                     const reportId = test.testCaseId;
@@ -165,66 +165,103 @@ const TestReports = ({ reports,setLoading, progress, selectedTest, testData, sto
                     console.log(" stopped[reportId] ", stopped[reportId], " reportId ", reportId, " connectionId ", connectionId, " test ", test);
 
                     return (
-                        <div key={reportId} id={reportId} className="p-2 flex flex-col gap-2">
+                        <div key={reportId} id={reportId} className="p-1 flex flex-col gap-2">
                             {progressValue < 100 && !stopped[reportId] && (
-
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         handleStopTest(reportId, connectionId, reports.find((p: any) => p.testCaseId === test.testCaseId)?.socket);
                                         setLoading((prev: any) => ({ ...prev, [reportId]: false }));
                                     }}
-                                    className="self-end flex items-center shadow-md rounded-md cursor-pointer border gap-2 p-1 hover:text-primary/90 text-primary/70"
+                                    className="self-end flex items-center shadow-lg rounded-lg cursor-pointer border gap-2 px-3 py-2 hover:text-red-600 text-red-500 bg-white hover:bg-red-50 transition-all duration-200"
                                     title="Stop Test"
                                 >
-                                    <StopCircle className="w-5 h-5 text-red-600 animate-pulse" /> Stop
+                                    <StopCircle className="w-5 h-5 animate-pulse" />
+                                    <span className="text-sm font-medium">Stop</span>
                                 </button>
                             )}
 
                             <Card
-                                className={`relative cursor-pointer shadow-md transition-shadow hover:shadow-lg border-2 border-l-4 ${isFailed
-                                        ? "border-red-500"
+                                className={`relative cursor-pointer shadow-lg transition-all duration-300 hover:shadow-xl border-3 border-l-4 rounded-xl overflow-hidden  ${isFailed
+                                        ? " border-red-500 "
                                         : stopped[reportId]
-                                            ? "border-gray-500"
+                                            ? " border-gray-400 "
                                             : progressValue === 0
-                                                ? "border-primary"
+                                                ? " border-blue-500 "
                                                 : progressValue < 100
-                                                    ? "border-yellow-500"
-                                                    : "border-green-500"
+                                                    ? " border-yellow-500 "
+                                                    : " border-green-500 "
                                     }`}
                                 onClick={() => toggleReport(reportId)}
                             >
-                                <span className="bg-primary rounded-br-lg rounded-tl-lg text-white absolute top-0 left-0 p-1 text-[12px]">
-                                    {reportId}
-                                </span>
-                                {formatExecutionTime(latestStep?.ev?.time) && (
-                                    <div className="absolute top-2 left-2 flex items-center gap-2 text-primary/60 text-xs">
-                                        <Clock className="w-4 h-4 text-primary/60" /> {formatExecutionTime(latestStep?.ev?.time)}
+                                {/* Barra de estado superior */}
+                                {/* <div
+                                    className={`absolute top-0 left-0 w-full h-1 ${isFailed
+                                            ? "bg-red-500"
+                                            : stopped[reportId]
+                                                ? "bg-gray-400"
+                                                : progressValue === 0
+                                                    ? "bg-blue-500"
+                                                    : progressValue < 100
+                                                        ? "bg-yellow-500"
+                                                        : "bg-green-500"
+                                        }`}
+                                /> */}
+
+                                {/* Header con altura fija */}
+                                <div className="relative h-28 p-2">
+                                    {/* Badge de ID */}
+                                    <div className="absolute top-0 left-3">
+                                        <span className="bg-gradient-to-r from-primary/90 to-primary/80 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-md">
+                                            {reportId}
+                                        </span>
                                     </div>
-                                )}
-                                <CardHeader className="relative flex flex-col items-center gap-2 justify-between p-4 mt-4">
-                                    <div className="flex justify-between w-full">
-                                        <CardTitle className="text-base font-semibold tracking-wider">
-                                            {test.testCaseName || "Unnamed Test"}
-                                        </CardTitle>
-                                        <div className="flex items-center gap-2">
-                                            <Badge className="text-white ">{progressValue}%</Badge>
-                                            {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
+
+                                    {/* Tiempo de ejecución */}
+                                    {/* {formatExecutionTime(latestStep?.ev?.time) && (
+                                        <div className="absolute top-3 right-3 flex items-center gap-2 text-gray-500 text-xs bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full">
+                                            <Clock className="w-3 h-3" />
+                                            {formatExecutionTime(latestStep?.ev?.time)}
+                                        </div>
+                                    )} */}
+
+                                    {/* Contenido principal */}
+                                    <div className="flex flex-col justify-between h-full pt-8">
+                                        <div className="flex justify-between items-start">
+                                            <CardTitle className="text-lg font-bold text-gray-800 truncate pr-4 leading-tight">
+                                                {test.testCaseName || "Unnamed Test"}
+                                            </CardTitle>
+                                            <div className="flex items-center gap-3 flex-shrink-0">
+                                                <Badge
+                                                    className={`text-white font-bold px-3 py-1 ${isFailed
+                                                            ? "bg-red-500"
+                                                            : stopped[reportId]
+                                                                ? "bg-gray-500"
+                                                                : progressValue === 0
+                                                                    ? "bg-blue-500"
+                                                                    : progressValue < 100
+                                                                        ? "bg-yellow-500"
+                                                                        : "bg-green-500"
+                                                        }`}
+                                                >
+                                                    {progressValue}%
+                                                </Badge>
+                                                <div className="text-gray-400 transition-transform duration-200">
+                                                    {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
+                                                </div>
+                                            </div>
                                         </div>
 
-
+                                        {/* Progress Bar siempre visible */}
+                                        <div className="mt-3">
+                                            <ProgressBar
+                                                stopped={!!stopped[reportId]}
+                                                progressValue={progressValue}
+                                                finalStatus={finalStatus}
+                                            />
+                                        </div>
                                     </div>
-
-                                    {isExpanded && (
-                                        <ProgressBar stopped={!!stopped[reportId]} progressValue={progressValue} finalStatus={finalStatus} />
-                                    )}
-                                </CardHeader>
-
-                                {!isExpanded && (
-                                    <CardContent className="p-4 pt-4">
-                                        <ProgressBar stopped={!!stopped[reportId]} progressValue={progressValue} finalStatus={finalStatus} />
-                                    </CardContent>
-                                )}
+                                </div>
                             </Card>
 
                             {isExpanded && dataSteps && (
@@ -247,7 +284,7 @@ const TestReports = ({ reports,setLoading, progress, selectedTest, testData, sto
     );
 };
 
-const ProgressBar = ({stopped, progressValue, finalStatus }: {stopped:boolean, progressValue: number; finalStatus: string }) => {
+const ProgressBar = ({ stopped, progressValue, finalStatus }: { stopped: boolean, progressValue: number; finalStatus: string }) => {
     const isCompleted = progressValue === 100;
 
     const animatedText = isCompleted
@@ -256,7 +293,7 @@ const ProgressBar = ({stopped, progressValue, finalStatus }: {stopped:boolean, p
             : "Completed"
         : stopped
             ? `Stopped`
-        : `In progress`;
+            : `In progress`;
 
     return (
         <div className="flex w-full items-center gap-4 mb-4 pb-4">

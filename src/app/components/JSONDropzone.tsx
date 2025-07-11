@@ -1,18 +1,22 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Upload } from "lucide-react";
 import { toast } from "sonner";
+import { CiCircleRemove, CiSquareRemove } from "react-icons/ci";
 
 const JSONDropzone = ({
   onJSONParsed,
   onFileInfoChange,
   acceptedFileTypes = ["application/json"],
+  onClear,
 }: {
   onJSONParsed: (data: any) => void;
   onFileInfoChange?: (info: { loaded: boolean; name: string }) => void;
   acceptedFileTypes?: string[];
+  onClear?: () => void;
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null); // <--- Ref
 
   const handleFile = (file: File) => {
     const reader = new FileReader();
@@ -31,17 +35,28 @@ const JSONDropzone = ({
     reader.readAsText(file);
   };
 
-  const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setIsDragging(false);
+  const handleDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      setIsDragging(false);
+      const file = event.dataTransfer.files[0];
+      if (file && file.type === "application/json") {
+        handleFile(file);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      } else {
+        toast.error("Please upload a valid .json file.");
+      }
+    },
+    [onJSONParsed]
+  );
 
-    const file = event.dataTransfer.files[0];
-    if (file && file.type === "application/json") {
-      handleFile(file);
-    } else {
-      toast.error("Please upload a valid .json file.");
-    }
-  }, [onJSONParsed]);
+  const clearFile = () => {
+    setFileName(null);
+    toast.info("JSON file removed.");
+    onFileInfoChange?.({ loaded: false, name: "" });
+    onClear?.();
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   return (
     <div
@@ -61,12 +76,14 @@ const JSONDropzone = ({
           Drag and drop a <span className="font-medium">JSON</span> file here or click to browse
         </p>
         <input
+          ref={fileInputRef}
           type="file"
           accept={acceptedFileTypes.join(",")}
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (!file) return;
             handleFile(file);
+            e.target.value = "";
           }}
           className="hidden"
           id="json-upload"
@@ -77,8 +94,16 @@ const JSONDropzone = ({
       </div>
 
       {fileName && (
-        <div className="mt-4 text-center text-xs text-primary font-medium">
-          Uploaded: <span className="text-primary/90">{fileName}</span>
+        <div className="mt-4 flex flex-col text-center text-xs text-primary font-medium space-y-2">
+          <div>
+            Uploaded: <span className="text-primary/90">{fileName}</span>
+          </div>
+          <button
+            onClick={clearFile}
+            className="text-primary/70 self-center flex items-center gap-1 text-xs hover:text-primary/75 p-2 rounded-md  border-2 border-primary/80 "
+          >
+            <CiSquareRemove className="w-4 h-4"/> Remove uploaded JSON
+          </button>
         </div>
       )}
     </div>

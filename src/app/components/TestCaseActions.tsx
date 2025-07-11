@@ -19,7 +19,7 @@ const TestCaseActions = ({ test, onDelete, onUpdate,isLoadingUpdate,isLoadingDel
     return (
         <div className="flex gap-2 px-2 mt-2">
             <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-md bg-white">
                     <DialogHeader>
                         <DialogTitle className="text-lg font-semibold text-primary/80">
                             Are you sure you want to delete this test case?
@@ -33,7 +33,7 @@ const TestCaseActions = ({ test, onDelete, onUpdate,isLoadingUpdate,isLoadingDel
                     <DialogFooter className="mt-4 flex justify-end gap-2">
                         <button
                             onClick={() => setOpenDialog(false)}
-                            className="text-primary/80 cursor-pointer px-4 py-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                            className="text-primary/80 cursor-pointer px-4 py-2 rounded hover:bg-gray-100"
                         >
                             Cancel
                         </button>

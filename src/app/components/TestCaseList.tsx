@@ -7,6 +7,7 @@ import JSONDropzone from "./JSONDropzone";
 import SortableTestCasesAccordion from "./SortableItem";
 import SortableTestCaseItem from "./SortableTestCaseItem";
 import { Download } from "lucide-react";
+import { toast } from "sonner";
 
 interface TestStep {
     action: string;
@@ -288,6 +289,12 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
         URL.revokeObjectURL(url);
     };
 
+    const handleClearJSONData = () => {
+        setDynamicValues([]);
+        toast.info("Dynamic values cleared.");
+        if (setEditMode) setEditMode('global');
+    };
+
     console.log("TestCases Data:", testCasesData);
 
     return (
@@ -301,6 +308,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                         onFileInfoChange={({ loaded, name }) => {
                             if (loaded && setEditMode) setEditMode('individual');
                         }}
+                        onClear={handleClearJSONData}
                     />
                 </div>
             </div>

@@ -53,7 +53,7 @@ const SortableTestCasesAccordion: React.FC<SortableTestCasesAccordionProps> = ({
       type="multiple"
       value={openItems}
       onValueChange={setOpenItems}
-      className="max-h-[80vh] overflow-y-auto"
+      className=""
     >
       {testCases.map((test, index) => (
         isDragDisabled ? (

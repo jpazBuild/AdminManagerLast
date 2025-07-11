@@ -203,7 +203,13 @@ const Home = () => {
                         placeholder="Select a module"
                     />
 
-                    <SearchField
+                    {isLoadingSubmodules ? (
+                        <div className="flex items-center gap-2">
+                            <Loader className="h-5 w-5 text-primary/80 animate-spin" />
+                            <span className="text-primary/80">Loading submodules...</span>
+                        </div>
+                    ):(
+                        <SearchField
                         label="Submodule"
                         value={selectedSubmodule}
                         onChange={setSelectedSubmodule}
@@ -214,6 +220,8 @@ const Home = () => {
                         placeholder="Select a submodule"
                         disabled={!selectedModule || isLoadingSubmodules}
                     />
+                    )}
+                    
 
                     <div className="flex items-center gap-2 flex-col w-full">
 
