@@ -92,7 +92,7 @@ export const useTestExecution = () => {
             const getValidUrlSite = (data: Record<string, any>): string | null => {
                 for (const [key, value] of Object.entries(data)) {
                     if (
-                        key.startsWith("urlSite") &&
+                        key?.startsWith("urlSite") &&
                         typeof value === "string" &&
                         /^https?:\/\//.test(value)
                     ) {

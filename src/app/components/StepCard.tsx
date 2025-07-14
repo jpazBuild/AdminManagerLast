@@ -33,7 +33,7 @@ const StepScreenshot = ({ step, handleImageClick }: any) => {
 
     if (!step?.screenshot) return null;
 
-    const isUrl = step.screenshot.startsWith("http");
+    const isUrl = step.screenshot?.startsWith("http");
     const imageSrc = isUrl
         ? step.screenshot
         : `data:image/jpeg;base64,${step.screenshot}`;

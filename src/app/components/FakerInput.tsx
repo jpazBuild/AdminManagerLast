@@ -51,7 +51,7 @@ export const FakerInputWithAutocomplete = ({
             const lastPart = parts[parts.length - 1];
             const options = current ? Object.keys(current) : [];
             const filtered = options.filter((opt) =>
-                opt.toLowerCase().startsWith(lastPart.toLowerCase())
+                opt?.toLowerCase()?.startsWith(lastPart?.toLowerCase())
             );
             const suggestionsWithPath = filtered.map((opt) => {
                 const valueAtPath = current ? current[opt] : undefined;
@@ -106,7 +106,8 @@ export const FakerInputWithAutocomplete = ({
         }
     };
 
-    const isFakerExpression = (str: string) => str.startsWith("faker.");
+    const isFakerExpression = (str: unknown): str is string =>
+    typeof str === "string" && str.startsWith("faker.");
 
     const endsWithCall = (str: string) => /\)\s*$/.test(str);
 

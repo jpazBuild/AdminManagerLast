@@ -205,7 +205,7 @@ export const handleDownloadPDFReport = async (
       
       tableBody.push([String(i + 1), action, status, timeStr]);
 
-      if (screenshot && screenshot.startsWith("http")) {
+      if (screenshot && screenshot?.startsWith("http")) {
         const imgDataUrl = await getImageDataURLFromURL(screenshot);
         if (imgDataUrl) {
           tableBody.push([

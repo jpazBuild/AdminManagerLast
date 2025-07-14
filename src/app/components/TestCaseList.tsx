@@ -112,7 +112,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
             valueAsString
                 ?.match(/<([^>]+)>/g)
                 ?.map(t => t.replace(/[<>]/g, ''))
-                ?.filter(value => !value.startsWith('var'))
+                ?.filter(value => !value?.startsWith('var'))
             || []
         );
     };

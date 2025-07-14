@@ -43,7 +43,7 @@ export const ImageModalWithZoom = ({ isOpen, imageUrl, onClose }: ImageModalProp
 
             const simulateDelay = 1000;
 
-            const isBase64Raw = !imageUrl.startsWith("http") && !imageUrl.startsWith("data:image");
+            const isBase64Raw = !imageUrl?.startsWith("http") && !imageUrl?.startsWith("data:image");
             const finalSrc = isBase64Raw ? `data:image/jpeg;base64,${imageUrl}` : imageUrl;
 
             const img = new window.Image();
@@ -166,7 +166,7 @@ export const ImageModalWithZoom = ({ isOpen, imageUrl, onClose }: ImageModalProp
                         onMouseMove={handleMouseMove}
                         onMouseLeave={handleMouseUp}
                     >
-                        {imageUrl.startsWith("http") ? (
+                        {imageUrl?.startsWith("http") ? (
                             <Image
                                 src={imageUrl}
                                 alt="Zoomable screenshot"

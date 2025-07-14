@@ -36,7 +36,7 @@ const FileDropzone = ({
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-      if (result.startsWith("data:")) {
+      if (result?.startsWith("data:")) {
         onFileParsed(result, file);
         setFileName(file.name);
         toast.success(`${file.name} uploaded successfully!`);
