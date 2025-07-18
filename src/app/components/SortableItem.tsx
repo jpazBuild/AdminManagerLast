@@ -53,7 +53,7 @@ const SortableTestCasesAccordion: React.FC<SortableTestCasesAccordionProps> = ({
       type="multiple"
       value={openItems}
       onValueChange={setOpenItems}
-      className=""
+      className="flex flex-col gap-4"
     >
       {testCases.map((test, index) => (
         isDragDisabled ? (

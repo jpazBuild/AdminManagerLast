@@ -119,7 +119,7 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
 
     const DropdownHeader = useCallback(({ label, panelKey }: { label: string; panelKey: string }) => (
         <div
-            className="flex justify-between items-center bg-white cursor-pointer rounded-md border-l-6 border-primary p-2 hover:bg-primary/10 transition-colors"
+            className="flex justify-between items-center bg-white cursor-pointer rounded-md border-l-6 border-1 border-primary p-2 hover:bg-primary/10 transition-colors"
             onClick={() => togglePanel(panelKey)}
         >
             <span className="text-primary/80 font-semibold">{label}</span>
@@ -230,11 +230,11 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
     }
 
     return (
-        <div className="rounded-lg shadow-lg bg-white overflow-hidden">
+        <div className="rounded-lg shadow-lg bg-white overflow-hidden px-2">
             <DropdownHeader label="Show Options" panelKey="showOptions" />
 
             {openPanels.showOptions && (
-                <div className="p-1 space-y-4">
+                <div className="p-1 flex flex-col gap-2 mt-2">
                     {processedData.hasNavigation && (
                         <div className="border border-gray-200 rounded-lg overflow-hidden">
                             <DropdownHeader label="Navigate Data" panelKey="navigateData" />
@@ -903,7 +903,7 @@ const InteractionItem = ({ data, index, onDelete, onUpdate }: InteractionItemPro
     
     return (
         <div key={data.id} data-index={index} className="flex flex-col gap-4">
-            <div className="relative flex flex-col gap-2 py-2 px-1 text-primary rounded-md border-l-4 border-primary shadow-lg transition-all duration-300">
+            <div className="relative flex flex-col gap-2 py-2 px-1 text-primary rounded-md border-l-4 border-1 border-primary shadow-lg transition-all duration-300">
                 <div className="flex justify-center items-center w-full">
                     <div className="flex flex-col">
                         <p className="font-semibold text-center">{data.action}</p>

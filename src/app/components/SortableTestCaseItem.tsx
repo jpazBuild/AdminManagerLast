@@ -204,7 +204,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
     const uniqueFields = Array.from(new Set(testFields));
 
     return (
-        <div className="w-full shadow-md rounded-md border-t-4 border-primary/60 pt-1">
+        <div className="w-full shadow-xl rounded-md border-l-4 border-2 border-primary/90 pt-1">
             <TestCaseActions
                 test={currentTestCase}
                 onDelete={handleDelete}
@@ -219,6 +219,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                         checked={selectedCases.includes(test.testCaseId ?? '')}
                         onCheckedChange={handleToggleSelect}
                         className="cursor-pointer"
+                        
                     />
                     <AccordionTrigger
                         className="flex hover:no-underline"

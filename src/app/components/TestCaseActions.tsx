@@ -56,7 +56,7 @@ const TestCaseActions = ({ test, onDelete, onUpdate,isLoadingUpdate,isLoadingDel
 
             <div className="place-self-end flex gap-2 mb-2">
                 <button
-                className="flex items-center cursor-pointer gap-1 text-primary/80 text-sm hover:text-red-500"
+                className="flex items-center shadow-md p-1 px-2 rounded-md border-1 cursor-pointer gap-1 text-primary/80 text-sm hover:text-red-500"
                 onClick={() => setOpenDialog(true)}
             >
                 <Trash2Icon className="w-4 h-4" />
@@ -64,7 +64,7 @@ const TestCaseActions = ({ test, onDelete, onUpdate,isLoadingUpdate,isLoadingDel
             </button>
 
             <button
-                className="flex items-center cursor-pointer gap-1 text-primary/80 text-sm hover:text-primary"
+                className="flex items-center shadow-md p-1 px-2 rounded-md border-1 cursor-pointer gap-1 text-primary/80 text-sm hover:text-primary"
                 onClick={() => onUpdate(test)}
             >
                 <Edit2 className="w-4 h-4" />
