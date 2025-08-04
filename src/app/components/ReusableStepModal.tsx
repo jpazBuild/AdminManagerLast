@@ -69,7 +69,7 @@ const ReusableStepModal: React.FC<ReusableStepModalProps> = ({
         console.log("Selected steps data:", selectedStepsData);
             
         try {
-            const apiUrl = (URL_API_ALB ?? '').replace(/\/+$/, '');
+            const apiUrl = (URL_API_ALB ?? '');
             const response = await axios.put(
                 `${apiUrl}reusableSteps`,
                 reusableStepPayload

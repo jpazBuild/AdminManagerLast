@@ -49,34 +49,6 @@ export const FakerInputWithAutocomplete = ({
         }
     }, [value, onChange]);
 
-    // const evaluateFakerExpression = useCallback((expr: string): string | null => {
-    //     try {
-    //         if (!isFakerExpression(expr)) return null;
-    //         const func = new Function("faker", `return (${expr});`);
-    //         const result = func(faker);
-    //         return typeof result === "string" || typeof result === "number"
-    //             ? String(result)
-    //             : JSON.stringify(result);
-    //     } catch (err) {
-    //         return null;
-    //     }
-    // }, []);
-    // useEffect(() => {
-    //     if (isFakerExpression(value) && endsWithCall(value)) {
-    //         const evaluated = evaluateFakerExpression(value);
-    //         if (evaluated && evaluated !== value) {
-    //             onChange(evaluated);
-    //             setFakerExpression(value);
-    //             setShowSuggestions(false);
-    //             setError(null);
-    //         } else if (evaluated === null) {
-    //             setError("Expresión inválida o error al ejecutar Faker.");
-    //         }
-    //     }
-    // }, [value, onChange, evaluateFakerExpression]);
-
-
-
     useEffect(() => {
         if (isFakerExpression(value) && !endsWithCall(value)) {
             const parts = value.replace("faker.", "").split(".");
