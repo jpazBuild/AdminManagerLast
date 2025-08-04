@@ -117,7 +117,7 @@ export const ImageModalWithZoom = ({ isOpen, imageUrl, onClose }: ImageModalProp
 
     return (
         <div
-            className="fixed inset-0 bg-primary bg-opacity-75 flex justify-center items-center z-50 "
+            className="fixed inset-0 bg-white bg-opacity-75 flex justify-center items-center z-50 "
             onClick={onClose}
         >
             <div
@@ -244,15 +244,6 @@ const ReportUI = ({
 
     if (!report || typeof report !== "object") return null;
 
-    // const result: StepEvent[] = Object.values(report)
-    //     .filter((step): step is StepEvent =>
-    //         typeof step === "object" &&
-    //         step !== null &&
-    //         typeof (step as any)?.indexStep === "number"
-    //     )
-    //     .map((step) => ({
-    //         ...step
-    //     }));
     const result: StepEvent[] = Object.values(report)
         .filter((step): step is StepEvent =>
             typeof step === "object" &&
@@ -260,15 +251,11 @@ const ReportUI = ({
             typeof (step as any)?.indexStep === "number"
         )
         .map((step) => {
-            // Si el test está detenido y este step está en processing, márcalo como stopped
-            if (stopped && (step.status === "processing" || !step.status)) {
+            if (stopped && (step?.status === "processing" || !step.status)) {
                 return { ...step, status: "stopped" }
             }
             return step
         });
-
-    console.log("ejemplo stopped", stopped, testcaseId);
-    console.log("result report",stopped, result, report);
     
     return (
         <>

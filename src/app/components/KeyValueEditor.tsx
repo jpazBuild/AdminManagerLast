@@ -24,7 +24,7 @@ const KeyValueEditor = ({
   placeholder = (key) => key,
   getId = (key, idx) => key,
   typeLabel = undefined,
-  level = 0 // recursividad
+  level = 0
 }: KeyValueEditorProps) => {
   return (
     <div className={`flex flex-col gap-2 ${level > 0 ? "ml-4 border-l pl-4" : ""}`}>
@@ -39,8 +39,8 @@ const KeyValueEditor = ({
               key={getId(key, idx)}
               title={key.charAt(0).toUpperCase() + key.slice(1)}
               panelKey={key}
-              openPanels={{}} // anidado, puedes manejar openPanels global si prefieres
-              togglePanel={() => {}} // idem
+              openPanels={{}}
+              togglePanel={() => {}}
             >
               <div className="flex flex-col gap-2">
                 {val.map((item, i) => (
@@ -48,14 +48,13 @@ const KeyValueEditor = ({
                     <div className="flex items-center justify-between w-full gap-1">
                       <span className="text-xs text-primary/80">{item.type ?? `Item ${i + 1}`}</span>
                       <div className="flex items-center gap-2">
-                        <CopyToClipboard text={item.locator} />
+                        <CopyToClipboard text={item.locator} isDarkMode={false}/>
                         <DeleteButton onClick={() => {
                           const updatedArr = val.filter((_, idx2) => idx2 !== i);
                           onChange(key, updatedArr, idx, val);
                         }}/>
                       </div>
                     </div>
-                    {/* Puedes expandir para más campos */}
                     <TextInputWithClearButton
                       id={item.locator}
                       value={item.locator}
@@ -74,14 +73,13 @@ const KeyValueEditor = ({
           );
         }
         if (isObject) {
-          // objeto anidado (attributes, coordinates, window, etc)
           return (
             <ExpandablePanel
               key={getId(key, idx)}
               title={key.charAt(0).toUpperCase() + key.slice(1)}
               panelKey={key}
-              openPanels={{}} // puedes manejar openPanels anidados si quieres
-              togglePanel={() => {}} // idem
+              openPanels={{}}
+              togglePanel={() => {}}
             >
               <KeyValueEditor
                 entries={Object.entries(val)}
@@ -98,13 +96,12 @@ const KeyValueEditor = ({
             </ExpandablePanel>
           );
         }
-        // campo simple (string, number)
         return (
           <div key={getId(key, idx)} className="flex flex-col items-center gap-2 mb-2">
             <div className="flex items-center justify-between w-full gap-1">
               <span className="text-xs text-primary/80">{keyLabel(key)}:</span>
               <div className="flex items-center gap-2">
-                <CopyToClipboard text={valueLabel(val)} />
+                <CopyToClipboard text={valueLabel(val)} isDarkMode={false}/>
                 <DeleteButton onClick={() => onDelete(key, idx, val)} />
               </div>
             </div>

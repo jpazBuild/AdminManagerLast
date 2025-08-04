@@ -30,14 +30,15 @@ const nextConfig: NextConfig = {
     X_API_KEY: process.env.X_API_KEY,
     URL_API_RUNNER: process.env.URL_API_RUNNER,
     URL_API_ALB: process.env.URL_ALB_API_RUNNER,
+    URL_API_DYNAMO: process.env.URL_API_DYNAMO,
   },
   
   async redirects() {
     return [
       {
         source: '/',
-        destination: '/home',
-        permanent: false, // Temporal (HTTP 307)
+        destination: '/dashboard',
+        permanent: false,
       },
     ];
   },

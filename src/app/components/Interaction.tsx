@@ -1,16 +1,21 @@
 "use client";
+import React from 'react';
 import { useEffect, useState } from "react";
 import { FaChevronDown, FaChevronUp, FaEdit } from "react-icons/fa";
-import TextInputWithClearButton from "./InputClear";
-import CopyToClipboard from "./CopyToClipboard";
-import DeleteButton from "./DeleteButton";
-import React, { useCallback, useMemo } from 'react';
 import { Copy, Save, Trash2 } from "lucide-react";
 import { FaXmark } from "react-icons/fa6";
+import { useCallback, useMemo } from 'react';
+import CopyToClipboard from "./CopyToClipboard";
+import StepActions from "./StepActions";
 
 interface InteractionItemData {
     id: string;
-    action: string;
+    action?: string;
+    name?: string;
+    description?: string;
+    type?: string;
+    stepsData?: any[];
+    stepData?: any;
     [key: string]: any;
 }
 
@@ -20,58 +25,82 @@ interface InteractionItemProps {
     isContext?: boolean;
     onDelete?: (index: number) => void;
     onUpdate?: (index: number, updatedData: InteractionItemData) => void;
+    isDarkMode?: boolean;
+    test?: any;
+    steps?: any[];
+    setTestCasesData?: React.Dispatch<React.SetStateAction<any[]>>;
+    setResponseTest?: React.Dispatch<React.SetStateAction<any>>;
 }
-
-
-
 
 interface JSONBoxProps {
     value: any;
     onChange?: (value: any) => void;
+    isDarkMode?: boolean;
 }
 
 interface PanelState {
     [key: string]: boolean;
 }
 
-interface DisplayImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
-    src: string;
-    alt?: string;
-}
+const TextInputWithClearButton = ({ id, value, onChangeHandler, placeholder, className, isDarkMode }: any) => (
+    <input
+        id={id}
+        value={value}
+        onChange={onChangeHandler}
+        placeholder={placeholder}
+        className={className}
+    />
+);
 
+const DeleteButton = ({ onClick,isDarkMode=false }: { onClick: () => void,isDarkMode:boolean }) => (
+    <button
+        onClick={onClick}
+        className={`p-1 rounded ${isDarkMode ? 'text-slate-300 hover:text-white' : 'text-gray-600 hover:text-gray-800'}`}
+    >
+        <Trash2 className="w-4 h-4" />
+    </button>
+);
 
 function DisplayImageWithFetch({
     src,
     alt,
+    isDarkMode = false,
     ...props
 }: {
     src: string;
     alt?: string;
+    isDarkMode?: boolean;
     [key: string]: any;
 }) {
     const [isError, setIsError] = React.useState(false);
 
     React.useEffect(() => {
-        setIsError(false); // reset error when src changes
+        setIsError(false);
     }, [src]);
 
     if (!src || isError) {
-        // SVG clásico "imagen no disponible"
+        const containerClasses = isDarkMode 
+            ? "flex flex-col items-center justify-center bg-slate-700/50 border border-slate-600 px-3 py-4 rounded-md max-h-32 min-h-[6rem] min-w-[8rem]"
+            : "flex flex-col items-center justify-center bg-gray-100 px-3 py-4 rounded-md max-h-32 min-h-[6rem] min-w-[8rem]";
+        
+        const iconColor = isDarkMode ? "text-slate-400" : "text-gray-400";
+        const textColor = isDarkMode ? "text-slate-300" : "text-gray-400";
+        
         return (
-            <div className="flex flex-col items-center justify-center bg-gray-100 px-3 py-4 rounded-md max-h-32 min-h-[6rem] min-w-[8rem]">
+            <div className={containerClasses}>
                 <svg
-                    className="w-10 h-10 text-gray-400 mb-2"
+                    className={`w-10 h-10 ${iconColor} mb-2`}
                     fill="none"
                     stroke="currentColor"
                     strokeWidth={1.5}
                     viewBox="0 0 24 24"
                 >
-                    <rect x="3" y="3" width="18" height="18" rx="2" fill="#e5e7eb"/>
-                    <circle cx="8.5" cy="8.5" r="1.5" fill="#cbd5e1" />
-                    <path d="M21 17l-5-5-7 7" stroke="#94a3b8" strokeWidth={2} />
+                    <rect x="3" y="3" width="18" height="18" rx="2" fill={isDarkMode ? "#475569" : "#e5e7eb"}/>
+                    <circle cx="8.5" cy="8.5" r="1.5" fill={isDarkMode ? "#64748b" : "#cbd5e1"} />
+                    <path d="M21 17l-5-5-7 7" stroke={isDarkMode ? "#94a3b8" : "#94a3b8"} strokeWidth={2} />
                 </svg>
-                <span className="text-xs text-gray-400 break-all">
-                    Image no available
+                <span className={`text-xs ${textColor} break-all`}>
+                    Image not available
                 </span>
             </div>
         );
@@ -88,8 +117,7 @@ function DisplayImageWithFetch({
     );
 }
 
-
-const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
+const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }) => {
     const [openPanels, setOpenPanels] = useState<PanelState>({});
     const [editingJson, setEditingJson] = useState(false);
     const [jsonValue, setJsonValue] = useState(JSON.stringify(value, null, 2));
@@ -104,7 +132,7 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
             const parsed = JSON.parse(jsonValue);
             setJsonError(null);
             setEditingJson(false);
-            onChange?.(parsed); // Propaga el nuevo objeto hacia arriba
+            onChange?.(parsed);
         } catch (err: any) {
             setJsonError("Invalid JSON: " + err.message);
         }
@@ -117,26 +145,108 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
         }));
     }, []);
 
+    const getDropdownHeaderClasses = () => {
+        if (isDarkMode) {
+            return "flex justify-between items-center bg-slate-800/90 cursor-pointer rounded-md border-l-4 border-slate-500 p-2 hover:bg-slate-700/90 transition-colors duration-200";
+        }
+        return "flex justify-between items-center bg-white cursor-pointer rounded-md border-l-6 border-1 border-primary p-2 hover:bg-primary/10 transition-colors";
+    };
+
+    const getDropdownHeaderTextClasses = () => {
+        return isDarkMode ? "text-white/90 font-semibold" : "text-primary/80 font-semibold";
+    };
+
+    const getDropdownHeaderIconClasses = () => {
+        return isDarkMode ? "text-white/90" : "text-primary";
+    };
+
+    const getPanelContainerClasses = () => {
+        return isDarkMode 
+            ? "bg-slate-800/50 border border-slate-600 rounded-lg overflow-hidden" 
+            : "border border-gray-200 rounded-lg overflow-hidden";
+    };
+
+    const getFieldEditorContainerClasses = () => {
+        return isDarkMode 
+            ? "flex flex-col gap-2 mb-3 p-2 bg-slate-700/50 text-white/90 rounded-md border border-slate-600/50" 
+            : "flex flex-col gap-2 mb-3 p-2 bg-gray-50 rounded-md";
+    };
+
+    const getFieldEditorLabelClasses = () => {
+        return isDarkMode ? "text-xs text-slate-300 font-medium" : "text-xs text-gray-600 font-medium";
+    };
+
+    const getFieldEditorButtonClasses = () => {
+        return isDarkMode 
+            ? "text-xs cursor-pointer text-slate-400 px-2 py-1 rounded bg-slate-600/50 hover:bg-slate-500/50 hover:text-slate-200 transition-colors duration-200" 
+            : "text-xs cursor-pointer text-primary/70 px-2 py-1 rounded transition-colors";
+    };
+
+    const getTextInputClasses = () => {
+        if (isDarkMode) {
+            return "w-full px-3 py-2 bg-slate-700 border border-white/60 text-white placeholder-slate-400 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-white/50 transition-colors";
+        }
+        return "w-full px-3 py-2 border border-primary/20 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent bg-primary/20 text-primary placeholder-primary/50 transition-colors";
+    };
+
+    const getJSONPreviewClasses = () => {
+        if (isDarkMode) {
+            return "bg-slate-800 border border-white/60 text-white/80 p-2 rounded-md overflow-auto text-xs font-mono max-h-64";
+        }
+        return "bg-primary/20 text-primary p-2 rounded-md overflow-auto text-xs font-mono max-h-64";
+    };
+
+    const getEditButtonClasses = () => {
+        if (isDarkMode) {
+            return "flex items-center gap-1 mt-2 px-3 py-1 rounded bg-white/60 text-white text-md hover:bg-white/70 transition-colors duration-200";
+        }
+        return "flex items-center gap-1 mt-2 px-3 py-1 rounded bg-primary/10 text-primary text-md hover:bg-primary/20";
+    };
+
+    const getTextareaClasses = () => {
+        if (isDarkMode) {
+            return "focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-primary/50 w-full p-3 rounded-md bg-white/80 border border-slate-600 font-mono text-xs text-slate-200 placeholder-slate-400 min-h-[180px] max-h-64 transition-colors";
+        }
+        return "focus:outline-none focus:ring-0 focus:border-primary w-full p-3 rounded-md bg-primary/20 border border-primary/20 font-mono text-xs text-primary min-h-[180px] max-h-64";
+    };
+
+    const getSaveButtonClasses = () => {
+        if (isDarkMode) {
+            return "flex items-center gap-1 px-3 py-1 text-md rounded bg-green-600 text-white hover:bg-green-700 transition-colors duration-200";
+        }
+        return "flex items-center gap-1 px-3 py-1 text-md rounded bg-primary text-white hover:bg-primary/90";
+    };
+
+    const getCancelButtonClasses = () => {
+        if (isDarkMode) {
+            return "flex items-center gap-1 px-3 py-1 text-md rounded bg-slate-600 text-white hover:bg-slate-700 transition-colors duration-200";
+        }
+        return "flex items-center gap-1 px-3 py-1 text-md rounded bg-gray-200 text-primary hover:bg-gray-300";
+    };
+
+    const getErrorTextClasses = () => {
+        return isDarkMode ? "text-red-400 text-md mt-1" : "text-red-600 text-md mt-1";
+    };
+
     const DropdownHeader = useCallback(({ label, panelKey }: { label: string; panelKey: string }) => (
         <div
-            className="flex justify-between items-center bg-white cursor-pointer rounded-md border-l-6 border-1 border-primary p-2 hover:bg-primary/10 transition-colors"
+            className={getDropdownHeaderClasses() + `${isDarkMode ? " !text-slate-500" : " text-primary/70"}`}
             onClick={() => togglePanel(panelKey)}
         >
-            <span className="text-primary/80 font-semibold">{label}</span>
+            <span className={getDropdownHeaderTextClasses()}>{label}</span>
             {openPanels[panelKey] ?
-                <FaChevronUp className="text-primary" /> :
-                <FaChevronDown className="text-primary" />
+                <FaChevronUp className={getDropdownHeaderIconClasses()} /> :
+                <FaChevronDown className={getDropdownHeaderIconClasses()} />
             }
         </div>
-    ), [openPanels, togglePanel]);
+    ), [openPanels, togglePanel, isDarkMode]);
 
     const updateNestedData = useCallback((path: string[], newValue: any) => {
         if (!onChange) return;
 
-        const updatedValue = JSON.parse(JSON.stringify(value)); // Deep clone
+        const updatedValue = JSON.parse(JSON.stringify(value));
         let current = updatedValue;
 
-        // Navigate to the parent of the target property
         for (let i = 0; i < path.length - 1; i++) {
             if (current[path[i]] === undefined) {
                 current[path[i]] = {};
@@ -144,7 +254,6 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
             current = current[path[i]];
         }
 
-        // Set the final value
         current[path[path.length - 1]] = newValue;
         onChange(updatedValue);
     }, [value, onChange]);
@@ -152,16 +261,14 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
     const deleteNestedProperty = useCallback((path: string[]) => {
         if (!onChange) return;
 
-        const updatedValue = JSON.parse(JSON.stringify(value)); // Deep clone
+        const updatedValue = JSON.parse(JSON.stringify(value));
         let current = updatedValue;
 
-        // Navigate to the parent of the target property
         for (let i = 0; i < path.length - 1; i++) {
-            if (current[path[i]] === undefined) return; // Path doesn't exist
+            if (current[path[i]] === undefined) return;
             current = current[path[i]];
         }
 
-        // Delete the final property
         delete current[path[path.length - 1]];
         onChange(updatedValue);
     }, [value, onChange]);
@@ -177,19 +284,17 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
         onUpdate: (newValue: string) => void;
         onDelete: () => void;
     }) => (
-        <div className="flex flex-col gap-2 mb-3 p-2 bg-gray-50 rounded-md">
+        <div className={getFieldEditorContainerClasses()}>
             <div className="flex items-center justify-between w-full">
-                <span className="text-xs text-gray-600 font-medium">{label}:</span>
+                <span className={getFieldEditorLabelClasses()}>{label}:</span>
                 <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => navigator.clipboard.writeText(String(fieldValue))}
-                        className="text-xs cursor-pointer text-primary/70 px-2 py-1 rounded transition-colors"
-                    >
-                        <Copy className="w-4 h-4" />
-                    </button>
+                    <CopyToClipboard
+                        text={String(fieldValue)}
+                        isDarkMode={isDarkMode}
+                    />
                     <button
                         onClick={onDelete}
-                        className="text-xs cursor-pointer text-primary/70 px-2 py-1 rounded transition-colors"
+                        className={getFieldEditorButtonClasses()}
                     >
                         <Trash2 className="w-4 h-4" />
                     </button>
@@ -199,67 +304,76 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
             <TextInputWithClearButton
                 id={label}
                 value={String(fieldValue)}
-                onChangeHandler={(e) => onUpdate(e.target.value)}
+                onChangeHandler={(e: any) => onUpdate(e.target.value)}
                 placeholder={label}
-                className="w-full px-3 py-2 border border-primary/20 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className={getTextInputClasses()}
+                isDarkMode={isDarkMode}
             />
         </div>
-    ), []);
+    ), [isDarkMode]);
 
     const processedData = useMemo(() => {
-        if (!value) return null;
-
+        if (!value) return null;        
         return {
-            hasNavigation: value.action === "navigate",
-            hasContext: value.context,
-            hasSelectors: value?.data?.selectors?.length > 0,
-            hasAttributes: Object.keys(value?.data?.attributes || {}).length > 0,
-            hasCoordinates: value?.data?.coordinates && Object.keys(value.data.coordinates).length > 0,
-            hasImage: value?.data?.image,
-            hasText: value?.data?.text || value?.text,
-            hasTimeStamp: value?.data?.timeStamp,
-            hasPageIndex: value?.pageIndex !== undefined,
-            hasIndexStep: value?.indexStep !== undefined,
-            hasTypeToAssert: value?.typeAssert !== undefined,
-            hasValueToAssert: value?.valueToAssert !== undefined,
+            hasNavigation: value.action === "navigate" || value.stepData?.action === "navigate",
+            hasContext: value.context || value.stepData?.context,
+            hasSelectors: value?.data?.selectors?.length > 0 || value?.stepData?.data?.selectors?.length > 0,
+            hasAttributes: Object.keys(value?.data?.attributes || value?.stepData?.data?.attributes || {}).length > 0,
+            hasCoordinates: (value?.data?.coordinates && Object.keys(value.data.coordinates).length > 0) || 
+                          (value?.stepData?.data?.coordinates && Object.keys(value.stepData.data.coordinates).length > 0),
+            hasImage: value?.data?.image || value?.stepData?.data?.image,
+            hasText: value?.data?.text || value?.text || value?.stepData?.data?.text || value?.stepData?.text,
+            hasTimeStamp: value?.data?.timeStamp || value?.stepData?.data?.timeStamp,
+            hasPageIndex: value?.pageIndex !== undefined || value?.stepData?.pageIndex !== undefined,
+            hasIndexStep: value?.indexStep !== undefined || value?.stepData?.indexStep !== undefined,
+            hasTypeToAssert: value?.typeAssert !== undefined || value?.stepData?.typeAssert !== undefined,
+            hasValueToAssert: value?.valueToAssert !== undefined || value?.stepData?.valueToAssert !== undefined,
         };
     }, [value]);
 
     if (!value || !processedData) {
-        return <div className="text-gray-500 text-center p-4">No data available</div>;
-    }
+        const noDataClasses = isDarkMode 
+            ? "text-slate-300 text-center p-4 bg-slate-800/50 border border-slate-600 rounded-lg" 
+            : "text-gray-500 text-center p-4";
+        return <div className={noDataClasses}>No data available</div>;
+    };
+
+    const containerClasses = isDarkMode 
+        ? "rounded-lg shadow-lg bg-slate-800/90 border border-slate-600 overflow-hidden px-2" 
+        : "rounded-lg shadow-lg bg-white overflow-hidden px-2";
+
+    const actualData = value.stepData || value;
 
     return (
-        <div className="rounded-lg shadow-lg bg-white overflow-hidden px-2">
+        <div className={containerClasses}>
             <DropdownHeader label="Show Options" panelKey="showOptions" />
 
             {openPanels.showOptions && (
                 <div className="p-1 flex flex-col gap-2 mt-2">
                     {processedData.hasNavigation && (
-                        <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <div className={getPanelContainerClasses()}>
                             <DropdownHeader label="Navigate Data" panelKey="navigateData" />
                             {openPanels.navigateData && (
-                                <div className="p-4 space-y-3">
-                                    {Object.entries(value.data)
+                                <div className={`p-4 ${isDarkMode ? "text-slate-300" : "text-gray-700"}`}>
+                                    {Object.entries(actualData.data)
                                         .filter(([key]) => key !== "pageSize")
                                         .map(([key, val]) => (
                                             <FieldEditor
                                                 key={key}
                                                 label={key}
                                                 fieldValue={val}
-                                                onUpdate={(newValue) => updateNestedData(['data', key], newValue)}
-                                                onDelete={() => deleteNestedProperty(['data', key])}
+                                                onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'data', key] : ['data', key], newValue)}
+                                                onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'data', key] : ['data', key])}
                                             />
                                         ))}
 
-                                    {/* Page Size - Fixed path */}
-                                    {value.data.pageSize && Object.entries(value.data.pageSize).map(([key, val]) => (
+                                    {actualData.data.pageSize && Object.entries(actualData.data.pageSize).map(([key, val]) => (
                                         <FieldEditor
                                             key={`pageSize-${key}`}
                                             label={`Page Size - ${key}`}
                                             fieldValue={val}
-                                            onUpdate={(newValue) => updateNestedData(['data', 'pageSize', key], newValue)}
-                                            onDelete={() => deleteNestedProperty(['data', 'pageSize', key])}
+                                            onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'data', 'pageSize', key] : ['data', 'pageSize', key], newValue)}
+                                            onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'data', 'pageSize', key] : ['data', 'pageSize', key])}
                                         />
                                     ))}
                                 </div>
@@ -268,30 +382,29 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
                     )}
 
                     {processedData.hasContext && (
-                        <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <div className={getPanelContainerClasses()}>
                             <DropdownHeader label="Context" panelKey="context" />
                             {openPanels.context && (
                                 <div className="p-4 space-y-3">
-                                    {Object.entries(value.context.data)
+                                    {Object.entries(actualData.context.data)
                                         .filter(([key]) => key !== "window")
                                         .map(([key, val]) => (
                                             <FieldEditor
                                                 key={key}
                                                 label={key}
                                                 fieldValue={val}
-                                                onUpdate={(newValue) => updateNestedData(['context', 'data', key], newValue)}
-                                                onDelete={() => deleteNestedProperty(['context', 'data', key])}
+                                                onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'context', 'data', key] : ['context', 'data', key], newValue)}
+                                                onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'context', 'data', key] : ['context', 'data', key])}
                                             />
                                         ))}
 
-                                    {/* Window data */}
-                                    {value.context.data.window && Object.entries(value.context.data.window).map(([key, val]) => (
+                                    {actualData.context.data.window && Object.entries(actualData.context.data.window).map(([key, val]) => (
                                         <FieldEditor
                                             key={`window-${key}`}
                                             label={`Window - ${key}`}
                                             fieldValue={val}
-                                            onUpdate={(newValue) => updateNestedData(['context', 'data', 'window', key], newValue)}
-                                            onDelete={() => deleteNestedProperty(['context', 'data', 'window', key])}
+                                            onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'context', 'data', 'window', key] : ['context', 'data', 'window', key], newValue)}
+                                            onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'context', 'data', 'window', key] : ['context', 'data', 'window', key])}
                                         />
                                     ))}
                                 </div>
@@ -300,23 +413,25 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
                     )}
 
                     {processedData.hasSelectors && (
-                        <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <div className={getPanelContainerClasses()}>
                             <DropdownHeader label="Selectors" panelKey="selectors" />
                             {openPanels.selectors && (
                                 <div className="p-4 space-y-3">
-                                    {value.data.selectors.map((selector: any, idx: number) => (
+                                    {actualData.data.selectors.map((selector: any, idx: number) => (
                                         <FieldEditor
                                             key={idx}
                                             label={selector.type}
                                             fieldValue={selector.locator}
                                             onUpdate={(newValue) => {
-                                                const updatedSelectors = [...value.data.selectors];
+                                                const path = value.stepData ? ['stepData', 'data', 'selectors'] : ['data', 'selectors'];
+                                                const updatedSelectors = [...actualData.data.selectors];
                                                 updatedSelectors[idx] = { ...updatedSelectors[idx], locator: newValue };
-                                                updateNestedData(['data', 'selectors'], updatedSelectors);
+                                                updateNestedData(path, updatedSelectors);
                                             }}
                                             onDelete={() => {
-                                                const updatedSelectors = value.data.selectors.filter((_: any, index: number) => index !== idx);
-                                                updateNestedData(['data', 'selectors'], updatedSelectors);
+                                                const path = value.stepData ? ['stepData', 'data', 'selectors'] : ['data', 'selectors'];
+                                                const updatedSelectors = actualData.data.selectors.filter((_: any, index: number) => index !== idx);
+                                                updateNestedData(path, updatedSelectors);
                                             }}
                                         />
                                     ))}
@@ -324,19 +439,19 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
                             )}
                         </div>
                     )}
-
+                    
                     {processedData.hasAttributes && (
-                        <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <div className={getPanelContainerClasses()}>
                             <DropdownHeader label="Attributes" panelKey="attributes" />
                             {openPanels.attributes && (
                                 <div className="p-4 space-y-3">
-                                    {Object.entries(value.data.attributes).map(([key, val]) => (
+                                    {Object.entries(actualData.data.attributes).map(([key, val]) => (
                                         <FieldEditor
                                             key={key}
                                             label={key}
                                             fieldValue={val}
-                                            onUpdate={(newValue) => updateNestedData(['data', 'attributes', key], newValue)}
-                                            onDelete={() => deleteNestedProperty(['data', 'attributes', key])}
+                                            onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'data', 'attributes', key] : ['data', 'attributes', key], newValue)}
+                                            onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'data', 'attributes', key] : ['data', 'attributes', key])}
                                         />
                                     ))}
                                 </div>
@@ -345,17 +460,17 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
                     )}
 
                     {processedData.hasCoordinates && (
-                        <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <div className={getPanelContainerClasses()}>
                             <DropdownHeader label="Coordinates" panelKey="coordinates" />
                             {openPanels.coordinates && (
                                 <div className="p-4 space-y-3">
-                                    {Object.entries(value.data.coordinates).map(([key, val]) => (
+                                    {Object.entries(actualData.data.coordinates).map(([key, val]) => (
                                         <FieldEditor
                                             key={key}
                                             label={key}
                                             fieldValue={val}
-                                            onUpdate={(newValue) => updateNestedData(['data', 'coordinates', key], newValue)}
-                                            onDelete={() => deleteNestedProperty(['data', 'coordinates', key])}
+                                            onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'data', 'coordinates', key] : ['data', 'coordinates', key], newValue)}
+                                            onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'data', 'coordinates', key] : ['data', 'coordinates', key])}
                                         />
                                     ))}
                                 </div>
@@ -364,54 +479,57 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
                     )}
 
                     {processedData.hasImage && (
-                        <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <div className={getPanelContainerClasses()}>
                             <DropdownHeader label="Image" panelKey="image" />
                             {openPanels.image && (
-                                <DisplayImageWithFetch src={value.data.image} alt="Interaction Image" />
+                                <DisplayImageWithFetch 
+                                    src={actualData.data.image} 
+                                    alt="Interaction Image" 
+                                    isDarkMode={isDarkMode}
+                                />
                             )}
                         </div>
                     )}
 
                     {processedData.hasTypeToAssert && (
-                        <div className="border border-gray-200 rounded-lg p-4">
+                        <div className={`${getPanelContainerClasses()} p-4`}>
                             <FieldEditor
                                 label="Type to Assert"
-                                fieldValue={value?.typeAssert}
-                                onUpdate={(newValue) => updateNestedData(['typeAssert'], newValue)}
-                                onDelete={() => deleteNestedProperty(['typeAssert'])}
+                                fieldValue={actualData?.typeAssert}
+                                onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'typeAssert'] : ['typeAssert'], newValue)}
+                                onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'typeAssert'] : ['typeAssert'])}
                             />
                         </div>
                     )}
 
                     {processedData.hasValueToAssert && (
-                        <div className="border border-gray-200 rounded-lg p-4">
+                        <div className={`${getPanelContainerClasses()} p-4`}>
                             <FieldEditor
                                 label="Value to Assert"
-                                fieldValue={value?.valueToAssert}
-                                onUpdate={(newValue) => updateNestedData(['valueToAssert'], newValue)}
-                                onDelete={() => deleteNestedProperty(['valueToAssert'])}
+                                fieldValue={actualData?.valueToAssert}
+                                onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'valueToAssert'] : ['valueToAssert'], newValue)}
+                                onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'valueToAssert'] : ['valueToAssert'])}
                             />
                         </div>
                     )}
 
                     {processedData.hasText && (
-                        <div className="border border-gray-200 rounded-lg p-4">
+                        <div className={`${getPanelContainerClasses()} p-4`}>
                             <FieldEditor
                                 label="Text"
-                                fieldValue={value.data?.text || value.text}
+                                fieldValue={actualData.data?.text || actualData.text}
                                 onUpdate={(newValue) => {
-                                    // Check if text is in data or root level
-                                    if (value.data?.text !== undefined) {
-                                        updateNestedData(['data', 'text'], newValue);
+                                    if (actualData.data?.text !== undefined) {
+                                        updateNestedData(value.stepData ? ['stepData', 'data', 'text'] : ['data', 'text'], newValue);
                                     } else {
-                                        updateNestedData(['text'], newValue);
+                                        updateNestedData(value.stepData ? ['stepData', 'text'] : ['text'], newValue);
                                     }
                                 }}
                                 onDelete={() => {
-                                    if (value.data?.text !== undefined) {
-                                        deleteNestedProperty(['data', 'text']);
+                                    if (actualData.data?.text !== undefined) {
+                                        deleteNestedProperty(value.stepData ? ['stepData', 'data', 'text'] : ['data', 'text']);
                                     } else {
-                                        deleteNestedProperty(['text']);
+                                        deleteNestedProperty(value.stepData ? ['stepData', 'text'] : ['text']);
                                     }
                                 }}
                             />
@@ -419,38 +537,38 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
                     )}
 
                     {processedData.hasTimeStamp && (
-                        <div className="border border-gray-200 rounded-lg p-4">
+                        <div className={`${getPanelContainerClasses()} p-4`}>
                             <FieldEditor
                                 label="Timestamp"
-                                fieldValue={value?.data?.timeStamp}
-                                onUpdate={(newValue) => updateNestedData(['data', 'timeStamp'], newValue)}
-                                onDelete={() => deleteNestedProperty(['data', 'timeStamp'])}
+                                fieldValue={actualData?.data?.timeStamp}
+                                onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'data', 'timeStamp'] : ['data', 'timeStamp'], newValue)}
+                                onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'data', 'timeStamp'] : ['data', 'timeStamp'])}
                             />
                         </div>
                     )}
 
                     {processedData.hasPageIndex && (
-                        <div className="border border-gray-200 rounded-lg p-4">
+                        <div className={`${getPanelContainerClasses()} p-4`}>
                             <FieldEditor
                                 label="Page Index"
-                                fieldValue={value?.pageIndex}
-                                onUpdate={(newValue) => updateNestedData(['pageIndex'], newValue)}
-                                onDelete={() => deleteNestedProperty(['pageIndex'])}
+                                fieldValue={actualData?.pageIndex}
+                                onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'pageIndex'] : ['pageIndex'], newValue)}
+                                onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'pageIndex'] : ['pageIndex'])}
                             />
                         </div>
                     )}
 
-                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div className={getPanelContainerClasses()}>
                         <DropdownHeader label="JSON Preview" panelKey="jsonPreview" />
                         {openPanels.jsonPreview && (
                             <div className="pt-2">
                                 {!editingJson ? (
                                     <>
-                                        <pre className="bg-primary/20 text-primary p-2 rounded-md overflow-auto text-xs font-mono max-h-64">
+                                        <pre className={getJSONPreviewClasses()}>
                                             <code>{jsonValue}</code>
                                         </pre>
                                         <button
-                                            className="flex items-center gap-1 mt-2 px-3 py-1 rounded bg-primary/10 text-primary text-md hover:bg-primary/20"
+                                            className={getEditButtonClasses()}
                                             onClick={() => setEditingJson(true)}
                                         >
                                             <FaEdit className="w-4 h-4"/> Edit JSON
@@ -459,24 +577,24 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
                                 ) : (
                                     <>
                                         <textarea
-                                            className="focus:outline-none focus:ring-0 focus:border-primary w-full p-3 rounded-md bg-primary/20 border border-primary/20 font-mono text-xs text-primary min-h-[180px] max-h-64"
+                                            className={getTextareaClasses()}
                                             value={jsonValue}
                                             onChange={e => setJsonValue(e.target.value)}
                                             autoFocus
                                             spellCheck={false}
                                         />
                                         {jsonError && (
-                                            <div className="text-red-600 text-md mt-1">{jsonError}</div>
+                                            <div className={getErrorTextClasses()}>{jsonError}</div>
                                         )}
                                         <div className="flex gap-2 mt-2">
                                             <button
-                                                className="flex items-center gap-1 px-3 py-1 text-md rounded bg-primary text-white hover:bg-primary/90"
+                                                className={getSaveButtonClasses()}
                                                 onClick={handleSave}
                                             >
                                                 <Save className="w-4 h-4"/> Save
                                             </button>
                                             <button
-                                                className="flex items-center gap-1 px-3 py-1 text-md rounded bg-gray-200 text-primary hover:bg-gray-300"
+                                                className={getCancelButtonClasses()}
                                                 onClick={() => {
                                                     setJsonValue(JSON.stringify(value, null, 2));
                                                     setEditingJson(false);
@@ -498,1005 +616,231 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
 };
 
 
+const ReusableStepsBlock = ({
+    data,
+    isDarkMode = false,
+    onUpdate,
+    onDelete,
+    test,
+    setTestCasesData,
+    setResponseTest
+}: {
+    data: InteractionItemData;
+    isDarkMode?: boolean;
+    onUpdate?: (updatedData: InteractionItemData) => void;
+    onDelete?: () => void;
+    test?: any;
+    setTestCasesData?: React.Dispatch<React.SetStateAction<any[]>>;
+    setResponseTest?: React.Dispatch<React.SetStateAction<any>>;
+}) => {
+    const getReusableContainerClasses = () => isDarkMode
+        ? "relative flex flex-col gap-3 py-4 px-3 text-slate-300 rounded-lg border-2 border-dashed border-amber-500/60 bg-gradient-to-r from-amber-900/20 to-orange-900/20 shadow-lg backdrop-blur-sm"
+        : "relative max-h-[480px] overflow-y-auto flex flex-col gap-3 py-4 px-3 text-gray-700 rounded-lg border-2 border-dashed border-amber-400 bg-gradient-to-r from-amber-50 to-orange-50 shadow-lg";
 
+    const getReusableHeaderClasses = () => isDarkMode
+        ? "absolute top-0 left-0 bg-gradient-to-r from-amber-600 to-orange-600 text-white px-4 py-2 text-sm font-bold rounded-tl-lg rounded-br-full shadow-lg border border-amber-500/50"
+        : "absolute top-0 left-0 bg-gradient-to-r from-primary/90 to-primary/70 text-white px-4 py-2 text-sm font-bold rounded-tl-lg rounded-br-full shadow-lg";
 
-// const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange }) => {
-//     const [openPanels, setOpenPanels] = useState<PanelState>({});
-//     const [editingJson, setEditingJson] = useState(false);
-//     const [jsonValue, setJsonValue] = useState(JSON.stringify(value, null, 2));
-//     const [jsonError, setJsonError] = useState<string | null>(null);
+    const getReusableStepClasses = () => isDarkMode
+        ? "ml-4 pl-4 border-l-2 border-slate-500/50 bg-slate-800/30 rounded-r-lg p-2"
+        : "ml-4 pl-4 border-l-2 border-amber-300 bg-white/60 rounded-r-lg p-2";
 
-//     useEffect(() => {
-//         if (!editingJson) setJsonValue(JSON.stringify(value, null, 2));
-//     }, [value, editingJson]);
+    const updateReusableStepsData = (newStepsData: any[]) => {
+        if (onUpdate) {
+            const updatedData = { 
+                ...data, 
+                stepsData: newStepsData.map((step, index) => ({
+                    ...step,
+                    indexStep: index + 1
+                }))
+            };
+            onUpdate(updatedData);
+        }
+    };
 
-//     function handleSave() {
-//         try {
-//             const parsed = JSON.parse(jsonValue);
-//             setJsonError(null);
-//             setEditingJson(false);
-//             onChange?.(parsed); // Propaga el nuevo objeto hacia arriba
-//         } catch (err: any) {
-//             setJsonError("Invalid JSON: " + err.message);
-//         }
-//     }
-//     const togglePanel = useCallback((name: string) => {
-//         setOpenPanels(prev => ({
-//             ...prev,
-//             [name]: !prev[name]
-//         }));
-//     }, []);
+    const handleStepInsertion = (insertIndex: number, newStep: any) => {
+        const currentSteps = data.stepsData || [];
+        const newStepsData = [...currentSteps];
+        newStepsData.splice(insertIndex + 1, 0, {
+            ...newStep,
+            id: `${Date.now()}-${Math.random()}`,
+            indexStep: insertIndex + 2
+        });
+        
+        const reindexedSteps = newStepsData.map((step, index) => ({
+            ...step,
+            indexStep: index + 1
+        }));
+        
+        updateReusableStepsData(reindexedSteps);
+    };
 
-//     const DropdownHeader = useCallback(({ label, panelKey }: { label: string; panelKey: string }) => (
-//         <div
-//             className="flex justify-between items-center bg-white cursor-pointer rounded-md border-l-6 border-primary p-2 hover:bg-primary/10 transition-colors"
-//             onClick={() => togglePanel(panelKey)}
-//         >
-//             <span className="text-primary/80 font-semibold">{label}</span>
-//             {openPanels[panelKey] ?
-//                 <FaChevronUp className="text-primary" /> :
-//                 <FaChevronDown className="text-primary" />
-//             }
-//         </div>
-//     ), [openPanels, togglePanel]);
+    const customSetTestCasesData = React.useCallback((updateFunction: any) => {
+        if (typeof updateFunction === 'function') {
+            const mockTestCasesArray = [{
+                ...test,
+                stepsData: data.stepsData || []
+            }];
+            
+            const updatedArray = updateFunction(mockTestCasesArray);
+            
+            if (updatedArray && updatedArray[0] && updatedArray[0].stepsData) {
+                updateReusableStepsData(updatedArray[0].stepsData);
+            }
+        } else if (Array.isArray(updateFunction)) {
+            if (updateFunction.length > 0 && updateFunction[0].stepsData) {
+                updateReusableStepsData(updateFunction[0].stepsData);
+            }
+        }
+    }, [data.stepsData, test, onUpdate]);
 
-//     const updateNestedData = useCallback((path: string[], newValue: any) => {
-//         if (!onChange) return;
+    const customSetResponseTest = React.useCallback((updateFunction: any) => {
+        if (typeof updateFunction === 'function') {
+            const mockResponse = {
+                stepsData: data.stepsData || []
+            };
+            
+            const updatedResponse = updateFunction(mockResponse);
+            
+            if (updatedResponse && updatedResponse.stepsData) {
+                updateReusableStepsData(updatedResponse.stepsData);
+            }
+        }
+    }, [data.stepsData, onUpdate]);
 
-//         const updatedValue = { ...value };
-//         let current = updatedValue;
-
-//         for (let i = 0; i < path.length - 1; i++) {
-//             current[path[i]] = { ...current[path[i]] };
-//             current = current[path[i]];
-//         }
-
-//         current[path[path.length - 1]] = newValue;
-//         onChange(updatedValue);
-//     }, [value, onChange]);
-
-//     const deleteNestedProperty = useCallback((path: string[]) => {
-//         if (!onChange) return;
-
-//         const updatedValue = { ...value };
-//         let current = updatedValue;
-
-//         for (let i = 0; i < path.length - 1; i++) {
-//             current[path[i]] = { ...current[path[i]] };
-//             current = current[path[i]];
-//         }
-
-//         delete current[path[path.length - 1]];
-//         onChange(updatedValue);
-//     }, [value, onChange]);
-
-//     const FieldEditor = useCallback(({
-//         label,
-//         fieldValue,
-//         onUpdate,
-//         onDelete
-//     }: {
-//         label: string;
-//         fieldValue: any;
-//         onUpdate: (newValue: string) => void;
-//         onDelete: () => void;
-//     }) => (
-//         <div className="flex flex-col gap-2 mb-3 p-2 bg-gray-50 rounded-md">
-//             <div className="flex items-center justify-between w-full">
-//                 <span className="text-xs text-gray-600 font-medium">{label}:</span>
-//                 <div className="flex items-center gap-2">
-//                     <button
-//                         onClick={() => navigator.clipboard.writeText(String(fieldValue))}
-//                         className="text-xs cursor-pointer text-primary/70 px-2 py-1 rounded transition-colors"
-//                     >
-//                         <Copy className="w-4 h-4" />
-//                     </button>
-//                     <button
-//                         onClick={onDelete}
-//                         className="text-xs cursor-pointer  text-primary/70 px-2 py-1 rounded transition-colors"
-//                     >
-//                         <Trash2 className="w-4 h-4" />
-//                     </button>
-//                 </div>
-//             </div>
-
-//             <TextInputWithClearButton
-//                 id={label}
-//                 value={String(fieldValue)}
-//                 onChangeHandler={(e) => onUpdate(e.target.value)}
-//                 placeholder={label}
-//                 className="w-full px-3 py-2 border border-primary/20 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-
-//             />
-//         </div>
-//     ), []);
-
-//     const processedData = useMemo(() => {
-//         if (!value) return null;
-
-//         return {
-//             hasNavigation: value.action === "navigate",
-//             hasContext: value.context,
-//             hasSelectors: value?.data?.selectors?.length > 0,
-//             hasAttributes: Object.keys(value?.data?.attributes || {}).length > 0,
-//             hasCoordinates: value?.data?.coordinates && Object.keys(value.data.coordinates).length > 0,
-//             hasImage: value?.data?.image,
-//             hasText: value?.data?.text || value?.text,
-//             hasTimeStamp: value?.data?.timeStamp,
-//             hasPageIndex: value?.pageIndex !== undefined,
-//             hasIndexStep: value?.indexStep !== undefined,
-//             hasTypeToAssert: value?.typeAssert !== undefined,
-//             hasValueToAssert: value?.valueToAssert !== undefined,
-
-//         };
-//     }, [value]);
-
-//     if (!value || !processedData) {
-//         return <div className="text-gray-500 text-center p-4">No data available</div>;
-//     }
-
-//     return (
-//         <div className="rounded-lg shadow-lg bg-white overflow-hidden">
-//             <DropdownHeader label="Show Options" panelKey="showOptions" />
-
-//             {openPanels.showOptions && (
-//                 <div className="p-1 space-y-4">
-//                     {processedData.hasNavigation && (
-//                         <div className="border border-gray-200 rounded-lg overflow-hidden">
-//                             <DropdownHeader label="Navigate Data" panelKey="navigateData" />
-//                             {openPanels.navigateData && (
-//                                 <div className="p-4 space-y-3">
-//                                     {Object.entries(value.data)
-//                                         .filter(([key]) => key !== "pageSize")
-//                                         .map(([key, val]) => (
-//                                             <FieldEditor
-//                                                 key={key}
-//                                                 label={key}
-//                                                 fieldValue={val}
-//                                                 onUpdate={(newValue) => updateNestedData(['data', key], newValue)}
-//                                                 onDelete={() => deleteNestedProperty(['data', key])}
-//                                             />
-//                                         ))}
-
-//                                     {/* Page Size */}
-//                                     {value.data.pageSize && Object.entries(value.data.pageSize).map(([key, val]) => (
-//                                         <FieldEditor
-//                                             key={`pageSize-${key}`}
-//                                             label={`Page Size - ${key}`}
-//                                             fieldValue={val}
-//                                             onUpdate={(newValue) => updateNestedData(['context', 'data', 'window', key], newValue)}
-//                                             onDelete={() => deleteNestedProperty(['context', 'data', 'window', key])}
-//                                         />
-//                                     ))}
-//                                 </div>
-//                             )}
-//                         </div>
-//                     )}
-
-//                     {processedData.hasContext && (
-//                         <div className="border border-gray-200 rounded-lg overflow-hidden">
-//                             <DropdownHeader label="Context" panelKey="context" />
-//                             {openPanels.context && (
-//                                 <div className="p-4 space-y-3">
-//                                     {Object.entries(value.context.data)
-//                                         .filter(([key]) => key !== "window")
-//                                         .map(([key, val]) => (
-//                                             <FieldEditor
-//                                                 key={key}
-//                                                 label={key}
-//                                                 fieldValue={val}
-//                                                 onUpdate={(newValue) => updateNestedData(['context', key], newValue)}
-//                                                 onDelete={() => deleteNestedProperty(['context', key])}
-//                                             />
-//                                         ))}
-
-//                                     {/* Window data */}
-//                                     {value.context.data.window && Object.entries(value.context.data.window).map(([key, val]) => (
-//                                         <FieldEditor
-//                                             key={`window-${key}`}
-//                                             label={`Window - ${key}`}
-//                                             fieldValue={val}
-//                                             onUpdate={(newValue) => updateNestedData(['context', 'data', 'window', key], newValue)}
-//                                             onDelete={() => deleteNestedProperty(['context', 'data', 'window', key])}
-//                                         />
-//                                     ))}
-//                                 </div>
-//                             )}
-//                         </div>
-//                     )}
-
-//                     {processedData.hasSelectors && (
-//                         <div className="border border-gray-200 rounded-lg overflow-hidden">
-//                             <DropdownHeader label="Selectors" panelKey="selectors" />
-//                             {openPanels.selectors && (
-//                                 <div className="p-4 space-y-3">
-//                                     {value.data.selectors.map((selector: any, idx: number) => (
-//                                         <FieldEditor
-//                                             key={idx}
-//                                             label={selector.type}
-//                                             fieldValue={selector.locator}
-//                                             onUpdate={(newValue) => {
-//                                                 const updatedSelectors = [...value.data.selectors];
-//                                                 updatedSelectors[idx].locator = newValue;
-//                                                 updateNestedData(['data', 'selectors'], updatedSelectors);
-//                                             }}
-//                                             onDelete={() => {
-//                                                 const updatedSelectors = value.data.selectors.filter((_: any, index: number) => index !== idx);
-//                                                 updateNestedData(['data', 'selectors'], updatedSelectors);
-//                                             }}
-//                                         />
-//                                     ))}
-//                                 </div>
-//                             )}
-//                         </div>
-//                     )}
-
-//                     {processedData.hasAttributes && (
-//                         <div className="border border-gray-200 rounded-lg overflow-hidden">
-//                             <DropdownHeader label="Attributes" panelKey="attributes" />
-//                             {openPanels.attributes && (
-//                                 <div className="p-4 space-y-3">
-//                                     {Object.entries(value.data.attributes).map(([key, val]) => (
-//                                         <FieldEditor
-//                                             key={key}
-//                                             label={key}
-//                                             fieldValue={val}
-//                                             onUpdate={(newValue) => updateNestedData(['data', 'attributes', key], newValue)}
-//                                             onDelete={() => deleteNestedProperty(['data', 'attributes', key])}
-//                                         />
-//                                     ))}
-//                                 </div>
-//                             )}
-//                         </div>
-//                     )}
-
-//                     {processedData.hasCoordinates && (
-//                         <div className="border border-gray-200 rounded-lg overflow-hidden">
-//                             <DropdownHeader label="Coordinates" panelKey="coordinates" />
-//                             {openPanels.coordinates && (
-//                                 <div className="p-4 space-y-3">
-//                                     {Object.entries(value.data.coordinates).map(([key, val]) => (
-//                                         <FieldEditor
-//                                             key={key}
-//                                             label={key}
-//                                             fieldValue={val}
-//                                             onUpdate={(newValue) => updateNestedData(['data', 'coordinates', key], newValue)}
-//                                             onDelete={() => deleteNestedProperty(['data', 'coordinates', key])}
-//                                         />
-//                                     ))}
-//                                 </div>
-//                             )}
-//                         </div>
-//                     )}
-
-//                     {processedData.hasImage && (
-//                         <div className="border border-gray-200 rounded-lg overflow-hidden">
-//                             <DropdownHeader label="Image" panelKey="image" />
-//                             {openPanels.image && (
-//                                 <DisplayImageWithFetch src={value.data.image} alt="Interaction Image" />
-//                             )}
-
-//                         </div>
-//                     )}
-
-//                     {processedData.hasTypeToAssert && (
-//                         <div className="border border-gray-200 rounded-lg p-4">
-//                             <FieldEditor
-//                                 label="Type to Assert"
-//                                 fieldValue={value?.typeAssert}
-//                                 onUpdate={(newValue) => updateNestedData(['typeAssert'], newValue)}
-//                                 onDelete={() => deleteNestedProperty(['typeAssert'])}
-//                             />
-//                         </div>
-//                     )}
-
-//                     {processedData.hasValueToAssert && (
-//                         <div className="border border-gray-200 rounded-lg p-4">
-//                             <FieldEditor
-//                                 label="Value to Assert"
-//                                 fieldValue={value?.valueToAssert}
-//                                 onUpdate={(newValue) => updateNestedData(['valueToAssert'], newValue)}
-//                                 onDelete={() => deleteNestedProperty(['valueToAssert'])}
-//                             />
-//                         </div>
-//                     )}
-
-//                     {processedData.hasText && (
-//                         <div className="border border-gray-200 rounded-lg p-4">
-//                             <FieldEditor
-//                                 label="Text"
-//                                 fieldValue={value.data.text || value.text}
-//                                 onUpdate={(newValue) => updateNestedData(['data', 'text'], newValue)}
-//                                 onDelete={() => deleteNestedProperty(['data', 'text'])}
-//                             />
-//                         </div>
-//                     )}
-
-//                     {processedData.hasTimeStamp && (
-//                         <div className="border border-gray-200 rounded-lg p-4">
-//                             <FieldEditor
-//                                 label="Timestamp"
-//                                 fieldValue={value?.data?.timeStamp}
-//                                 onUpdate={(newValue) => updateNestedData(['timestamp'], newValue)}
-//                                 onDelete={() => deleteNestedProperty(['timestamp'])}
-//                             />
-//                         </div>
-//                     )}
-
-//                     {processedData.hasPageIndex && (
-//                         <div className="border border-gray-200 rounded-lg p-4">
-//                             <FieldEditor
-//                                 label="Page Index"
-//                                 fieldValue={value?.pageIndex}
-//                                 onUpdate={(newValue) => updateNestedData(['data', 'pageIndex'], newValue)}
-//                                 onDelete={() => deleteNestedProperty(['data', 'pageIndex'])}
-//                             />
-//                         </div>
-//                     )}
-//                     <div className="border border-gray-200 rounded-lg overflow-hidden">
-//                         <DropdownHeader label="JSON Preview" panelKey="jsonPreview" />
-//                         {/* {openPanels.jsonPreview && (
-//                             <div className="p-4">
-//                                 <pre className="bg-primary/20 text-primary p-4 rounded-md overflow-auto text-xs font-mono max-h-64">
-//                                     <code>{JSON.stringify(value, null, 2)}</code>
-//                                 </pre>
-//                             </div>
-//                         )} */}
-
-//                         {openPanels.jsonPreview && (
-//                             <div className="pt-2">
-//                                 {!editingJson ? (
-//                                     <>
-//                                         <pre className="bg-primary/20 text-primary p-2 rounded-md overflow-auto text-xs font-mono max-h-64">
-//                                             <code>{jsonValue}</code>
-//                                         </pre>
-//                                         <button
-//                                             className="flex items-center gap-1 mt-2 px-3 py-1 rounded bg-primary/10 text-primary text-md hover:bg-primary/20"
-//                                             onClick={() => setEditingJson(true)}
-//                                         >
-//                                             <FaEdit className="w-4 h-4"/> Edit JSON
-//                                         </button>
-//                                     </>
-//                                 ) : (
-//                                     <>
-//                                         <textarea
-//                                             className="focus:outline-none focus:ring-0 focus:border-primary w-full p-3 rounded-md bg-primary/20 border border-primary/20 font-mono text-xs text-primary min-h-[180px] max-h-64"
-//                                             value={jsonValue}
-//                                             onChange={e => setJsonValue(e.target.value)}
-//                                             autoFocus
-//                                             spellCheck={false}
-//                                         />
-//                                         {jsonError && (
-//                                             <div className="text-red-600 text-md mt-1">{jsonError}</div>
-//                                         )}
-//                                         <div className="flex gap-2 mt-2">
-//                                             <button
-//                                                 className="flex items-center gap-1 px-3 py-1 text-md rounded bg-primary text-white hover:bg-primary/90"
-//                                                 onClick={handleSave}
-//                                             >
-//                                                 <Save className="w-4 h-4"/> Save
-//                                             </button>
-//                                             <button
-//                                                 className="flex items-center gap-1 px-3 py-1 text-md rounded bg-gray-200 text-primary hover:bg-gray-300"
-//                                                 onClick={() => {
-//                                                     setJsonValue(JSON.stringify(value, null, 2));
-//                                                     setEditingJson(false);
-//                                                     setJsonError(null);
-//                                                 }}
-//                                             >
-//                                                <FaXmark className="w-4 h-4"/> Cancel
-//                                             </button>
-//                                         </div>
-//                                     </>
-//                                 )}
-//                             </div>
-//                         )}
-//                     </div>
-//                 </div>
-//             )}
-//         </div>
-//     );
-// };
-
-const InteractionItem = ({ data, index, onDelete, onUpdate }: InteractionItemProps) => {
-    console.log("Rendering InteractionItem:", data, index);
-    
     return (
-        <div key={data.id} data-index={index} className="flex flex-col gap-4">
-            <div className="relative flex flex-col gap-2 py-2 px-1 text-primary rounded-md border-l-4 border-1 border-primary shadow-lg transition-all duration-300">
-                <div className="flex justify-center items-center w-full">
-                    <div className="flex flex-col">
-                        <p className="font-semibold text-center">{data.action}</p>
-                        <p className="font-normal text-center">{data?.data?.text || data?.data?.attributes?.name || data?.data?.attributes?.placeholder || data?.data?.attributes?.["aria-label"]}</p>
-                    </div>
-                    <div className="absolute top-0 left-0 bg-primary text-white px-3 py-1 text-sm font-semibold rounded-tl-xl rounded-br-full shadow-md">
-                        {data.indexStep}
-                    </div>
+        <div className={getReusableContainerClasses()}>
+            
+            
+            <div className={getReusableHeaderClasses()}>🔄 REUSABLE: {data.name || 'Unnamed Step'}</div>
+            
+            
 
-                    <div className="absolute top-0 right-0 flex gap-2">
-                        {onDelete && (
-                            <DeleteButton onClick={() => onDelete(index)} />
-                        )}
-                        <CopyToClipboard text={JSON.stringify(data)} />
-                    </div>
+            <div className="mt-6">
+                <div className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-gray-600'} mb-3`}>
+                    <p><strong>Description:</strong> {data.description || 'No description'}</p>
+                    <p><strong>Type:</strong> {data.type}</p>
+                    <p><strong>Steps Count:</strong> {data.stepsData?.length || 0}</p>
                 </div>
 
-                <JSONBox value={data} onChange={(newData) => {
-                    onUpdate?.(index, newData);
-                }} />
-                {data?.hasOwnProperty('pageIndex') ? (
-                 <span className="text-xs text-primary/80">Page index: {data.pageIndex}</span>
-                ) : null}
+                <div className="space-y-3">
+                    {/* <StepActions
+                        index={-1}
+                        steps={data.stepsData || []}
+                        test={test || {}}
+                        setTestCasesData={customSetTestCasesData}
+                        setResponseTest={customSetResponseTest}
+                    /> */}
+
+                    {data.stepsData?.map((step: any, idx: number) => (
+                        <div key={step.id || idx} className={getReusableStepClasses()}>
+
+                            <InteractionItem
+                                data={step}
+                                index={idx}
+                                isDarkMode={isDarkMode}
+                                onUpdate={(stepIndex, updatedStep) => {
+                                    const newStepsData = [...(data.stepsData || [])];
+                                    newStepsData[stepIndex] = updatedStep;
+                                    updateReusableStepsData(newStepsData);
+                                }}
+                                onDelete={() => {
+                                    const newStepsData = (data.stepsData || []).filter((_, i) => i !== idx);
+                                    updateReusableStepsData(newStepsData);
+                                }}
+                                test={test}
+                                setTestCasesData={customSetTestCasesData}
+                                setResponseTest={customSetResponseTest}
+                            />
+
+                            {/* <StepActions
+                                index={idx}
+                                steps={data.stepsData || []}
+                                test={test || {}}
+                                setTestCasesData={customSetTestCasesData}
+                                setResponseTest={customSetResponseTest}
+                            /> */}
+                        </div>
+                    ))}
+                </div>
+
+                <div className={`absolute top-2 right-2 flex gap-2 items-center ${isDarkMode ? 'text-slate-300' : 'text-gray-700'}`}>
+                    {onDelete && <DeleteButton onClick={onDelete} isDarkMode={isDarkMode} />}
+                    <CopyToClipboard text={JSON.stringify(data)} isDarkMode={isDarkMode}/>
+                </div>
             </div>
         </div>
     );
 };
 
+const InteractionItem = ({ data, index, onDelete, onUpdate, isDarkMode = false, ...rest }: InteractionItemProps) => {
+    const isReusableStep = data.type?.startsWith('STEPS') && Array.isArray(data.stepsData);
+
+    if (isReusableStep) {
+        return (
+            <ReusableStepsBlock
+                data={data}
+                isDarkMode={isDarkMode}
+                // onUpdate={(updatedData) => onUpdate?.(index, updatedData)}
+                // onDelete={() => onDelete?.(index)}
+                {...rest}
+            />
+        );
+    }
+
+    const actualStepData = data.stepData || data;
+
+    const getMainContainerClasses = () => isDarkMode
+        ? "relative flex flex-col gap-2 py-2 px-1 text-slate-400 rounded-md border-l-4 border-slate-500 bg-slate-800/90 shadow-lg transition-all duration-300 hover:bg-slate-800"
+        : "relative flex flex-col gap-2 py-2 px-1 text-primary rounded-md border-l-4 border-1 border-primary shadow-lg transition-all duration-300";
+
+    const getStepNumberClasses = () => isDarkMode
+        ? "absolute top-0 left-0 bg-slate-600 text-white px-3 py-1 text-sm font-semibold rounded-tl-xl rounded-br-full shadow-md"
+        : "absolute top-0 left-0 bg-primary text-white px-3 py-1 text-sm font-semibold rounded-tl-xl rounded-br-full shadow-md";
+
+    const getPageIndexClasses = () => isDarkMode ? "text-xs text-white/60" : "text-xs text-primary/80";
+
+    console.log("InteractionItem data:", data.pageIndex);
+    
+    return (
+        <div key={actualStepData.id || data.id} data-index={index} className="flex flex-col gap-4">
+            <div className={getMainContainerClasses()}>
+                <div className="flex justify-center items-center w-full">
+                    <div className={`flex flex-col ${isDarkMode ? 'text-slate-300' : 'text-gray-700'} gap-1`}>
+                        <p className="font-semibold text-center">{actualStepData.action}</p>
+                        <p className="font-normal text-center">
+                            {actualStepData?.data?.text || 
+                             actualStepData?.data?.attributes?.name || 
+                             actualStepData?.data?.attributes?.placeholder || 
+                             actualStepData?.data?.attributes?.["aria-label"] ||
+                             data.name}
+                        </p>
+                    </div>
+                    <div className={getStepNumberClasses()}>{actualStepData.indexStep || data.indexStep}</div>
+
+                    <div className={`absolute top-0 right-0 flex gap-2 items-center ${isDarkMode ? 'text-slate-300' : 'text-gray-700'}`}>
+                        {onDelete && <DeleteButton onClick={() => onDelete(index)} isDarkMode={isDarkMode}/>}
+                        <CopyToClipboard text={JSON.stringify(data)} isDarkMode={isDarkMode}/>
+                    </div>
+                </div>
+
+                <JSONBox
+                    key={JSON.stringify(data)}
+                    value={data}
+                    onChange={(newData) => {
+                        const updatedData = JSON.parse(JSON.stringify(newData));
+                        onUpdate?.(index, updatedData);
+                    }}
+                    isDarkMode={isDarkMode}
+                />
+                {(actualStepData?.hasOwnProperty('pageIndex') || data?.hasOwnProperty('pageIndex')) && (
+                    <span className={getPageIndexClasses()}>
+                        Page index: {data?.pageIndex}
+                    </span>
+                )}
+            </div>
+        </div>
+    );
+};
 
 export default InteractionItem;
-
-// const [isSelectorsExpanded, setIsSelectorsExpanded] = useState(false);
-// const [isAttributesExpanded, setIsAttributesExpanded] = useState(false);
-// const [isContextExpanded, setIsContextExpanded] = useState(false);
-// const [isContextGeneralExpanded, setIsContextGeneralExpanded] = useState(false);
-// const [isCoordinatesExpanded, setIsCoordinatesExpanded] = useState(false);
-// const [isConditionalAssertExpanded, setIsConditionalAssertExpanded] = useState(false);
-// const [isSelectorConditionalAssertExpanded, setIsSelectorConditionalAssertExpanded] = useState(false);
-// const [isAttributesConditionalAssertExpanded, setIsAttributesConditionalAssertExpanded] = useState(false);
-// const [selectors, setSelectors] = useState<any>();
-// const [attributes, setAttributes] = useState<any>();
-// const [context, setContext] = useState<any>();
-// const [contextGeneral, setContextGeneral] = useState<any>();
-// const [updatedData, setUpdatedData] = useState<any>();
-// const [coordinates, setCoordinates] = useState<any>();
-// const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-// const [remainingFields, setRemainingFields] = useState<any>({});
-// const [conditionalAssert, setConditionalAssert] = useState<any>();
-// const [expandedOperations, setExpandedOperations] = useState<{ [key: number]: boolean }>({});
-
-// useEffect(() => {
-
-//     if (Object?.keys(value?.data).includes("selectors")) {
-//         setSelectors(value?.data?.selectors);
-//     }
-//     if (Object?.keys(value?.data).includes("attributes")) {
-//         setAttributes(value?.data?.attributes);
-//     }
-//     if (Object?.keys(value).includes("context")) {
-//         setContext(value?.context);
-//     }
-//     if (value?.action === "navigate") {
-//         setContextGeneral(value.data);
-//     }
-//     if (value.action === "assert" && Object.keys(value).includes("conditionalElement")) {
-//         setConditionalAssert(value?.conditionalElement);
-//     }
-
-//     const updatedData = {
-//         ...value,
-//         context: undefined,
-//         action: undefined,
-//         data: {
-//             ...value?.data,
-//             selectors: undefined,
-//             attributes: undefined,
-//         }
-//     };
-
-//     const flattenedData = {
-//         ...updatedData,
-//         ...updatedData?.data,
-//     };
-
-//     const remainingFields = {
-//         ...flattenedData,
-//         ...flattenedData.data,
-//     };
-
-//     delete remainingFields.data;
-//     delete remainingFields.indexStep;
-//     delete remainingFields.action;
-//     delete remainingFields.selectors;
-//     delete remainingFields.attributes;
-//     delete remainingFields.coordinates;
-//     delete remainingFields.context;
-//     delete remainingFields.conditionalElement;
-//     setRemainingFields(remainingFields);
-
-//     delete flattenedData?.data;
-//     delete flattenedData?.indexStep;
-//     if (value.action === "navigate") {
-//         setUpdatedData(undefined)
-//     } else {
-//         setUpdatedData(flattenedData)
-
-//     }
-//     if (flattenedData?.coordinates && Object.keys(flattenedData?.coordinates)?.length > 0) {
-//         setCoordinates(flattenedData?.coordinates);
-//     }
-
-// }, [value]);
-// const toggleOperationExpand = (idx: number) => {
-//     setExpandedOperations((prev) => ({
-//         ...prev,
-//         [idx]: !prev[idx],
-//     }));
-// };
-
-// const toggleSelectorsExpand = () => setIsSelectorsExpanded(!isSelectorsExpanded);
-// const toggleAttributesExpand = () => setIsAttributesExpanded(!isAttributesExpanded);
-// const toggleContextExpand = () => setIsContextExpanded(!isContextExpanded);
-// const toggleContextGeneralExpand = () => setIsContextGeneralExpanded(!isContextGeneralExpanded);
-// const toggleCoordinatesExpand = () => setIsCoordinatesExpanded(!isCoordinatesExpanded);
-
-// const toggleConditionalAssertExpand = () => setIsConditionalAssertExpanded(!isConditionalAssertExpanded);
-// const toggleSelectorsConditionalAssertExpand = () => setIsSelectorConditionalAssertExpanded(!isSelectorConditionalAssertExpanded);
-// const toggleAttributesConditionalAssertExpand = () => setIsAttributesConditionalAssertExpanded(!isAttributesConditionalAssertExpanded);
-
-
-// const renderSelectors = (selectors: any[], onChange?: (updated: any[]) => void) => {
-//     const moveSelector = (fromIdx: number, toIdx: number) => {
-//         if (toIdx < 0 || toIdx >= selectors.length) return;
-//         const updated = [...selectors];
-//         const [movedItem] = updated.splice(fromIdx, 1);
-//         updated.splice(toIdx, 0, movedItem);
-//         onChange?.(updated);
-//     };
-
-//     return selectors?.map((selector, idx) => {
-//         const handleChange = (newValue: string) => {
-//             const updated = [...selectors];
-//             updated[idx] = { ...selector, locator: newValue };
-//             onChange?.(updated);
-//         };
-
-//         return (
-//             <div key={idx} className="py-2 px-3 rounded-b-md bg-white">
-//                 <div className="py-2 px-3 rounded-md flex flex-col w-full items-center gap-2">
-//                     <div className="w-full flex justify-between items-center">
-//                         <span className="text-xs text-primary/80">{selector?.type}</span>
-
-//                         <div className="flex items-center gap-2">
-//                             <button
-//                                 className="text-xs px-2 py-1 border rounded"
-//                                 disabled={idx === 0}
-//                                 onClick={() => moveSelector(idx, idx - 1)}
-//                                 title="Mover arriba"
-//                             >
-//                                 <ArrowUp className="h-4 w-4" />
-//                             </button>
-//                             <button
-//                                 className="text-xs px-2 py-1 border rounded"
-//                                 disabled={idx === selectors.length - 1}
-//                                 onClick={() => moveSelector(idx, idx + 1)}
-//                                 title="Mover abajo"
-//                             >
-//                                 <ArrowDown className="h-4 w-4" />
-//                             </button>
-
-//                             <DeleteButton
-//                                 onClick={() => {
-//                                     const updated = selectors.filter((_, index) => index !== idx);
-//                                     onChange?.(updated);
-//                                 }}
-//                             />
-//                             <CopyToClipboard text={selector?.locator !== null && selector?.locator !== undefined ? String(selector?.locator) : ""} />
-//                         </div>
-//                     </div>
-
-//                     <TextInputWithClearButton
-//                         id={selector?.locator}
-//                         value={selector?.locator}
-//                         onChangeHandler={(e) => handleChange(e.target.value)}
-//                         placeholder="locator"
-//                     />
-//                 </div>
-//             </div>
-//         );
-//     });
-// };
-
-// const renderAttributes = (attributes: any, isOptionExpanded: boolean,
-//     onChange?: (updated: any) => void
-// ) => {
-//     console.log("attributes in renderAttributes:", attributes);
-
-//     if (!attributes || Object.keys(attributes)?.length === 0) {
-//         return null;
-//     }
-//     return Object.entries(attributes).map(([key, value], idx) => {
-//         if (value === undefined) return null;
-
-//         const handleChange = (newValue: any) => {
-//             const updated = { ...attributes, [key]: newValue };
-//             onChange?.(updated);
-//         };
-
-//         if (typeof value === "string" && value.startsWith("data:image")) {
-//             console.log("Rendering image for key:", key, "with value:", value);
-
-//             return (
-//                 <div key={idx} className="py-2 px-3  rounded-b-md text-primary/80">
-//                     <div className="w-full py-2 px-3  rounded-md flex flex-col items-center gap-2">
-//                         <span className="self-start">Image</span>
-//                         <Image src={value} alt={key} width={500} height={500} className="max-h-32 w-auto" />
-//                     </div>
-//                 </div>
-//             );
-//         }
-
-//         return (
-//             <div key={idx} className="py-2 px-3  rounded-b-md">
-//                 <div className="w-full py-2 px-3 rounded-md flex flex-col items-center gap-2">
-//                     <div className="w-full flex justify-between items-center">
-//                         <div className="w-full text-xs text-primary/60">{key}</div>
-//                         <CopyToClipboard text={value !== null && value !== undefined ? String(value) : ""} />
-
-//                     </div>
-//                     {typeof value === "string" || typeof value === "number" ? (
-//                         <TextInputWithClearButton
-//                             id={String(value)}
-//                             value={String(value)}
-//                             onChangeHandler={(e) => handleChange(e?.target?.value)}
-//                             placeholder={String(value)}
-//                         />
-//                     ) : typeof value === "boolean" ? (
-//                         <select
-//                             className="bg-transparent border border-primary/60 rounded text-xs text-primary/40 px-2 py-1"
-//                             value={value ? "true" : "false"}
-//                             onChange={(e) => handleChange(e?.target?.value === "true")}
-//                         >
-//                             <option value="true">true</option>
-//                             <option value="false">false</option>
-//                         </select>
-//                     ) : (
-//                         <pre className="text-primary/80 whitespace-pre-wrap break-words text-xs max-w-full overflow-auto">
-//                             <code>{JSON.stringify(value, null, 2)}</code>
-//                         </pre>
-//                     )}
-//                 </div>
-//                 {isOptionExpanded && typeof value === "object" && value !== null && !Array.isArray(value) && (
-//                     <div className="pl-4">
-//                         {renderAttributes(value, true, (childUpdated) => {
-//                             const updated = { ...attributes, [key]: childUpdated };
-//                             onChange?.(updated);
-//                         })}
-//                     </div>
-//                 )}
-//             </div>
-//         );
-//     });
-
-// }
-
-
-
-// const toggleDropdown = () => {
-//     setIsDropdownOpen(!isDropdownOpen);
-// };
-
-
-// return (
-//     <div className="mb-2 bg-white flex flex-col gap-2">
-//         <button
-//             onClick={toggleDropdown}
-//             className="border-l-4 shadow-md border-primary flex w-full items-center p-2 text-primary justify-between font-semibold rounded-md gap-2 "
-//         >
-//             <span>Show details</span>
-//             {isDropdownOpen ? (
-//                 <FaChevronUp className="text-white" />
-//             ) : (
-//                 <FaChevronDown className="text-white" />
-//             )}
-//         </button>
-
-//         {isDropdownOpen && (
-//             <>
-//                 {selectors && selectors.length > 0 && (
-//                     <>
-//                         <div
-//                             onClick={toggleSelectorsExpand}
-//                             className={`py-2 px-4 flex justify-between shadow-md items-center text-primary cursor-pointer rounded-md transition-all duration-300 ${isSelectorsExpanded ? "rounded-b-none border-l-4 border-primary" : "rounded-md"}`}
-//                         >
-//                             <span className="font-medium">Selectors</span>
-//                             <span>{isSelectorsExpanded ? <FaChevronUp /> : <FaChevronDown />}</span>
-//                         </div>
-//                         {isSelectorsExpanded && (
-//                             <div className="pt-4">
-//                                 {renderSelectors(selectors, (updated) => {
-//                                     setSelectors(updated);
-//                                     const updatedValue = {
-//                                         ...value,
-//                                         data: {
-//                                             ...(value.data || {}),
-//                                             selectors: updated,
-//                                         },
-//                                     };
-//                                     onChange?.(updatedValue);
-//                                 })}
-//                             </div>
-//                         )}
-//                     </>
-//                 )}
-
-//                 {attributes && Object.keys(attributes)?.length > 0 && (
-//                     <>
-//                         <div
-//                             onClick={toggleAttributesExpand}
-//                             className={`py-2 px-4 flex justify-between items-center shadow-md text-primary cursor-pointer rounded-md transition-all duration-300 ${isAttributesExpanded ? "rounded-b-none border-l-4 border-primary" : "rounded-md"}`}
-//                         >
-//                             <span className="font-medium">Attributes</span>
-//                             <span>{isAttributesExpanded ? <FaChevronUp /> : <FaChevronDown />}</span>
-//                         </div>
-//                         {isAttributesExpanded && (
-//                             <div className="pt-4">
-//                                 {renderAttributes(attributes, isAttributesExpanded, (updated) => {
-//                                     setAttributes(updated);
-//                                     onChange?.({
-//                                         ...value,
-//                                         data: {
-//                                             ...(value?.data || {}),
-//                                             attributes: updated,
-//                                         },
-//                                     });
-//                                 })}
-//                             </div>
-//                         )}
-//                     </>
-//                 )}
-
-//                 {context && Object.keys(context).length > 0 && (
-//                     <>
-//                         <div
-//                             onClick={toggleContextExpand}
-//                             className={`py-2 px-4 flex justify-between shadow-md items-center text-primary cursor-pointer rounded-md transition-all duration-300 ${isContextExpanded ? "rounded-b-none border-l-4 border-primary" : "rounded-md"
-//                                 }`}
-//                         >
-//                             <span className="font-medium">Context</span>
-//                             <span>{isContextExpanded ? <FaChevronUp /> : <FaChevronDown />}</span>
-//                         </div>
-
-//                         {isContextExpanded && (
-//                             <div className="pt-4">
-//                                 {renderAttributes(context, true, (updated) => {
-//                                     setContext(updated);
-//                                     onChange?.({ ...value, context: updated });
-//                                 })}
-//                             </div>
-//                         )}
-//                     </>
-//                 )}
-
-//                 {contextGeneral && Object.keys(contextGeneral).length > 0 && (
-//                     <>
-//                         <div
-//                             onClick={toggleContextGeneralExpand}
-//                             className={`py-2 px-4 flex justify-between shadow-md items-center text-primary cursor-pointer rounded-md transition-all duration-300 ${isContextGeneralExpanded ? "rounded-b-none border-l-4 border-primary" : "rounded-md"
-//                                 }`}
-//                         >
-//                             <span className="font-medium">Context General</span>
-//                             <span>{isContextGeneralExpanded ? <FaChevronUp /> : <FaChevronDown />}</span>
-//                         </div>
-
-//                         {isContextGeneralExpanded && (
-//                             <div className="pt-4">
-//                                 {renderAttributes(contextGeneral, true, (updated) => {
-//                                     setContextGeneral(updated);
-//                                     onChange?.({ ...value, data: updated });
-//                                 })}
-//                             </div>
-//                         )}
-//                     </>
-//                 )}
-
-//                 {coordinates && Object.keys(coordinates)?.length > 0 && (
-//                     <>
-//                         <div
-//                             onClick={toggleCoordinatesExpand}
-//                             className={`py-2 px-4 flex justify-between shadow-md items-center text-primary cursor-pointer rounded-md transition-all duration-300 ${isCoordinatesExpanded ? "rounded-b-none border-l-4 border-primary" : "rounded-md"
-//                                 }`}
-//                         >
-//                             <span className="font-medium">Coordinates</span>
-//                             <span>{isCoordinatesExpanded ? <FaChevronUp /> : <FaChevronDown />}</span>
-//                         </div>
-
-//                         {isCoordinatesExpanded && (
-//                             <div className="pt-4">
-//                                 {renderAttributes(coordinates, true, (updated) => {
-//                                     setCoordinates(updated);
-//                                     onChange?.({
-//                                         ...value,
-//                                         data: {
-//                                             ...(value.data || {}),
-//                                             coordinates: updated
-//                                         }
-//                                     });
-
-//                                 })}
-//                             </div>
-//                         )}
-//                     </>
-//                 )}
-
-//                 {conditionalAssert ? (() => {
-//                     return (
-//                         <>
-//                             <div
-//                                 onClick={toggleConditionalAssertExpand}
-//                                 className={`py-2 px-4 flex justify-between shadow-md items-center text-primary cursor-pointer rounded-md transition-all duration-300 ${isConditionalAssertExpanded ? "rounded-b-none border-l-4 border-primary" : "rounded-md"
-//                                     }`}
-//                             >
-//                                 <span className="font-medium">Conditional Assert</span>
-//                                 <span>{isDropdownOpen ? <FaChevronUp /> : <FaChevronDown />}</span>
-//                             </div>
-
-//                             {isConditionalAssertExpanded && (
-//                                 <div className="pt-2">
-//                                     {conditionalAssert.operationsPlan && conditionalAssert.operationsPlan.length > 0 && (
-//                                         <div className="pt-2">
-//                                             {conditionalAssert.operationsPlan.map((op: any, idx: number) => (
-//                                                 <div key={idx} className="flex flex-col gap-4 p-2 shadow-md">
-//                                                     <div
-//                                                         onClick={() => toggleOperationExpand(idx)}
-//                                                         className={`py-2 px-4 flex justify-between shadow-md items-center text-primary cursor-pointer rounded-md transition-all duration-300 ${expandedOperations[idx] ? "rounded-b-none border-l-4 border-primary" : "rounded-md"
-//                                                             }`}
-//                                                     >
-//                                                         <span className="font-medium">{op.operationType}</span>
-//                                                         <span>{expandedOperations[idx] ? <FaChevronUp /> : <FaChevronDown />}</span>
-//                                                     </div>
-
-//                                                     {expandedOperations[idx] && (
-//                                                         <div className="pt-4">
-
-//                                                             <div className="flex flex-col gap-2">
-//                                                                 {op?.id && (<span className="text-primary/80">id: {op?.id}</span>)}
-//                                                                 <span className="text-primary/70">Operation Type: {op.operationType}</span>
-//                                                             </div>
-
-//                                                             {op?.element?.selectors && op?.element?.selectors?.length > 0 && (
-//                                                                 <>
-//                                                                     <div
-//                                                                         onClick={toggleSelectorsConditionalAssertExpand}
-//                                                                         className={`py-2 px-4 flex justify-between shadow-md items-center text-primary cursor-pointer rounded-md transition-all duration-300 ${isSelectorConditionalAssertExpanded ? "rounded-b-none border-l-4 border-primary" : "rounded-md"}`}
-//                                                                     >
-//                                                                         <span className="font-medium">Selectors</span>
-//                                                                         <span>{isSelectorConditionalAssertExpanded ? <FaChevronUp /> : <FaChevronDown />}</span>
-//                                                                     </div>
-//                                                                     {isSelectorConditionalAssertExpanded && (
-//                                                                         <>
-//                                                                             {renderSelectors(op?.element?.selectors, (updated) => {
-//                                                                                 const updatedConditionalAssert = {
-//                                                                                     ...conditionalAssert,
-//                                                                                     operationsPlan: conditionalAssert.operationsPlan.map((item: any, index: number) =>
-//                                                                                         index === idx ? { ...item, element: { ...item.element, selectors: updated } } : item
-//                                                                                     ),
-//                                                                                 };
-//                                                                                 setConditionalAssert(updatedConditionalAssert);
-//                                                                                 onChange?.({ ...value, conditionalElement: updatedConditionalAssert });
-//                                                                             }
-//                                                                             )}
-
-//                                                                         </>
-//                                                                     )}
-
-//                                                                 </>
-
-//                                                             )}
-
-//                                                             {op?.element?.attributes && Object.keys(op?.element?.attributes)?.length > 0 && (
-//                                                                 <>
-//                                                                     <div
-//                                                                         onClick={toggleAttributesConditionalAssertExpand}
-//                                                                         className={`py-2 px-4 flex justify-between shadow-md items-center text-primary cursor-pointer rounded-md transition-all duration-300 ${isAttributesConditionalAssertExpanded ? "rounded-b-none border-l-4 border-primary" : "rounded-md"}`}
-//                                                                     >
-//                                                                         <span className="font-medium">Attributes</span>
-//                                                                         <span>{isAttributesConditionalAssertExpanded ? <FaChevronUp /> : <FaChevronDown />}</span>
-//                                                                     </div>
-//                                                                     {isAttributesConditionalAssertExpanded && (
-//                                                                         <div className="pt-4">
-//                                                                             {renderAttributes(op?.element?.attributes, true, (updated) => {
-//                                                                                 const updatedConditionalAssert = {
-//                                                                                     ...conditionalAssert,
-//                                                                                     operationsPlan: conditionalAssert.operationsPlan.map((item: any, index: number) =>
-//                                                                                         index === idx ? { ...item, element: { ...item.element, attributes: updated } } : item
-//                                                                                     ),
-//                                                                                 };
-//                                                                                 setConditionalAssert(updatedConditionalAssert);
-//                                                                                 onChange?.({ ...value, conditionalElement: updatedConditionalAssert });
-//                                                                             }
-//                                                                             )}
-
-//                                                                         </div>
-//                                                                     )}
-//                                                                 </>
-//                                                             )}
-
-//                                                             {op?.element?.coordinates && Object.keys(op?.element?.coordinates)?.length > 0 && (
-//                                                                 <div className="pt-4">
-//                                                                     {renderAttributes(op?.element?.coordinates, true, (updated) => {
-//                                                                         const updatedConditionalAssert = {
-//                                                                             ...conditionalAssert,
-//                                                                             operationsPlan: conditionalAssert.operationsPlan.map((item: any, index: number) =>
-//                                                                                 index === idx ? { ...item, element: { ...item.element, coordinates: updated } } : item
-//                                                                             ),
-//                                                                         };
-//                                                                         setConditionalAssert(updatedConditionalAssert);
-//                                                                         onChange?.({ ...value, conditionalElement: updatedConditionalAssert });
-//                                                                     })}
-//                                                                 </div>
-//                                                             )}
-//                                                             {op.regex != "" && (
-//                                                                 <div className="pt-4">
-//                                                                     <TextInputWithClearButton
-//                                                                         id={op?.regex}
-//                                                                         label="Regex"
-//                                                                         value={op?.regex}
-//                                                                         onChangeHandler={(e) => {
-//                                                                             const updatedConditionalAssert = {
-//                                                                                 ...conditionalAssert,
-//                                                                                 operationsPlan: conditionalAssert.operationsPlan.map((item: any, index: number) =>
-//                                                                                     index === idx ? { ...item, regex: e.target.value } : item
-//                                                                                 ),
-//                                                                             };
-//                                                                             setConditionalAssert(updatedConditionalAssert);
-//                                                                             onChange?.({ ...value, conditionalElement: updatedConditionalAssert });
-//                                                                         }}
-//                                                                         placeholder="regex"
-//                                                                     />
-//                                                                 </div>
-//                                                             )}
-//                                                             {op?.element?.image && (
-//                                                                 <div className="pt-4 flex flex-col gap-2">
-//                                                                     <span className="text-primary/70">Image</span>
-//                                                                     <Image
-//                                                                         src={op.element.image}
-//                                                                         alt={`image ${op.id}`}
-//                                                                         height={40}
-//                                                                         width={100}
-//                                                                         className="object-contain w-auto h-[100px]"
-//                                                                     />
-//                                                                 </div>
-//                                                             )}
-//                                                         </div>
-//                                                     )}
-
-//                                                 </div>
-//                                             ))}
-//                                         </div>
-//                                     )}
-//                                 </div>
-//                             )}
-//                         </>
-//                     );
-//                 })() : null}
-
-
-//                 {Object.keys(remainingFields).length > 0 && (
-//                     <div className="pt-4">
-//                         {renderAttributes(remainingFields, true, (updated) => {
-//                             const cleanedData = { ...(value.data || {}) };
-
-//                             for (const key of Object.keys(updated)) {
-//                                 if (key in cleanedData) {
-//                                     delete cleanedData[key];
-//                                 }
-//                             }
-
-//                             const updatedValue = {
-//                                 ...value,
-//                                 ...updated,
-//                                 data: cleanedData,
-//                             };
-
-//                             onChange?.(updatedValue);
-//                         })}
-
-//                     </div>
-//                 )}
-//             </>
-//         )
-//         }
-//     </div>
-// );
-
-
