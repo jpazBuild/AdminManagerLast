@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { DashboardHeader } from "../Layouts/main";
 import { URL_API_ALB, URL_API_RUNNER } from "@/config";
 import { toast } from "sonner";
-import { FaCircleXmark, FaRegCircleXmark } from "react-icons/fa6";
+import { FaRegCircleXmark } from "react-icons/fa6";
 
 type PostmanCollection = { id: string; name: string; uid: string };
 type PostmanEnvironment = { id: string; name: string; uid: string };
@@ -62,7 +62,7 @@ const ApiFlowBuilder = () => {
 
     useEffect(() => {
         const fetchPostmanElements = async () => {
-            const response = await axios.get(`${URL_API_ALB}/getPostmanElements`)
+            const response = await axios.get(`${URL_API_ALB}getPostmanElements`)
             setAllTeams(response?.data.teams as PostmanTeam[])
         };
         fetchPostmanElements();
@@ -101,7 +101,7 @@ const ApiFlowBuilder = () => {
 
     const fetchEnvironment = async (teamId: number, envUid: string, name: string) => {
         try {
-            const { data } = await axios.post(`${URL_API_ALB}/getPostmanEnvironment`, {
+            const { data } = await axios.post(`${URL_API_ALB}getPostmanEnvironment`, {
                 teamId, environmentUid: envUid,
             });
             setSelectedEnv({ name, ...data })
@@ -334,7 +334,7 @@ const ApiFlowBuilder = () => {
                                                                                 key={c.id}
                                                                                 className="cursor-pointer flex items-center gap-2 text-xs hover:bg-primary/10 rounded p-1 pl-2"
                                                                                 onClick={async () => {
-                                                                                    const { data } = await axios.post(`${URL_API_ALB}/getPostmanCollection`,
+                                                                                    const { data } = await axios.post(`${URL_API_ALB}getPostmanCollection`,
                                                                                         { teamId: team.teamId, collectionUid: c.uid });
                                                                                     if (data?.item) {
                                                                                         setCollections((prev) => [...prev, { ...data }]);

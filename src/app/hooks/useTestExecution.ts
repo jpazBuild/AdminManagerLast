@@ -1,3 +1,170 @@
+    // const runTestCase = useCallback((testCase: any) => {
+    //     console.log("🔍 Ejecutando test:", testCase);
+
+    //     const testId = String(testCase.id);
+
+    //     if (invalidTests[testId]) return;
+    //     if (!URL_API_RUNNER) {
+    //         logger("❌ URL_API_RUNNER is undefined. Cannot create WebSocket.");
+    //         setError("WebSocket URL is not configured.");
+    //         return;
+    //     }
+    //     console.log("🔗 Conectando al WebSocket:", URL_API_RUNNER);
+
+    //     const socket = new WebSocket(URL_API_RUNNER);
+    //     const totalSteps = testCase?.stepsData?.length + 2;
+
+    //     console.log("📊 Total steps for test:", totalSteps);
+
+    //     setActiveTests(prev => prev + 1);
+    //     setIdReports(prev => [...prev, testId]);
+    //     setStepsCountMap(prev => ({ ...prev, [testId]: totalSteps }));
+
+    //     socket.onopen = () => {
+    //         const rawData = testData.data?.[testId];
+    //         // if (!rawData) {
+    //         //     if (!invalidTests[testId]) {
+    //         //         logger(`❌ No test data found for testCaseId ${testId}`);
+    //         //         toast.error(`Missing test data for test ${testId}`);
+    //         //         setInvalidTests(prev => ({ ...prev, [testId]: true }));
+    //         //         setError(`Missing test data for test ${testId}`);
+    //         //     }
+    //         //     socket.close();
+    //         //     setActiveTests(prev => prev - 1);
+    //         //     return;
+    //         // }
+
+    //         const sanitizedTestData = sanitizeTestData(rawData);
+    //         const sanitizedSteps = sanitizeSteps(testCase.stepsData || []);
+    //         const getValidUrlSite = (data: Record<string, any>): string | null => {
+    //             for (const [key, value] of Object.entries(data)) {
+    //                 if (
+    //                     key?.startsWith("urlSite") &&
+    //                     typeof value === "string" &&
+    //                     /^https?:\/\//.test(value)
+    //                 ) {
+    //                     return value;
+    //                 }
+    //             }
+    //             return null;
+    //         };
+
+    //         const resolvedUrl = getValidUrlSite(sanitizedTestData);
+
+    //          const payload = {
+    //             action: "executeTest",
+    //             testCaseId: testId,
+    //             isHeadless,
+    //             testCaseName: testCase.testCaseName,
+    //             totalSteps,
+    //             testData: sanitizedTestData,
+    //             dataScenario: {
+    //                 contextGeneral: {
+    //                     ...testCase.contextGeneral,
+    //                     data: {
+    //                         ...testCase.contextGeneral.data,
+    //                         url: resolvedUrl,
+    //                     },
+    //                 },
+    //                 jsonSteps: sanitizedSteps,
+    //             },
+    //         };
+
+
+    //         console.log("📤 Enviando payload al WebSocket:", payload);
+    //         if (!resolvedUrl) {
+    //             if (!invalidTests[testId]) {
+    //                 logger(`❌ Missing or invalid URL in test data for testCaseId ${testId}`);
+    //                 toast.error(`Missing or invalid URL in test data for test ${testId}`);
+    //                 setInvalidTests(prev => ({ ...prev, [testId]: true }));
+    //                 setError(`Invalid URL in test ${testId}`);
+    //             }
+    //             socket.close();
+    //             setActiveTests(prev => prev - 1);
+    //             return;
+    //         }
+
+
+
+
+    //         const payloadStr = JSON.stringify(payload);
+    //         if (payloadStr.length > 1000000) {
+    //             logger("🚫 Payload demasiado grande, cancelando envío:", payloadStr.length);
+    //             setError(`Payload too large for test ${testId}, skipping.`);
+    //             setActiveTests(prev => prev - 1);
+    //             socket.close();
+    //             return;
+    //         }
+
+    //         socket.send(payloadStr);
+    //     };
+
+    //     socket.onmessage = (event) => {
+    //         try {
+    //             const message = JSON.parse(event.data);
+    //             console.log("📬 Mensaje recibido:", message);
+
+    //             const { response, routeKey, connectionId, testCaseId } = message;
+    //             const id = String(testCaseId);
+    //             if (stopped[id]) return;
+    //             if (connectionId) {
+    //                 setConnectionMap(prev => ({ ...prev, [id]: connectionId }));
+    //             }
+
+    //             if (response?.indexStep !== undefined) {
+    //                 const stepData = response;
+    //                 setReports(prev => {
+    //                     const idx = prev.findIndex(r => r.testCaseId === id);
+    //                     const existingData = idx >= 0 ? prev[idx].data || [] : [];
+    //                     const existingStepIndex = existingData.findIndex((d: any) => d.indexStep === stepData.indexStep);
+    //                     const updatedSteps = [...existingData];
+    //                     if (existingStepIndex >= 0) updatedSteps[existingStepIndex] = stepData;
+    //                     else updatedSteps.push(stepData);
+    //                     updateProgress(id, updatedSteps.length);
+    //                     const updatedReport = { testCaseId: id, connectionId, data: updatedSteps, socket };
+    //                     const updated = [...prev];
+    //                     if (idx >= 0) updated[idx] = updatedReport;
+    //                     else updated.push(updatedReport);
+    //                     return updated;
+    //                 });
+    //             }
+
+    //             if (
+    //                 routeKey === "executeTest" &&
+    //                 response?.action &&
+    //                 (response.action === "Test execution completed" || response.action === "Test execution failed")
+    //             ) {
+    //                 const finalStatus = response.action === "Test execution completed" ? "completed" : "failed";
+    //                 const msg = response?.description || "Test finalizado.";
+    //                 const completed = completedStepsMap[id] || 0;
+
+    //                 updateProgress(id, completed);
+    //                 setLoading(prev => ({ ...prev, [id]: false }));
+    //                 setReports(prev => {
+    //                     const idx = prev.findIndex(r => r.testCaseId === id);
+    //                     const report = prev[idx];
+    //                     const updated = [...prev];
+    //                     const newEntry = {
+    //                         ...report,
+    //                         data: [...(report?.data || []), { finalStatus, message: msg }],
+    //                     };
+    //                     if (idx >= 0) updated[idx] = newEntry;
+    //                     else updated.push(newEntry);
+    //                     return updated;
+    //                 });
+
+    //                 socket.close();
+    //                 setActiveTests(prev => prev - 1);
+    //             }
+    //         } catch (err) {
+    //             logger("❌ Error procesando mensaje:", event.data);
+    //         }
+    //     };
+    // }, [isHeadless, testData, stopped, updateProgress]);
+
+
+
+
 import { useEffect, useState, useCallback } from "react";
 import { URL_API_RUNNER } from "../../config";
 import { logger } from "../../utils/logger";
@@ -56,8 +223,12 @@ export const useTestExecution = () => {
         });
     }, []);
 
+
     const runTestCase = useCallback((testCase: any) => {
-        const testId = String(testCase.testCaseId);
+        console.log("🔍 Ejecutando test:", testCase);
+
+        const testId = String(testCase.id);
+
         if (invalidTests[testId]) return;
         if (!URL_API_RUNNER) {
             logger("❌ URL_API_RUNNER is undefined. Cannot create WebSocket.");
@@ -65,74 +236,27 @@ export const useTestExecution = () => {
             return;
         }
         console.log("🔗 Conectando al WebSocket:", URL_API_RUNNER);
-        
+
         const socket = new WebSocket(URL_API_RUNNER);
-        const totalSteps = testCase.stepsData.length + 2;
 
         setActiveTests(prev => prev + 1);
         setIdReports(prev => [...prev, testId]);
-        setStepsCountMap(prev => ({ ...prev, [testId]: totalSteps }));
+        setStepsCountMap(prev => ({ ...prev, [testId]: (testCase.stepsData?.length || 0) }));
 
         socket.onopen = () => {
-            const rawData = testData.data?.[testId];
-            if (!rawData) {
-                if (!invalidTests[testId]) {
-                    logger(`❌ No test data found for testCaseId ${testId}`);
-                    toast.error(`Missing test data for test ${testId}`);
-                    setInvalidTests(prev => ({ ...prev, [testId]: true }));
-                    setError(`Missing test data for test ${testId}`);
-                }
-                socket.close();
-                setActiveTests(prev => prev - 1);
-                return;
-            }
-
+            const rawData = testData.data?.[testId] || {};
             const sanitizedTestData = sanitizeTestData(rawData);
-            const sanitizedSteps = sanitizeSteps(testCase.stepsData || []);
-            const getValidUrlSite = (data: Record<string, any>): string | null => {
-                for (const [key, value] of Object.entries(data)) {
-                    if (
-                        key?.startsWith("urlSite") &&
-                        typeof value === "string" &&
-                        /^https?:\/\//.test(value)
-                    ) {
-                        return value;
-                    }
-                }
-                return null;
-            };
-
-            const resolvedUrl = getValidUrlSite(sanitizedTestData);
-            if (!resolvedUrl) {
-                if (!invalidTests[testId]) {
-                    logger(`❌ Missing or invalid URL in test data for testCaseId ${testId}`);
-                    toast.error(`Missing or invalid URL in test data for test ${testId}`);
-                    setInvalidTests(prev => ({ ...prev, [testId]: true }));
-                    setError(`Invalid URL in test ${testId}`);
-                }
-                socket.close();
-                setActiveTests(prev => prev - 1);
-                return;
-            }
 
             const payload = {
                 action: "executeTest",
                 testCaseId: testId,
                 isHeadless,
                 testCaseName: testCase.testCaseName,
-                totalSteps,
                 testData: sanitizedTestData,
-                dataScenario: {
-                    contextGeneral: {
-                        ...testCase.contextGeneral,
-                        data: {
-                            ...testCase.contextGeneral.data,
-                            url: resolvedUrl,
-                        },
-                    },
-                    jsonSteps: sanitizedSteps,
-                },
+                temp: false
             };
+
+            console.log("📤 Enviando payload simplificado al WebSocket:", payload);
 
             const payloadStr = JSON.stringify(payload);
             if (payloadStr.length > 1000000) {
@@ -150,10 +274,11 @@ export const useTestExecution = () => {
             try {
                 const message = JSON.parse(event.data);
                 console.log("📬 Mensaje recibido:", message);
-                
+
                 const { response, routeKey, connectionId, testCaseId } = message;
                 const id = String(testCaseId);
                 if (stopped[id]) return;
+
                 if (connectionId) {
                     setConnectionMap(prev => ({ ...prev, [id]: connectionId }));
                 }
@@ -183,9 +308,8 @@ export const useTestExecution = () => {
                 ) {
                     const finalStatus = response.action === "Test execution completed" ? "completed" : "failed";
                     const msg = response?.description || "Test finalizado.";
-                    const completed = completedStepsMap[id] || 0;
 
-                    updateProgress(id, completed);
+                    updateProgress(id, stepsCountMap[id] || 0);
                     setLoading(prev => ({ ...prev, [id]: false }));
                     setReports(prev => {
                         const idx = prev.findIndex(r => r.testCaseId === id);
@@ -207,7 +331,7 @@ export const useTestExecution = () => {
                 logger("❌ Error procesando mensaje:", event.data);
             }
         };
-    }, [isHeadless, testData, stopped, updateProgress]);
+    }, [isHeadless, testData, stopped, updateProgress, stepsCountMap]);
 
     useEffect(() => {
         const availableSlots = maxBrowsers - activeTests;
@@ -221,6 +345,8 @@ export const useTestExecution = () => {
     const executeTests = async (selectedCases: any[], testDataInput: any, max: number, headless: boolean) => {
         const initialLoading: Record<string, boolean> = {};
         const initialStopped: Record<string, boolean> = {};
+        console.log("🔍 Ejecutando múltiples tests:", selectedCases);
+        
         selectedCases.forEach(tc => {
             const testId = String(tc.testCaseId);
             initialLoading[testId] = true;

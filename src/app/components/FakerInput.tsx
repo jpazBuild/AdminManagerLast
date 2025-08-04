@@ -1,19 +1,20 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AiOutlineClose } from "react-icons/ai";
 import { faker } from "@faker-js/faker";
 import ReactDOM from "react-dom";
-import TextInputWithClearButton from "./InputClear";
 
 export const FakerInputWithAutocomplete = ({
     value,
     onChange,
     placeholder,
     id,
+    isDarkMode = false
 }: {
     value: string;
     onChange: (val: string) => void;
     placeholder?: string;
     id?: string;
+    isDarkMode?: boolean;
 }) => {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
@@ -22,7 +23,18 @@ export const FakerInputWithAutocomplete = ({
     const [error, setError] = useState<string | null>(null);
 
     const inputRef = useRef<HTMLInputElement | null>(null);
-
+    const evaluateFakerExpression = (expr: string): string | null => {
+        try {
+            if (!isFakerExpression(expr)) return null;
+            const func = new Function("faker", `return (${expr});`);
+            const result = func(faker);
+            return typeof result === "string" || typeof result === "number"
+                ? String(result)
+                : JSON.stringify(result);
+        } catch (err) {
+            return null;
+        }
+    };
     useEffect(() => {
         if (isFakerExpression(value) && endsWithCall(value)) {
             const evaluated = evaluateFakerExpression(value);
@@ -36,6 +48,34 @@ export const FakerInputWithAutocomplete = ({
             }
         }
     }, [value, onChange]);
+
+    // const evaluateFakerExpression = useCallback((expr: string): string | null => {
+    //     try {
+    //         if (!isFakerExpression(expr)) return null;
+    //         const func = new Function("faker", `return (${expr});`);
+    //         const result = func(faker);
+    //         return typeof result === "string" || typeof result === "number"
+    //             ? String(result)
+    //             : JSON.stringify(result);
+    //     } catch (err) {
+    //         return null;
+    //     }
+    // }, []);
+    // useEffect(() => {
+    //     if (isFakerExpression(value) && endsWithCall(value)) {
+    //         const evaluated = evaluateFakerExpression(value);
+    //         if (evaluated && evaluated !== value) {
+    //             onChange(evaluated);
+    //             setFakerExpression(value);
+    //             setShowSuggestions(false);
+    //             setError(null);
+    //         } else if (evaluated === null) {
+    //             setError("Expresión inválida o error al ejecutar Faker.");
+    //         }
+    //     }
+    // }, [value, onChange, evaluateFakerExpression]);
+
+
 
     useEffect(() => {
         if (isFakerExpression(value) && !endsWithCall(value)) {
@@ -107,22 +147,11 @@ export const FakerInputWithAutocomplete = ({
     };
 
     const isFakerExpression = (str: unknown): str is string =>
-    typeof str === "string" && str.startsWith("faker.");
+        typeof str === "string" && str.startsWith("faker.");
 
     const endsWithCall = (str: string) => /\)\s*$/.test(str);
 
-    const evaluateFakerExpression = (expr: string): string | null => {
-        try {
-            if (!isFakerExpression(expr)) return null;
-            const func = new Function("faker", `return (${expr});`);
-            const result = func(faker);
-            return typeof result === "string" || typeof result === "number"
-                ? String(result)
-                : JSON.stringify(result);
-        } catch (err) {
-            return null;
-        }
-    };
+
 
     return (
         <div className="relative w-full overflow-visible z-40 flex flex-col gap-2">
@@ -135,7 +164,7 @@ export const FakerInputWithAutocomplete = ({
                     onKeyDown={handleKeyDown}
                     placeholder={placeholder}
                     autoComplete="off"
-                    className="w-full p-2 pr-10 rounded-md bg-primary/10 text-primary/80 focus:outline-none focus:ring-2 focus:ring-primary/90 shadow-md"
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary ${isDarkMode ? "bg-primary/20 text-white border-gray-700" : "bg-primary/20 text-gray-800 border-gray-300"}`}
                 />
                 {value && (
                     <button
@@ -161,7 +190,7 @@ export const FakerInputWithAutocomplete = ({
                 inputRef.current &&
                 ReactDOM.createPortal(
                     <ul
-                        className="z-50 absolute bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto text-sm w-[300px]"
+                        className={`z-50 absolute ${isDarkMode ? "bg-primary/90 border-primary/80" : "bg-white border border-gray-300"} rounded-md shadow-lg max-h-60 overflow-auto text-sm w-[300px]`}
                         style={{
                             position: "absolute",
                             top: inputRef.current.getBoundingClientRect().bottom + window.scrollY,
@@ -172,11 +201,10 @@ export const FakerInputWithAutocomplete = ({
                             <li
                                 key={suggestion}
                                 onClick={() => handleSuggestionClick(suggestion)}
-                                className={`px-3 py-2 cursor-pointer ${
-                                    index === highlightedIndex
-                                        ? "bg-primary text-white"
-                                        : "hover:bg-gray-100"
-                                }`}
+                                className={`px-3 py-2 cursor-pointer ${index === highlightedIndex
+                                    ? "bg-primary text-white"
+                                    : "hover:bg-gray-100"
+                                    }`}
                             >
                                 {suggestion}
                             </li>

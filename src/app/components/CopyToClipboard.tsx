@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button"; // Asegúrate que este Button es tu botón estilizado
 
-const CopyToClipboard = ({ text }: { text: string }) => {
+const CopyToClipboard = ({ text,isDarkMode=false }: { text: string,isDarkMode: boolean }) => {
     const [copied, setCopied] = useState(false);
 
     const handleCopy = async (e: React.MouseEvent) => {
@@ -21,9 +21,9 @@ const CopyToClipboard = ({ text }: { text: string }) => {
             title="Copy ID"
         >
             {copied ? (
-                <Check className="w-4 h-4 text-primary/90" />
+                <Check className={`w-4 h-4 ${isDarkMode ? "text-white/90":"text-primary/90"}`} />
             ) : (
-                <Copy className="w-4 h-4 text-primary/70 hover:text-primary/80" />
+                <Copy className={`w-4 h-4 ${isDarkMode ? "text-white/90 hover:text-white/80":"text-primary/70 hover:text-primary/80"}`} />
             )}
         </Button>
     );

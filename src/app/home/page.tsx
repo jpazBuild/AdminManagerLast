@@ -178,7 +178,7 @@ const Home = () => {
     console.log(selectedCases.length === 0 || isLoading || anyLoading || !everyStopped);
 
     return (
-        <DashboardHeader onToggleDarkMode={handleToggleDarkMode}>
+        <DashboardHeader>
             <div className="w-full p-4 flex flex-col gap-4 justify-center mx-auto text-primary">
                 <div className="flex flex-wrap gap-4 mb-4 mt-2 w-full">
                     <h2 className="font-semibold tracking-wide text-xl">Filters Test Cases</h2>
@@ -350,10 +350,10 @@ const Home = () => {
                             <div className="flex flex-col gap-2 mb-2">
                                 <button
                                     onClick={toggleDropdown}
-                                    className="border-l-4 flex w-full cursor-pointer items-center justify-between shadow-md p-2 font-semibold tracking-wide rounded-md"
+                                    className={`border-l-4 border-2 border-primary/50 flex w-full cursor-pointer items-center justify-between shadow-md p-2 font-semibold tracking-wide rounded-md`}
                                 >
                                     <span className="text-xl font-semibold tracking-wide">Test cases </span>
-                                    <span className="text-primary/70">{filteredTestCases.length} results</span>
+                                    <span className="text-primary/70">{filteredTestCases?.length} results</span>
                                     {isDropdownOpenTC ? (
                                         <FaChevronUp className="" />
                                     ) : (

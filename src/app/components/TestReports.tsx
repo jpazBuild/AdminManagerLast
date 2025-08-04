@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 import ReportUI from "./Report";
 import { useTestExecution } from "../hooks/useTestExecution";
-import { StopCircle, XCircle, Clock, Download as DownloadIcon } from "lucide-react";
+import { StopCircle, Download as DownloadIcon } from "lucide-react";
 import { handleDownloadHTMLReport } from "../hooks/HTMLReport";
 import { handleDownloadPDFReport } from "@/lib/PDFReport";
 import { ExecutionSummary } from "./ExecutionSummary";
@@ -16,10 +16,13 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
 
     const stepMap: Record<string, { connectionId: string; steps: Record<number, any> }> = {};
 
-    reports.forEach((report: any) => {
-        const { testCaseId, data, connectionId } = report;
-        if (!Array.isArray(data)) return;
 
+    reports.forEach((report: any) => {
+        const testCaseId = report.testCaseId || report.id;
+        const data = Array.isArray(report.data) ? report.data : [];
+        const connectionId = report.connectionId ?? "";
+
+        
         if (!stepMap[testCaseId]) {
             stepMap[testCaseId] = {
                 connectionId,
@@ -27,14 +30,15 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
             };
         }
 
-        data.forEach((step) => {
-            const indexStep = step.indexStep;
+        data.forEach((step:any) => {
+            const indexStep = step.indexStep ?? step.index ?? null;
             if (typeof indexStep !== "number") return;
             stepMap[testCaseId].steps[indexStep] = step;
         });
     });
 
     const steps: { indexStep: number; ev: any; reportId: string; connectionId: string }[] = [];
+
     Object.entries(stepMap).forEach(([testCaseId, { steps: indexedSteps, connectionId }]) => {
         Object.entries(indexedSteps).forEach(([index, step]) => {
             steps.push({
@@ -47,9 +51,7 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
     });
 
     steps.sort((a, b) => {
-        if (a.reportId === b.reportId) {
-            return a.indexStep - b.indexStep;
-        }
+        if (a.reportId === b.reportId) return a.indexStep - b.indexStep;
         return a.reportId.localeCompare(b.reportId);
     });
 
@@ -78,15 +80,16 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
         let success = 0, failed = 0, pending = 0, time = 0;
 
         selectedTest.forEach((test: any) => {
-            const reportId = test.testCaseId;
+            const reportId = test.id || test.testCaseId;
             const testSteps = steps.filter(s => s.reportId === reportId);
             const latestStep = testSteps.at(-1);
             const status = latestStep?.ev?.status || latestStep?.ev?.finalStatus || "processing";
 
-            if (latestStep?.ev.action === "Test execution completed" && latestStep?.ev.status === "completed") success++;
-            else if (latestStep?.ev.action === "Test execution failed" && latestStep?.ev.status === "failed") failed++;
+            if (latestStep?.ev.action === "Test execution completed" && status === "completed") success++;
+            else if (latestStep?.ev.action === "Test execution failed" && status === "failed") failed++;
             else pending++;
-            time = latestStep?.ev?.time
+
+            time = latestStep?.ev?.time || 0;
         });
 
         const total = selectedTest.length;
@@ -112,6 +115,7 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
         stopTest(reportId, connectionId, socket);
         setStopped((prev: any) => ({ ...prev, [reportId]: true }));
     };
+
     console.log("steps report again", steps);
 
     return (
@@ -142,35 +146,36 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
                             </div>
                         )}
                     </div>
-                    {/* {totalExecutionTime > 0 && (
-                        <div className="flex items-center text-sm text-primary/60 pl-2">
-                            <Clock className="w-4 h-4 mr-1" />
-                            <span className="font-semibold">Total execution time:</span> {formatExecutionTime(totalExecutionTime)}
-                        </div>
-                    )} */}
                 </div>
             )}
 
             <div className="">
                 {selectedTest.map((test: any) => {
-                    const progressValue = progress.find((p: any) => p.testCaseId === test.testCaseId)?.percent || 0;
-                    const reportId = test.testCaseId;
+                    console.log("test st6eps", steps);
+                    
+
+                    const reportId = test.id || test.testCaseId;
+                    const progressValue = progress.find((p: any) => p.testCaseId === reportId)?.percent || 0;
                     const isExpanded = expandedReports[reportId] ?? false;
-                    const testSteps = steps.filter((s) => s.reportId === reportId);
+                    const testSteps = steps.filter((s) => s?.reportId === reportId);
+                    console.log("testSteps", testSteps);
+                    
                     const latestStep = testSteps.at(-1);
                     const finalStatus = latestStep?.ev?.status || latestStep?.ev?.finalStatus || "processing";
                     const isFailed = finalStatus === "failed";
-                    const dataSteps = test.stepsData;
+                    const dataSteps = test?.stepsData;
                     const connectionId = stepMap[reportId]?.connectionId;
                     console.log(" stopped[reportId] ", stopped[reportId], " reportId ", reportId, " connectionId ", connectionId, " test ", test);
 
+                    console.log("stepMap[reportId] ",stepMap[reportId]);
+                    
                     return (
                         <div key={reportId} id={reportId} className="p-1 flex flex-col gap-2">
                             {progressValue < 100 && !stopped[reportId] && (
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        handleStopTest(reportId, connectionId, reports.find((p: any) => p.testCaseId === test.testCaseId)?.socket);
+                                        handleStopTest(reportId, connectionId, reports.find((p: any) => (p.testCaseId || p.id) === reportId)?.socket);
                                         setLoading((prev: any) => ({ ...prev, [reportId]: false }));
                                     }}
                                     className="self-end flex items-center shadow-lg rounded-lg cursor-pointer border gap-2 px-3 py-2 hover:text-red-600 text-red-500 bg-white hover:bg-red-50 transition-all duration-200"
@@ -194,42 +199,18 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
                                     }`}
                                 onClick={() => toggleReport(reportId)}
                             >
-                                {/* Barra de estado superior */}
-                                {/* <div
-                                    className={`absolute top-0 left-0 w-full h-1 ${isFailed
-                                            ? "bg-red-500"
-                                            : stopped[reportId]
-                                                ? "bg-gray-400"
-                                                : progressValue === 0
-                                                    ? "bg-blue-500"
-                                                    : progressValue < 100
-                                                        ? "bg-yellow-500"
-                                                        : "bg-green-500"
-                                        }`}
-                                /> */}
 
-                                {/* Header con altura fija */}
                                 <div className="relative h-28 p-2">
-                                    {/* Badge de ID */}
                                     <div className="absolute top-0 left-3">
                                         <span className="bg-gradient-to-r from-primary/90 to-primary/80 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-md">
                                             {reportId}
                                         </span>
                                     </div>
 
-                                    {/* Tiempo de ejecución */}
-                                    {/* {formatExecutionTime(latestStep?.ev?.time) && (
-                                        <div className="absolute top-3 right-3 flex items-center gap-2 text-gray-500 text-xs bg-white/80 backdrop-blur-sm px-2 py-1 rounded-full">
-                                            <Clock className="w-3 h-3" />
-                                            {formatExecutionTime(latestStep?.ev?.time)}
-                                        </div>
-                                    )} */}
-
-                                    {/* Contenido principal */}
                                     <div className="flex flex-col justify-between h-full pt-8">
                                         <div className="flex justify-between items-start">
                                             <CardTitle className="text-lg font-bold text-gray-800 truncate pr-4 leading-tight">
-                                                {test.testCaseName || "Unnamed Test"}
+                                                {test.name || test.testCaseName || "Unnamed Test"}
                                             </CardTitle>
                                             <div className="flex items-center gap-3 flex-shrink-0">
                                                 <Badge
@@ -252,7 +233,6 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
                                             </div>
                                         </div>
 
-                                        {/* Progress Bar siempre visible */}
                                         <div className="mt-3">
                                             <ProgressBar
                                                 stopped={!!stopped[reportId]}

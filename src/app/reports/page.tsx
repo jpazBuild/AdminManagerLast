@@ -53,7 +53,7 @@ const Reports = () => {
   useEffect(() => {
     const fetchReportList = async () => {
       try {
-        const url = `${String(URL_API_ALB)}/getReports`;
+        const url = `${String(URL_API_ALB)}getReports`;
         const res = await fetch(url);
         const data: ReportItem[] = await res.json();
         setReportItems(data);
@@ -134,7 +134,7 @@ const Reports = () => {
   }, [currentItems]);
 
   return (
-    <DashboardHeader onToggleDarkMode={setDarkMode}>
+    <DashboardHeader onDarkModeChange={setDarkMode}>
       <div className="p-6 max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold mb-6 text-primary/80">Historic Reports</h1>
 
@@ -174,7 +174,7 @@ const Reports = () => {
                         <span className="text-xs font-mono tracking-wide text-muted-foreground">
                           Id: {testCaseId}
                         </span>
-                        <CopyToClipboard text={testCaseId} />
+                        <CopyToClipboard text={testCaseId} isDarkMode={false}/>
                       </div>
                     </div>
 

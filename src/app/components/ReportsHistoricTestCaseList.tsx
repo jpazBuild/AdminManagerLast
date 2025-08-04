@@ -1,120 +1,3 @@
-// import React, { useEffect, useState } from 'react';
-// import axios from 'axios';
-// import { URL_API_ALB } from '@/config';
-// import { TimestampTabs } from './TimestampTabs';
-// import { toast } from 'sonner';
-
-// interface Props {
-//     visible: boolean;
-//     test: { testCaseId: string;[key: string]: any };
-//     viewMode: string;
-// }
-
-// const reportCache: { [testCaseId: string]: Report | null } = {};
-
-// const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
-//     const [isLoading, setLoading] = useState(true);
-//     const [report, setReport] = useState<any | null>(null);
-
-//     useEffect(() => {
-//         if (!visible || !test?.testCaseId) return;
-//         if (reportCache[test.testCaseId]) {
-//             setReport(reportCache[test.testCaseId]);
-//             setLoading(false);
-//             return;
-//         }
-
-//         const fetchReport = async () => {
-//             setLoading(true);
-//             try {
-//                 const url = `${String(URL_API_ALB)}/getReport`;
-//                 const res = await axios.post(
-//                     url,
-//                     { testCaseId: test.testCaseId },
-//                     { headers: { 'Content-Type': 'application/json' } }
-//                 );
-//                 const reportJsonUrl: string = res.data?.url || res.data?.reportUrl || res.data;
-
-//                 if (!reportJsonUrl) throw new Error("Don't have report URL");
-
-//                 const jsonRes = await fetch(reportJsonUrl);
-//                 if (!jsonRes.ok) throw new Error(`Error to load JSON: ${jsonRes.status}`);
-//                 const reportData = await jsonRes.json();
-
-//                 console.log('Fetched report data:', reportData);
-
-//                 setReport(reportData);
-//                 reportCache[test.testCaseId] = reportData;
-//             } catch (err) {
-//                 console.error(err);
-//                 toast.error(`Failed to load report for test case ${test.testCaseId}. Please try again later or connect to VPN.`);
-//                 setReport(null);
-//             } finally {
-//                 setLoading(false);
-//             }
-//         };
-
-//         if (viewMode === "Historic reports") fetchReport();
-
-//     }, [visible, test?.testCaseId, viewMode]);
-
-//     if (!visible) return null;
-
-//     if (isLoading) {
-//         return (
-//             <div className="p-6 flex flex-col justify-center items-center gap-2">
-//                 <svg className="animate-spin h-8 w-8 text-primary" viewBox="0 0 24 24" fill="none">
-//                     <circle
-//                         className="opacity-25"
-//                         cx="12"
-//                         cy="12"
-//                         r="10"
-//                         stroke="currentColor"
-//                         strokeWidth="4"
-//                     />
-//                     <path
-//                         className="opacity-75"
-//                         fill="currentColor"
-//                         d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-//                     />
-//                 </svg>
-//                 <span className="text-base text-primary/80 font-semibold">Loading report...</span>
-//             </div>
-//         );
-//     }
-
-
-//     if (!report) {
-//         return (
-//             <div className="p-6 flex flex-col justify-center items-center gap-2">
-//                 <svg viewBox="0 0 48 48" className="h-10 w-10 text-primary/50" fill="none">
-//                     <rect x="8" y="4" width="24" height="36" rx="4" stroke="currentColor" strokeWidth="2" fill="white" />
-//                     <path d="M20 32h4M16 20h12M16 26h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-//                     <circle cx="36" cy="36" r="5" stroke="currentColor" strokeWidth="2" fill="none" />
-//                     <line x1="39.5" y1="39.5" x2="44" y2="44" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-//                 </svg>
-//                 <span className="text-base text-primary/70 font-semibold">No report found for this test case.</span>
-//                 <span className="text-xs text-muted-foreground">Try generating or running this test to see its history.</span>
-//             </div>
-//         );
-//     }
-
-
-//     return (
-//         <div className="flex flex-col gap-3 p-2">
-//             <div className="flex items-center justify-between mb-2">
-//                 <h2 className="text-lg font-semibold text-primary/80">Historic Report</h2>
-//             </div>
-//             <div className="mt-2">
-//                 <TimestampTabs reports={report?.reports} />
-//             </div>
-//         </div>
-//     );
-// };
-
-// export default ReportTestCaseList;
-
-
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { URL_API_ALB } from '@/config';
@@ -127,37 +10,32 @@ interface Props {
     viewMode: string;
 }
 
-// Cache mejorado con compresión y paginación
 interface CacheEntry {
     data: any;
     timestamp: number;
     ttl: number;
-    size: number; // Tamaño en bytes para gestión de memoria
+    size: number;
     compressed?: boolean;
 }
 
 const reportCache: { [testCaseId: string]: CacheEntry } = {};
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
-const MAX_CACHE_SIZE = 50 * 1024 * 1024; // 50MB máximo en cache
-const LARGE_JSON_THRESHOLD = 1024 * 1024; // 1MB - umbral para JSON grande
+const CACHE_TTL = 5 * 60 * 1000;
+const MAX_CACHE_SIZE = 50 * 1024 * 1024;
+const LARGE_JSON_THRESHOLD = 1024 * 1024;
 const pendingRequests = new Map<string, Promise<any>>();
 
-// Función para comprimir datos usando LZ-string (simulada)
 const compressData = (data: any): string => {
     try {
         const jsonString = JSON.stringify(data);
-        // En producción, usar LZ-string o similar: LZString.compress(jsonString)
-        return btoa(jsonString); // Base64 simple como ejemplo
+        return btoa(jsonString);
     } catch (error) {
         console.error('Error compressing data:', error);
         return JSON.stringify(data);
     }
 };
 
-// Función para descomprimir datos
 const decompressData = (compressedData: string): any => {
     try {
-        // En producción: LZString.decompress(compressedData)
         const jsonString = atob(compressedData);
         return JSON.parse(jsonString);
     } catch (error) {
@@ -166,24 +44,20 @@ const decompressData = (compressedData: string): any => {
     }
 };
 
-// Función para calcular tamaño de objeto en bytes
 const calculateObjectSize = (obj: any): number => {
     return new Blob([JSON.stringify(obj)]).size;
 };
 
-// Gestión inteligente de memoria del cache
 const manageCacheMemory = () => {
     const entries = Object.entries(reportCache);
     const totalSize = entries.reduce((sum, [_, entry]) => sum + entry.size, 0);
     
     if (totalSize > MAX_CACHE_SIZE) {
-        // Ordenar por timestamp (más antiguos primero)
         entries.sort(([,a], [,b]) => a.timestamp - b.timestamp);
         
-        // Eliminar entradas hasta estar bajo el límite
         let currentSize = totalSize;
         for (const [key, entry] of entries) {
-            if (currentSize <= MAX_CACHE_SIZE * 0.8) break; // Mantener 80% del límite
+            if (currentSize <= MAX_CACHE_SIZE * 0.8) break;
             delete reportCache[key];
             currentSize -= entry.size;
             console.log(`Removed cache entry for ${key} (${entry.size} bytes)`);
@@ -191,7 +65,6 @@ const manageCacheMemory = () => {
     }
 };
 
-// Función para limpiar cache expirado
 const cleanExpiredCache = () => {
     const now = Date.now();
     Object.keys(reportCache).forEach(key => {
@@ -201,7 +74,6 @@ const cleanExpiredCache = () => {
     });
 };
 
-// Función para streaming de JSON grandes
 const streamFetchJSON = async (url: string, onProgress?: (progress: number) => void): Promise<any> => {
     const response = await fetch(url);
     if (!response.ok) {
@@ -232,7 +104,6 @@ const streamFetchJSON = async (url: string, onProgress?: (progress: number) => v
         }
     }
 
-    // Concatenar chunks
     const fullResponse = new Uint8Array(loaded);
     let position = 0;
     for (const chunk of chunks) {
@@ -244,13 +115,11 @@ const streamFetchJSON = async (url: string, onProgress?: (progress: number) => v
     return JSON.parse(text);
 };
 
-// Función optimizada para fetch con chunking y compresión
 const fetchWithOptimizations = async (url: string, options: RequestInit = {}, timeout = 30000): Promise<any> => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-        // Primero, obtener metadata del archivo
         const headResponse = await fetch(url, { 
             method: 'HEAD', 
             signal: controller.signal 
@@ -261,12 +130,10 @@ const fetchWithOptimizations = async (url: string, options: RequestInit = {}, ti
         
         clearTimeout(timeoutId);
         
-        // Si el archivo es muy grande, usar streaming
         if (fileSize > LARGE_JSON_THRESHOLD) {
             console.log(`Large JSON detected (${fileSize} bytes), using streaming...`);
             return await streamFetchJSON(url);
         } else {
-            // Para archivos pequeños, fetch normal
             const response = await fetch(url, {
                 ...options,
                 signal: controller.signal,
@@ -312,12 +179,10 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
     }, []);
 
     const fetchReport = useCallback(async (testCaseId: string) => {
-        // Verificar cache válido
         if (isCacheValid(testCaseId)) {
             const cached = reportCache[testCaseId];
             let data = cached.data;
             
-            // Si está comprimido, descomprimir
             if (cached.compressed) {
                 data = decompressData(cached.data);
             }
@@ -328,7 +193,6 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
             return;
         }
 
-        // Verificar peticiones pendientes
         if (pendingRequests.has(testCaseId)) {
             try {
                 const result = await pendingRequests.get(testCaseId);
@@ -350,7 +214,7 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
                 cleanExpiredCache();
                 manageCacheMemory();
 
-                const url = `${String(URL_API_ALB)}/getReport`;
+                const url = `${String(URL_API_ALB)}getReport`;
                 
                 const axiosConfig = {
                     timeout: 15000,
@@ -364,7 +228,6 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
                     throw new Error("Report URL not found in response");
                 }
 
-                // Detectar si es un archivo grande
                 try {
                     const headResponse = await fetch(reportJsonUrl, { method: 'HEAD' });
                     const contentLength = headResponse.headers.get('content-length');
@@ -378,19 +241,15 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
                     console.warn('Could not get file size:', headError);
                 }
 
-                // Fetch optimizado con progress
                 const reportData = await streamFetchJSON(reportJsonUrl, (progress) => {
                     setLoadingProgress(progress);
                 });
 
-                // Procesar JSON grande en chunks si es necesario
                 const processedData = await processLargeJSON(reportData);
                 
-                // Calcular tamaño y decidir si comprimir
                 const dataSize = calculateObjectSize(processedData);
                 const shouldCompress = dataSize > LARGE_JSON_THRESHOLD;
                 
-                // Guardar en cache
                 const cacheEntry: CacheEntry = {
                     data: shouldCompress ? compressData(processedData) : processedData,
                     timestamp: Date.now(),
@@ -444,11 +303,9 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
         }
     }, [isCacheValid]);
 
-    // Prefetch optimizado
     useEffect(() => {
         if (testCaseId && viewMode === "Historic reports") {
             if (!isCacheValid(testCaseId) && !visible) {
-                // Prefetch solo si no es un archivo muy grande
                 const cached = reportCache[testCaseId];
                 if (!cached || cached.size < LARGE_JSON_THRESHOLD) {
                     fetchReport(testCaseId).catch(() => {});
