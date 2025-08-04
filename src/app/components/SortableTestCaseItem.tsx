@@ -459,14 +459,13 @@ const SortableTestCaseItem: React.FC<Props> = ({
         console.log("Payload final para updateTest:", payload);
 
         try {
-            setIsLoadingUpdate(true);
-            const apiUrl = (URL_API_ALB ?? '').replace(/\/+$/, '');
+            setIsLoadingUpdate(true);            
+            const apiUrl = (URL_API_ALB ?? '');
             const res = await axios.patch(`${apiUrl}tests`, payload);
 
             if (res.status === 200) toast.success("Test updated successfully");
-        } catch (error) {
-            console.error("Error updating test case:", error);
-            toast.error("Failed to update test case");
+        } catch (error:any) {
+            toast.error("Failed to update test case",error);
         } finally {
             setIsLoadingUpdate(false);
         }
@@ -809,7 +808,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                     {viewMode === 'Historic reports' && test.id && (
                         <div className="p-4">
                             <div className="text-center text-gray-500">
-                                Historic reports functionality would be implemented here
+                                Pending
                             </div>
                         </div>
                     )}

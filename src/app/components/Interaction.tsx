@@ -6,7 +6,6 @@ import { Copy, Save, Trash2 } from "lucide-react";
 import { FaXmark } from "react-icons/fa6";
 import { useCallback, useMemo } from 'react';
 import CopyToClipboard from "./CopyToClipboard";
-import StepActions from "./StepActions";
 
 interface InteractionItemData {
     id: string;
@@ -724,13 +723,6 @@ const ReusableStepsBlock = ({
                 </div>
 
                 <div className="space-y-3">
-                    {/* <StepActions
-                        index={-1}
-                        steps={data.stepsData || []}
-                        test={test || {}}
-                        setTestCasesData={customSetTestCasesData}
-                        setResponseTest={customSetResponseTest}
-                    /> */}
 
                     {data.stepsData?.map((step: any, idx: number) => (
                         <div key={step.id || idx} className={getReusableStepClasses()}>
@@ -753,13 +745,6 @@ const ReusableStepsBlock = ({
                                 setResponseTest={customSetResponseTest}
                             />
 
-                            {/* <StepActions
-                                index={idx}
-                                steps={data.stepsData || []}
-                                test={test || {}}
-                                setTestCasesData={customSetTestCasesData}
-                                setResponseTest={customSetResponseTest}
-                            /> */}
                         </div>
                     ))}
                 </div>

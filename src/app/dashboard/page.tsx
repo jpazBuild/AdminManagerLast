@@ -54,6 +54,10 @@ const DashboardPage = () => {
     const [testCasesUpdated, setTestCasesUpdated] = useState<TestCase[]>([]);
     const [executeRun, setExecuteRun] = useState<boolean>(false);
     const [editMode, setEditMode] = useState<'global' | 'individual'>('global');
+    const [isLoadingGroups, setIsLoadingGroups] = useState<boolean>(false);
+    const [isLoadingModules, setIsLoadingModules] = useState<boolean>(false);
+    const [errorModules, setErrorModules] = useState<any>(false)
+    const [errorGroups, setErrorGroups] = useState<any>(false)
 
     const {
         reports,
@@ -86,25 +90,36 @@ const DashboardPage = () => {
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
-                const [groupsRes, tagsRes] = await Promise.all([
-                    axios.post(`${URL_API_ALB}groups`, {}),
-                    axios.post(`${URL_API_ALB}tags`, {})
-                ]);
+                setIsLoadingGroups(true);
+                setErrorGroups(false);
+
+                const groupsRes = await axios.post(`${URL_API_ALB}groups`, {});
 
                 if (groupsRes.data.error) throw new Error(groupsRes.data.error);
-                if (tagsRes.data.error) throw new Error(tagsRes.data.error);
 
                 setGroups(Array.isArray(groupsRes.data) ? groupsRes.data : []);
-                setTags(Array.isArray(tagsRes.data) ? tagsRes.data : []);
+                setErrorGroups(false);
 
             } catch (error) {
                 console.error("Error fetching initial data:", error);
-                toast.error(error instanceof Error ? error.message : "Error fetching initial data. Please try again later.");
+                toast.error(error instanceof Error ? error.message : "Error fetching groups");
+
+                setGroups([]);
+                setSelectedGroup("");
+                setModules([]);
+                setSelectedModule("");
+                setSubmodules([]);
+                setSelectedSubmodule("");
+
+                setErrorGroups(true);
+            } finally {
+                setIsLoadingGroups(false);
             }
         };
 
         fetchInitialData();
     }, []);
+
 
     const getSelectedGroupId = useCallback(() => {
         if (!selectedGroup) return "";
@@ -131,14 +146,22 @@ const DashboardPage = () => {
                 setSelectedModule("");
                 setSubmodules([]);
                 setSelectedSubmodule("");
+                setErrorModules(false);
                 return;
             }
 
             try {
                 const groupId = getSelectedGroupId();
-                const response = await axios.post(`${URL_API_ALB}modules`, {
-                    groupId
-                });
+                if (!groupId) {
+                    setModules([]);
+                    setErrorModules(true);
+                    return;
+                }
+
+                setIsLoadingModules(true);
+                setErrorModules(false);
+
+                const response = await axios.post(`${URL_API_ALB}modules`, { groupId });
 
                 if (response.data.error) throw new Error(response.data.error);
 
@@ -147,15 +170,24 @@ const DashboardPage = () => {
                 setSelectedModule("");
                 setSubmodules([]);
                 setSelectedSubmodule("");
+                setErrorModules(false);
+
             } catch (error) {
                 console.error("Error fetching modules:", error);
                 toast.error(error instanceof Error ? error.message : "Error fetching modules");
                 setModules([]);
+                setSelectedModule("");
+                setSubmodules([]);
+                setSelectedSubmodule("");
+                setErrorModules(true);
+            } finally {
+                setIsLoadingModules(false);
             }
         };
 
         fetchModules();
     }, [selectedGroup, getSelectedGroupId]);
+
 
     useEffect(() => {
         const fetchSubmodules = async () => {
@@ -321,10 +353,6 @@ const DashboardPage = () => {
         executeTests(selectedTests, testData, maxBrowsers, isHeadless);
     }, [selectedCases, selectedTests, testData, maxBrowsers, isHeadless, executeTests]);
 
-    console.log("stopped state:", stopped);
-    console.log("anyLoading state:", anyLoading);
-    console.log("loading state:", loading);
-
     return (
         <DashboardHeader onDarkModeChange={handleDarkModeChange}>
             <div className={`w-full p-4 flex flex-col gap-4 justify-center mx-auto ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-primary"} transition-colors duration-300`}>
@@ -339,9 +367,11 @@ const DashboardPage = () => {
                             label: String(group?.name),
                             value: String(group?.name),
                         }))}
-                        placeholder="Select a group"
+                        placeholder={errorGroups ? "Error loading groups" : "Select a group"}
                         darkMode={isDarkMode}
+                        disabled={isLoadingGroups || errorGroups}
                     />
+
 
                     <SearchField
                         label="Module"
@@ -351,8 +381,9 @@ const DashboardPage = () => {
                             label: String(module.name),
                             value: String(module.name),
                         }))}
-                        placeholder="Select a module"
+                        placeholder={errorModules ? "Error loading modules" : "Select a module"}
                         darkMode={isDarkMode}
+                        disabled={!selectedGroup || isLoadingModules || errorModules}
                     />
 
                     {isLoadingSubmodules ? (
