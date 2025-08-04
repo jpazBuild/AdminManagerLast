@@ -17,27 +17,27 @@ export const DashboardHeader = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState<boolean>(false);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("darkMode");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const initial = saved === null ? prefersDark : saved === "true";
+  // useEffect(() => {
+  //   const saved = localStorage.getItem("darkMode");
+  //   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  //   const initial = saved === null ? prefersDark : saved === "true";
 
-    setDarkMode(initial);
-    applyDarkModeClass(initial);
-    onDarkModeChange?.(initial);
+  //   setDarkMode(initial);
+  //   applyDarkModeClass(initial);
+  //   onDarkModeChange?.(initial);
 
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = (e: MediaQueryListEvent) => {
-      if (localStorage.getItem("darkMode") === null) {
-        setDarkMode(e.matches);
-        applyDarkModeClass(e.matches);
-        onDarkModeChange?.(e.matches);
-      }
-    };
+  //   const media = window.matchMedia("(prefers-color-scheme: dark)");
+  //   const handleChange = (e: MediaQueryListEvent) => {
+  //     if (localStorage.getItem("darkMode") === null) {
+  //       setDarkMode(e.matches);
+  //       applyDarkModeClass(e.matches);
+  //       onDarkModeChange?.(e.matches);
+  //     }
+  //   };
 
-    media.addEventListener("change", handleChange);
-    return () => media.removeEventListener("change", handleChange);
-  }, [onDarkModeChange]);
+  //   media.addEventListener("change", handleChange);
+  //   return () => media.removeEventListener("change", handleChange);
+  // }, [onDarkModeChange]);
 
   const applyDarkModeClass = (enabled: boolean) => {
     if (enabled) {

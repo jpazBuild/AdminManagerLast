@@ -11,8 +11,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-[#101827] text-gray-900 dark:text-gray-100">
-      <header className="fixed top-0 left-0 w-full bg-white dark:bg-[#101827] shadow-md p-4 z-30">
+    <div className="min-h-screen flex flex-col bg-gray-100 text-gray-900">
+      <header className="fixed top-0 left-0 w-full bg-white shadow-md p-4 z-30">
         <div className="flex items-center justify-between max-w-6xl mx-auto">
           <Image
             src={Logo}
@@ -36,7 +36,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             onClick={() => setMobileMenuOpen(false)}
           >
             <nav
-              className="absolute top-0 left-0 w-64 h-full bg-white dark:bg-[#021d3d] text-[#021d3d] dark:text-white shadow-lg p-6 z-30"
+              className="absolute top-0 left-0 w-64 h-full bg-white text-[#021d3d] shadow-lg p-6 z-30"
               onClick={(e) => e.stopPropagation()}
             >
               <button

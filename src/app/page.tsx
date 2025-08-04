@@ -145,7 +145,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => handleClearField(field)}
-                    className={`absolute cursor-pointer right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-800 dark:hover:text-gray-300 focus:outline-none`}
+                    className={`absolute cursor-pointer right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-800 focus:outline-none`}
                   >
                     &#x2715;
                   </button>
