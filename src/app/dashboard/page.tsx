@@ -18,6 +18,7 @@ import NoData from "../components/NoData";
 import { useTestExecution } from "../hooks/useTestExecution";
 import { FaXmark } from "react-icons/fa6";
 import { URL_API_ALB } from "@/config";
+import { checkConnection } from "@/utils/DBBUtils";
 
 interface TestCase {
     id: string;
@@ -93,6 +94,7 @@ const DashboardPage = () => {
                 setIsLoadingGroups(true);
                 setErrorGroups(false);
 
+                await checkConnection()
                 const groupsRes = await axios.post(`${URL_API_ALB}groups`, {});
 
                 if (groupsRes.data.error) throw new Error(groupsRes.data.error);
@@ -151,6 +153,7 @@ const DashboardPage = () => {
             }
 
             try {
+                await checkConnection()
                 const groupId = getSelectedGroupId();
                 if (!groupId) {
                     setModules([]);
@@ -198,6 +201,7 @@ const DashboardPage = () => {
             }
 
             try {
+                await checkConnection()
                 setIsLoadingSubmodules(true);
                 const groupId = getSelectedGroupId();
                 const moduleId = getSelectedModuleId();
@@ -239,6 +243,7 @@ const DashboardPage = () => {
 
     const handleSearch = useCallback(async () => {
         try {
+            await checkConnection()
             setIsLoadingSearch(true);
             const searchParams: Record<string, any> = {};
 

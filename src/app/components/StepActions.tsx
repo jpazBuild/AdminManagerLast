@@ -10,6 +10,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import InteractionItem from "./Interaction";
 import { URL_API_ALB } from "@/config";
+import { checkConnection } from "@/utils/DBBUtils";
 
 interface StepActionsProps {
     index: number;
@@ -95,6 +96,7 @@ const StepActions: React.FC<StepActionsProps> = ({
     const fetchReusableHeaders = async () => {
         try {
             setLoading(true);
+            await checkConnection()
             const res = await axios.post(
                 `${URL_API_ALB}getReusableStepsHeaders`,
                 { onlyReusables: true }
@@ -111,6 +113,7 @@ const StepActions: React.FC<StepActionsProps> = ({
     const fetchReusableSteps = async (id: string) => {
         try {
             setLoading(true);
+            await checkConnection()
             const res = await axios.post(`${URL_API_ALB}reusableSteps`, {
                 getIndexOnly: false,
                 id,
@@ -134,6 +137,7 @@ const StepActions: React.FC<StepActionsProps> = ({
     const saveReusableChanges = async () => {
         if (!selectedReusable) return;
         try {
+            await checkConnection()
             const payload = {
                 id: selectedReusable.id,
                 stepsData: selectedReusableSteps,
