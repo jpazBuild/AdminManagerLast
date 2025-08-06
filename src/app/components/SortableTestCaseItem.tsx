@@ -219,9 +219,16 @@ const SortableTestCaseItem: React.FC<Props> = ({
         }
     }, [test.id, setTestCasesData, setDynamicValues, onRefreshAfterUpdateOrDelete]);
 
-    const handleToggleSelect = useCallback(() => {
-        toggleSelect(testId);
-    }, [toggleSelect, testId]);
+   const handleToggleSelect = useCallback(() => {
+    toggleSelect(testId);
+
+        setOpenItems((prev) => {
+            if (!prev.includes(testId)) {
+                return [...prev, testId];
+            }
+            return prev;
+        });
+    }, [toggleSelect, testId, setOpenItems]);
 
     const handleAccordionToggle = useCallback(() => {
         setOpenItems(prev =>

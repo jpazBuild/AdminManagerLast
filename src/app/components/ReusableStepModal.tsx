@@ -6,6 +6,7 @@ import TextInputWithClearButton from "./InputClear";
 import { toast } from "sonner";
 import axios from "axios";
 import { URL_API_ALB } from '@/config';
+import { checkConnection } from '@/utils/DBBUtils';
 
 interface ReusableStepModalProps {
     isOpen: boolean;
@@ -69,6 +70,7 @@ const ReusableStepModal: React.FC<ReusableStepModalProps> = ({
         console.log("Selected steps data:", selectedStepsData);
             
         try {
+            await checkConnection()
             const apiUrl = (URL_API_ALB ?? '');
             const response = await axios.put(
                 `${apiUrl}reusableSteps`,

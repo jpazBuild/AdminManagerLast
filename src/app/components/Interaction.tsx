@@ -767,7 +767,7 @@ const InteractionItem = ({ data, index, onDelete, onUpdate, isDarkMode = false, 
                 data={data}
                 isDarkMode={isDarkMode}
                 // onUpdate={(updatedData) => onUpdate?.(index, updatedData)}
-                // onDelete={() => onDelete?.(index)}
+                onDelete={() => onDelete?.(index)}
                 {...rest}
             />
         );

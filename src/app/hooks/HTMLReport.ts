@@ -41,12 +41,12 @@ export const handleDownloadHTMLReport = (
     const stepsByReportHTML = reports.map((report: any, idx: number) => {
         const testCaseId = report?.testCaseId || report?.id;
         const testDataForCase = testData?.data[testCaseId];
-        const test = selectedTest?.find((test: any) => test?.testCaseId === testCaseId)
+        const test = selectedTest?.find((test: any) => test?.id === testCaseId)
 
         const testDataHTML = testDataForCase
             ? `<div class="test-data-block" style="margin: 10px 0 10px 10px; display: flex; flex-direction: column; gap: 4px;">
-                  <strong style="color: #223853; word-break: break-word;">${test?.testCaseName}</strong>
-                  <p style="color: #223853; word-break: break-word;">Description: ${test?.testCaseDescription}</p>
+                  <strong style="color: #223853; word-break: break-word;">${test?.name}</strong>
+                  <p style="color: #223853; word-break: break-word;">Description: ${test?.description}</p>
                   <strong style="color: #223853; word-break: break-word;">🔧 Test Data:</strong>
                   <ul style="margin-top: 4px;">
                     ${Object.entries(testDataForCase).map(

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useMemo, useState } from "react";
+import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa";
@@ -22,7 +22,7 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
         const data = Array.isArray(report.data) ? report.data : [];
         const connectionId = report.connectionId ?? "";
 
-        
+
         if (!stepMap[testCaseId]) {
             stepMap[testCaseId] = {
                 connectionId,
@@ -30,7 +30,7 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
             };
         }
 
-        data.forEach((step:any) => {
+        data.forEach((step: any) => {
             const indexStep = step.indexStep ?? step.index ?? null;
             if (typeof indexStep !== "number") return;
             stepMap[testCaseId].steps[indexStep] = step;
@@ -69,24 +69,26 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
         totalTests,
         successRate,
         totalExecutionTime,
-    } = useMemo<{
-        totalSuccess: number;
-        totalFailed: number;
-        totalPending: number;
-        totalTests: number;
-        successRate: number;
-        totalExecutionTime: number;
-    }>(() => {
-        let success = 0, failed = 0, pending = 0, time = 0;
+    } = useMemo(() => {
+        let success = 0,
+            failed = 0,
+            pending = 0,
+            time = 0;
 
         selectedTest.forEach((test: any) => {
             const reportId = test.id || test.testCaseId;
-            const testSteps = steps.filter(s => s.reportId === reportId);
+            const testSteps = steps.filter((s) => s.reportId === reportId);
             const latestStep = testSteps.at(-1);
             const status = latestStep?.ev?.status || latestStep?.ev?.finalStatus || "processing";
 
-            if (latestStep?.ev.action === "Test execution completed" && status === "completed") success++;
-            else if (latestStep?.ev.action === "Test execution failed" && status === "failed") failed++;
+            if (stopped[reportId]) {
+                return;
+            }
+
+            if (latestStep?.ev.action === "Test execution completed" && status === "completed")
+                success++;
+            else if (latestStep?.ev.action === "Test execution failed" && status === "failed")
+                failed++;
             else pending++;
 
             time = latestStep?.ev?.time || 0;
@@ -102,7 +104,8 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
             successRate: total === 0 ? 0 : Math.round((success / total) * 100),
             totalExecutionTime: time,
         };
-    }, [selectedTest, steps]);
+    }, [selectedTest, steps, stopped]);
+
 
     const formatExecutionTime = (ms: number) => {
         const totalSec = Math.floor(ms / 1000);
@@ -117,6 +120,31 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
     };
 
     console.log("steps report again", steps);
+    const handleStopAllTests = () => {
+        const newStopped: Record<string, boolean> = { ...stopped };
+        const newLoading: Record<string, boolean> = {};
+        
+        selectedTest.forEach((test: any) => {
+            const reportId = test.id || test.testCaseId;
+            const connectionId = stepMap[reportId]?.connectionId;
+            const reportSocket = reports.find((p: any) => (p.testCaseId || p.id) === reportId)?.socket;
+
+            if (!stopped[reportId]) {
+                try {
+                    stopTest(reportId, connectionId, reportSocket);
+                    console.log(`Stop enviado para ${reportId}`);
+                } catch (err) {
+                    console.error(`Error deteniendo ${reportId}`, err);
+                }
+                newStopped[reportId] = true;
+            }
+
+            newLoading[reportId] = false;
+        });
+
+        setStopped(newStopped);
+        setLoading((prev: any) => ({ ...prev, ...newLoading }));
+    };
 
     return (
         <div className="space-y-6 mt-6">
@@ -129,6 +157,15 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
                         successRate={successRate}
                     />
                     <div className="flex place-self-end justify-between items-center px-2">
+                        {totalPending > 0 && (
+                            <button
+                                onClick={handleStopAllTests}
+                                className="flex cursor-pointer items-center gap-2 text-xs border-red-500 border-2 text-red-500 font-semibold px-4 py-2 rounded hover:bg-red-50 hover:shadow-md"
+                                title="Stop All Running Tests"
+                            >
+                                <StopCircle className="w-4 h-4" /> Stop All
+                            </button>
+                        )}
                         {totalPending === 0 && (
                             <div className="flex gap-2 self-end pt-2">
                                 <button
@@ -152,14 +189,14 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
             <div className="">
                 {selectedTest.map((test: any) => {
                     console.log("test st6eps", steps);
-                    
+
 
                     const reportId = test.id || test.testCaseId;
                     const progressValue = progress.find((p: any) => p.testCaseId === reportId)?.percent || 0;
                     const isExpanded = expandedReports[reportId] ?? false;
                     const testSteps = steps.filter((s) => s?.reportId === reportId);
                     console.log("testSteps", testSteps);
-                    
+
                     const latestStep = testSteps.at(-1);
                     const finalStatus = latestStep?.ev?.status || latestStep?.ev?.finalStatus || "processing";
                     const isFailed = finalStatus === "failed";
@@ -167,8 +204,8 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
                     const connectionId = stepMap[reportId]?.connectionId;
                     console.log(" stopped[reportId] ", stopped[reportId], " reportId ", reportId, " connectionId ", connectionId, " test ", test);
 
-                    console.log("stepMap[reportId] ",stepMap[reportId]);
-                    
+                    console.log("stepMap[reportId] ", stepMap[reportId]);
+
                     return (
                         <div key={reportId} id={reportId} className="p-1 flex flex-col gap-2">
                             {progressValue < 100 && !stopped[reportId] && (
@@ -188,14 +225,14 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
 
                             <Card
                                 className={`relative cursor-pointer shadow-lg transition-all duration-300 hover:shadow-xl border-3 border-l-4 rounded-xl overflow-hidden  ${isFailed
-                                        ? " border-red-500 "
-                                        : stopped[reportId]
-                                            ? " border-gray-400 "
-                                            : progressValue === 0
-                                                ? " border-blue-500 "
-                                                : progressValue < 100
-                                                    ? " border-yellow-500 "
-                                                    : " border-green-500 "
+                                    ? " border-red-500 "
+                                    : stopped[reportId]
+                                        ? " border-gray-400 "
+                                        : progressValue === 0
+                                            ? " border-blue-500 "
+                                            : progressValue < 100
+                                                ? " border-yellow-500 "
+                                                : " border-green-500 "
                                     }`}
                                 onClick={() => toggleReport(reportId)}
                             >
@@ -215,14 +252,14 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
                                             <div className="flex items-center gap-3 flex-shrink-0">
                                                 <Badge
                                                     className={`text-white font-bold px-3 py-1 ${isFailed
-                                                            ? "bg-red-500"
-                                                            : stopped[reportId]
-                                                                ? "bg-gray-500"
-                                                                : progressValue === 0
-                                                                    ? "bg-blue-500"
-                                                                    : progressValue < 100
-                                                                        ? "bg-yellow-500"
-                                                                        : "bg-green-500"
+                                                        ? "bg-red-500"
+                                                        : stopped[reportId]
+                                                            ? "bg-gray-500"
+                                                            : progressValue === 0
+                                                                ? "bg-blue-500"
+                                                                : progressValue < 100
+                                                                    ? "bg-yellow-500"
+                                                                    : "bg-green-500"
                                                         }`}
                                                 >
                                                     {progressValue}%
