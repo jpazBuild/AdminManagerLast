@@ -41,7 +41,7 @@ export const handleDownloadHTMLReport = (
     const stepsByReportHTML = reports.map((report: any, idx: number) => {
         const testCaseId = report?.testCaseId || report?.id;
         const testDataForCase = testData?.data[testCaseId];
-        const test = selectedTest?.find((test: any) => test?.testCaseId === testCaseId)
+        const test = selectedTest?.find((test: any) => test?.id === testCaseId)
 
         const testDataHTML = testDataForCase
             ? `<div class="test-data-block" style="margin: 10px 0 10px 10px; display: flex; flex-direction: column; gap: 4px;">
