@@ -810,7 +810,6 @@ const InteractionItem = ({ data, index, onDelete, onUpdate, isDarkMode = false, 
                 </div>
 
                 <JSONBox
-                    key={JSON.stringify(data)}
                     value={data}
                     onChange={(newData) => {
                         const updatedData = JSON.parse(JSON.stringify(newData));

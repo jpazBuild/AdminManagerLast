@@ -3,6 +3,59 @@ import { Check } from "lucide-react";
 import { FaXmark } from "react-icons/fa6";
 import { toast } from "sonner";
 
+
+
+const escapeInvalidBackslashes = (input: string): string =>{
+  let out = "";
+  let inString = false;
+  let escape = false;
+  let quoteChar = "";
+
+  const valid = new Set(['"', '\\', '/', 'b', 'f', 'n', 'r', 't', 'u']);
+
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
+
+    if (!inString) {
+      if (ch === '"' || ch === "'") {
+        inString = true;
+        quoteChar = ch;
+      }
+      out += ch;
+      continue;
+    }
+
+    if (escape) {
+      if (!valid.has(ch)) out += '\\';
+      out += ch;
+      escape = false;
+      continue;
+    }
+
+    if (ch === '\\') {
+      escape = true;
+      out += ch;
+      continue;
+    }
+
+    if (ch === quoteChar) {
+      inString = false;
+      quoteChar = "";
+    }
+
+    out += ch;
+  }
+  return out;
+}
+
+const safeJSONParse = (text: string) => {
+  try { return JSON.parse(text); } catch {}
+
+  const fixed = escapeInvalidBackslashes(text);
+  return JSON.parse(fixed);
+}
+
+
 const AddCustomStep = ({
   onAdd,
   setOpen
@@ -26,14 +79,14 @@ const AddCustomStep = ({
     const trimmed = input?.trim();
 
     if (trimmed?.startsWith("[")) {
-      return JSON.parse(trimmed);
+      return safeJSONParse(trimmed);
     }
 
     if (trimmed?.startsWith("{")) {
       const validArrayString = `[${trimmed}]`;
 
       try {
-        const parsed = JSON.parse(validArrayString);
+        const parsed = safeJSONParse(validArrayString);
         if (Array.isArray(parsed)) return parsed;
       } catch {
         // Fallback to manual parsing
