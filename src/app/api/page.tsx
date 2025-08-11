@@ -21,6 +21,7 @@ import { DashboardHeader } from "../Layouts/main";
 import { URL_API_ALB, URL_API_RUNNER } from "@/config";
 import { toast } from "sonner";
 import { FaRegCircleXmark } from "react-icons/fa6";
+import TextInputWithClearButton from "../components/InputClear";
 
 type PostmanCollection = { id: string; name: string; uid: string };
 type PostmanEnvironment = { id: string; name: string; uid: string };
@@ -252,18 +253,12 @@ const ApiFlowBuilder = () => {
         return <Badge variant="outline" className={cn("text-xs px-2 py-0.5 rounded", style)}>{method?.toUpperCase()}</Badge>;
     };
 
-
-    console.log("collections ", collections);
-    console.log("wsMessages ", wsMessages);
-    console.log(".filter((msg)) ", wsMessages.filter((msg) => typeof msg?.response === "object"));
-    console.log("Array.isArray(msg?.response) ", wsMessages.filter((msg) => Array.isArray(msg?.response)));
-
     return (
         <DashboardHeader>
-            <div className="flex h-screen">
-                <aside className="border-r bg-white shadow h-screen sticky top-0">
-                    <div className="p-4 border-b">
-                        <Tabs defaultValue="collections" className="w-full">
+            <div className="flex min-h-screen text-primary">
+                <aside className="border-r border-primary/20 bg-white shadow min-h-screen sticky top-0">
+                    <div className="p-4">
+                        <Tabs defaultValue="collections" className="w-full pt-2">
                             <TabsList className="grid grid-cols-4 mb-2 text-primary/80">
                                 <TabsTrigger value="collections">Collections</TabsTrigger>
                                 <TabsTrigger value="teams">Teams</TabsTrigger>
@@ -388,19 +383,25 @@ const ApiFlowBuilder = () => {
                                                 {selectedEnv.values.map((env: any) => (
                                                     <div
                                                         key={env.key}
-                                                        className="flex items-center gap-2 bg-muted p-2 rounded border border-border"
+                                                        className="flex items-center gap-2 bg-white p-2 rounded border border-primary/20 shadow-sm hover:bg-primary/10 transition-colors"
                                                     >
-                                                        <input
-                                                            type="text"
-                                                            defaultValue={env.key}
-                                                            className="w-1/3 px-2 py-1 rounded border text-xs bg-background"
-                                                            readOnly
-                                                        />
-                                                        <input
-                                                            type="text"
-                                                            defaultValue={String(env.value)}
-                                                            className="w-1/2 px-2 py-1 rounded border text-xs bg-background"
-                                                        />
+                                                        <div className="flex flex-col gap-1 w-full">
+                                                            <TextInputWithClearButton
+                                                                id={`key-${env.key}`}
+                                                                value={env.key}
+                                                                placeholder={`Enter key for ${env.key}`}
+                                                                defaultValue={env.key}
+                                                                readOnly={true}
+                                                            />
+                                                            <TextInputWithClearButton
+                                                                id={`Value-${env.value}`}
+                                                                value={env.value}
+                                                                placeholder={`Enter key for ${env.value}`}
+                                                                defaultValue={env.value}
+                                                                readOnly={true}
+                                                            />
+
+                                                        </div>
                                                         <label className="flex items-center gap-1 text-xs w-1/6 justify-end">
                                                             <input
                                                                 type="checkbox"
@@ -448,15 +449,20 @@ const ApiFlowBuilder = () => {
                             ) : (
                                 <div className="space-y-4">
                                     {flows[selectedFlow].apis.map((api: any, idx: number) => (
-                                        <Card key={idx}>
+                                        <Card key={idx} className="bg-white shadow-sm">
                                             <CardContent className="p-4">
                                                 <div
                                                     onClick={() => setExpandedCards((p) => ({ ...p, [idx]: !p[idx] }))}
                                                     className="flex justify-between items-center cursor-pointer hover:bg-muted/20 p-2 rounded-md"
                                                 >
+
                                                     <div className="flex items-center gap-2">
                                                         {expandedCards[idx] ? <ChevronDown /> : <ChevronRight />}
+                                                        <MethodBadge method={api?.request?.method} />
                                                         <span className="font-semibold">{api.name}</span>
+                                                        
+
+                                                        
                                                     </div>
                                                     <Button
                                                         variant="ghost"
@@ -471,19 +477,22 @@ const ApiFlowBuilder = () => {
                                                 {expandedCards[idx] && (
                                                     <>
                                                         <div className="flex items-center gap-2 mt-2">
-                                                            <MethodBadge method={api?.request?.method} />
-                                                            <Input
-                                                                value={api.request.url.raw}
-                                                                onChange={(e) => updateFlowField(idx, "url", e.target.value)}
-                                                                className="text-xs"
+                                                            <TextInputWithClearButton
+                                                                id={`url-${idx}`}
+                                                                value={api?.request?.url?.raw}
+                                                                placeholder="Enter request URL"
+                                                                defaultValue={api.request.url.raw}
+                                                                onChangeHandler={(e) => updateFlowField(idx, "url", e.target.value)}
+                                                                className="text-[14px]"
+                                                                readOnly={false}
                                                             />
-                                                            <Button variant="outline" className="cursor-pointer" size="icon" onClick={() => executeApi(api, idx)}>
+                                                            <Button variant="outline" className="cursor-pointer bg-primary/90 text-white font-semibold" size="icon" onClick={() => executeApi(api, idx)}>
                                                                 <PlayIcon className="w-4 h-4" />
                                                             </Button>
                                                         </div>
 
                                                         <Tabs defaultValue="request" className="w-full">
-                                                            <TabsList className="flex border-b text-primary/70">
+                                                            <TabsList className="flex text-primary/70 gap-2">
                                                                 <TabsTrigger value="headers">Headers</TabsTrigger>
                                                                 <TabsTrigger value="prerequest">Pre‑Request</TabsTrigger>
                                                                 <TabsTrigger value="request">Request</TabsTrigger>
@@ -496,28 +505,32 @@ const ApiFlowBuilder = () => {
                                                                     {(api.request.header || []).map(
                                                                         (h: any, hIdx: number) => (
                                                                             <div key={hIdx} className="flex items-center gap-2">
-                                                                                <Input
-                                                                                    type="text"
+                                                                                <TextInputWithClearButton
+                                                                                    id={`header-key-${idx}-${hIdx}`}
                                                                                     value={h.key}
-                                                                                    onChange={(e) => {
+                                                                                    placeholder="Header Key"
+                                                                                    defaultValue={h.key}
+                                                                                    onChangeHandler={(e) => {
                                                                                         const up = [...api.request.header];
                                                                                         up[hIdx].key = e.target.value;
                                                                                         updateFlowField(idx, "headers", up);
                                                                                     }}
-                                                                                    placeholder="Header Key"
                                                                                     className="text-xs w-1/3 text-primary/90"
+                                                                                    readOnly={false}
                                                                                 />
-                                                                                <Input
-                                                                                    type="text"
+                                                                                <TextInputWithClearButton
+                                                                                    id={`header-value-${idx}-${hIdx}`}
                                                                                     value={h.value}
-                                                                                    onChange={(e) => {
+                                                                                    onChangeHandler={(e) => {
                                                                                         const up = [...api.request.header];
                                                                                         up[hIdx].value = e.target.value;
                                                                                         updateFlowField(idx, "headers", up);
                                                                                     }}
                                                                                     placeholder="Header Value"
                                                                                     className="text-xs w-2/3 text-primary/90"
+                                                                                    readOnly={false}
                                                                                 />
+                                                                                
                                                                                 <Button
                                                                                     variant="ghost"
                                                                                     size="icon"
@@ -542,7 +555,7 @@ const ApiFlowBuilder = () => {
                                                                                 { key: "", value: "" },
                                                                             ])
                                                                         }
-                                                                        className="cursor-pointer"
+                                                                        className="cursor-pointer bg-white/90"
                                                                     >
                                                                         Add Header
                                                                     </Button>
@@ -551,7 +564,7 @@ const ApiFlowBuilder = () => {
 
                                                             <TabsContent value="prerequest" className="mt-4">
                                                                 <Textarea
-                                                                    className="text-sm bg-primary/10 text-primary/90 border rounded p-2 mb-3"
+                                                                    className="text-sm bg-primary/20 text-primary/90 border rounded p-2 mb-3"
                                                                     value={
                                                                         api?.event?.find((e: any) => e.listen === "prerequest")
                                                                             ?.script?.exec?.join("\n") || ""
@@ -570,7 +583,7 @@ const ApiFlowBuilder = () => {
                                                                             GraphQL Query
                                                                         </label>
                                                                         <Textarea
-                                                                            className="text-sm bg-primary/10 text-primary/90 border rounded p-2 mb-3"
+                                                                            className="text-sm bg-primary/20 text-primary/90 border rounded p-2 mb-3"
                                                                             value={api.request.body.graphql.query}
                                                                             onChange={(e) =>
                                                                                 updateFlowField(idx, "query", e.target.value)
@@ -581,7 +594,7 @@ const ApiFlowBuilder = () => {
                                                                             Variables
                                                                         </label>
                                                                         <Textarea
-                                                                            className="text-sm bg-primary/10 text-primary/90 border rounded p-2"
+                                                                            className="text-sm bg-primary/20 text-primary/90 border rounded p-2"
                                                                             value={api.request.body.graphql.variables}
                                                                             onChange={(e) =>
                                                                                 updateFlowField(idx, "variables", e.target.value)
@@ -596,14 +609,14 @@ const ApiFlowBuilder = () => {
                                                                 <Textarea
                                                                     readOnly
                                                                     rows={10}
-                                                                    className="text-sm bg-primary/10 text-primary/80 border rounded p-2 overflow-y-auto"
+                                                                    className="text-sm bg-primary/20 text-primary/80 border rounded p-2 overflow-y-auto"
                                                                     value={JSON.stringify(response[idx] || {}, null, 2)}
                                                                 />
                                                             </TabsContent>
 
                                                             <TabsContent value="test" className="mt-4">
                                                                 <Textarea
-                                                                    className="text-sm bg-primary/10 text-primary/90 border rounded p-2 mb-3"
+                                                                    className="text-sm bg-primary/20 text-primary/90 border rounded p-2 mb-3"
                                                                     value={
                                                                         api?.event?.find((e: any) => e.listen === "test")
                                                                             ?.script?.exec?.join("\n") || ""
@@ -630,14 +643,14 @@ const ApiFlowBuilder = () => {
                                 {wsMessages
                                     .filter((msg) => typeof msg?.response === "object" && msg?.response?.status)
                                     .map((msg, idx) => {
-                                        console.log("msg ", msg);
+                                        // console.log("msg ", msg);
 
                                         // const requestBlock = msg?.response?.find((el: any) => el.type === "request");
                                         // if (!requestBlock) return null;
                                         msg = msg?.response
 
-                                        console.log("msg response ",msg?.response);
-                                        
+                                        // console.log("msg response ",msg?.response);
+
                                         return (
                                             <Card key={idx} className="mb-2">
                                                 <CardContent className="p-4 text-primary">
@@ -671,7 +684,7 @@ const ApiFlowBuilder = () => {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        {msg?.success && ( 
+                                                        {msg?.success && (
                                                             <CheckCircle className="text-green-500 w-5 h-5" />
                                                         )}
                                                         {!msg?.success && (

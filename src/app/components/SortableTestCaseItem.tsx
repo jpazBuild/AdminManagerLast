@@ -20,6 +20,7 @@ import { TestCase } from "@/types/TestCase";
 import ReusableStepModal from "./ReusableStepModal";
 import { URL_API_ALB } from "@/config";
 import TestCaseActions from "./TestCaseActions";
+import ReportTestCaseList from "./ReportsHistoricTestCaseList";
 
 const useScrollPosition = (dependencies: any[]) => {
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -813,11 +814,11 @@ const SortableTestCaseItem: React.FC<Props> = ({
                     )}
 
                     {viewMode === 'Historic reports' && test.id && (
-                        <div className="p-4">
-                            <div className="text-center text-gray-500">
-                                Pending
-                            </div>
-                        </div>
+                       <ReportTestCaseList
+                            test={{ ...test, testCaseId: test.id }}
+                            visible={true}
+                            viewMode={viewMode}
+                        />
                     )}
                 </AccordionContent>
             </AccordionItem>

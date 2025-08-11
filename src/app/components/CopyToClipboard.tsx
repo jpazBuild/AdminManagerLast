@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
-import { Button } from "@/components/ui/button"; // Asegúrate que este Button es tu botón estilizado
+import { Button } from "@/components/ui/button";
 
 const CopyToClipboard = ({ text,isDarkMode=false }: { text: string,isDarkMode: boolean }) => {
     const [copied, setCopied] = useState(false);

@@ -8,6 +8,7 @@ import SortableTestCaseItem from "./SortableTestCaseItem";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 import { TestCase } from "@/types/TestCase";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface TestStep {
     action: string;
@@ -358,7 +359,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
             : "w-full flex gap-3 items-center text-xs text-muted-foreground mb-1",
         exportButton: isDarkMode
             ? "self-end mt-2 cursor-pointer text-xs flex items-center gap-2 bg-gray-700 text-white border-gray-600 hover:bg-gray-600"
-            : "self-end mt-2 cursor-pointer text-xs flex items-center gap-2",
+            : "self-end mt-2 cursor-pointer text-xs flex items-center gap-2 bg-white text-primary/90 border-primary/80 hover:bg-primary/20",
         label: isDarkMode
             ? "w-32 text-gray-300 font-medium"
             : "w-32 text-gray-700 font-medium",
@@ -375,8 +376,8 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
     const getLegendItemClasses = useCallback((opacity: string) => {
         if (isDarkMode) {
             return `w-3 h-3 rounded-full inline-block ${opacity === '85' ? 'bg-blue-400' :
-                    opacity === '65' ? 'bg-blue-500' :
-                        'bg-blue-600'
+                opacity === '65' ? 'bg-blue-500' :
+                    'bg-blue-600'
                 }`;
         } else {
             return `w-3 h-3 rounded-full bg-primary/${opacity} inline-block`;
@@ -434,6 +435,35 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
     const handleCollapseAll = useCallback(() => {
         setOpenItems([]);
     }, []);
+
+    const allIds = useMemo(
+        () => testCasesData.map(tc => tc.id ?? ''),
+        [testCasesData]
+    );
+
+    const selectAllChecked = useMemo(() => {
+        if (allIds.length === 0) return false;
+        return allIds.every(id => (selectedCases ?? []).includes(id));
+    }, [allIds, selectedCases]);
+
+    const handleSelectAllChange = useCallback((checked: boolean | "indeterminate") => {
+        const wantSelectAll = checked === true;
+
+        if (wantSelectAll) {
+            allIds.forEach(id => {
+                if (!(selectedCases ?? []).includes(id)) {
+                    toggleSelect(id);
+                }
+            });
+        } else {
+            allIds.forEach(id => {
+                if ((selectedCases ?? []).includes(id)) {
+                    toggleSelect(id);
+                }
+            });
+        }
+    }, [allIds, selectedCases, toggleSelect]);
+
     return (
         <div className="space-y-4">
             <div className={styleClasses.container}>
@@ -516,6 +546,18 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                         <span>Submodule</span>
                     </div>
                 </div>
+
+                <div className="flex items-center gap-2">
+                    <Checkbox
+                        id="select-all-tests"
+                        checked={selectAllChecked}
+                        onCheckedChange={handleSelectAllChange}
+                        className={isDarkMode ? "border-gray-500 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500" : ""}
+                    />
+                    <Label htmlFor="select-all-tests">
+                        Select all ({allIds.length})
+                    </Label>
+                </div>
                 <Button
                     onClick={handleExportAsDataObject}
                     variant="outline"
@@ -530,7 +572,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                     onClick={handleExpandAll}
                     variant="outline"
                     size="sm"
-                    className={isDarkMode ? "bg-gray-700 text-white" : ""}
+                    className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-primary/90 hover:bg-primary/20"}
                 >
                     Expand All
                 </Button>
@@ -538,7 +580,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                     onClick={handleCollapseAll}
                     variant="outline"
                     size="sm"
-                    className={isDarkMode ? "bg-gray-700 text-white" : ""}
+                    className={isDarkMode ? "bg-gray-700 text-white" :  "bg-white text-primary/90 hover:bg-primary/20"}
                 >
                     Collapse All
                 </Button>

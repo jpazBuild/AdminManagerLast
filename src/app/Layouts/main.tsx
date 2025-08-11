@@ -104,8 +104,8 @@ export const DashboardHeader = ({
         </div>
       </header>
 
-      <main className={`flex-1 pt-20 h-screen top-0 ${overflow} transition-colors duration-300 ${
-        darkMode ? "bg-gray-900" : "bg-gray-100"
+      <main className={`flex-1 mt-14 min-h-screen top-0 ${overflow} transition-colors duration-300 ${
+        darkMode ? "bg-gray-900" : "bg-primary/10"
       }`}>
         {children}
       </main>
