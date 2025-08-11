@@ -68,6 +68,15 @@ const Reports = () => {
   }, []);
 
   useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent): void => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return (): void => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
+  useEffect(() => {
     const fetchReportsForPage = async () => {
       setLoading(true);
 

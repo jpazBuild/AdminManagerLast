@@ -3,7 +3,18 @@ import TextInputWithClearButton from "@/app/components/InputClear";
 import imageStart from "../../../../public/automation_start.jpg";
 import Image from "next/image";
 import CardGlass from "../../components/cardGlass";
+import { useEffect } from "react";
+
 const LoginPage = () => {
+    useEffect(() => {
+        const handleBeforeUnload = (event: BeforeUnloadEvent): void => {
+            event.preventDefault();
+            event.returnValue = "";
+        };
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return (): void => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, []);
+
     return (
         <div className="relative h-screen w-full flex flex-col justify-center items-center p-2">
             <Image

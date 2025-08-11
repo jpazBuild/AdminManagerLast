@@ -69,6 +69,15 @@ const ApiFlowBuilder = () => {
         fetchPostmanElements();
     }, []);
 
+    useEffect(() => {
+        const handleBeforeUnload = (event: BeforeUnloadEvent): void => {
+            event.preventDefault();
+            event.returnValue = "";
+        };
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return (): void => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, []);
+
     const addToFlow = (api: any) => {
         const up = [...flows];
         up[selectedFlow].apis.push({ ...api });
