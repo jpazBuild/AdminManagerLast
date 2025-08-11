@@ -38,38 +38,6 @@ const JSONDropzone = ({
     };
     reader.readAsText(file);
   };
-  // const handleFile = (file: File) => {
-  //   const reader = new FileReader();
-  //   reader.onload = () => {
-  //     try {
-  //       const json = JSON.parse(reader.result as string);
-  //       onJSONParsed(json);
-  //       setFileName(file.name);
-  //       toast.success("JSON uploaded successfully!");
-  //       onFileInfoChange?.({ loaded: true, name: file.name });
-  //     } catch {
-  //       toast.error("Invalid JSON format.");
-  //       onFileInfoChange?.({ loaded: false, name: "" });
-  //     }
-  //   };
-  //   reader.readAsText(file);
-  // };
-
-  // const handleDrop = useCallback(
-  //   (event: React.DragEvent<HTMLDivElement>) => {
-  //     event.preventDefault();
-  //     setIsDragging(false);
-  //     const file = event.dataTransfer.files[0];
-  //     if (file && file.type === "application/json") {
-  //       handleFile(file);
-  //       if (fileInputRef.current) fileInputRef.current.value = "";
-  //     } else {
-  //       toast.error("Please upload a valid .json file.");
-  //     }
-  //   },
-  //   [onJSONParsed]
-  // );
-
   const handleDrop = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
@@ -90,13 +58,6 @@ const JSONDropzone = ({
   );
 
 
-  // const clearFile = () => {
-  //   setFileName(null);
-  //   toast.info("JSON file removed.");
-  //   onFileInfoChange?.({ loaded: false, name: "" });
-  //   onClear?.();
-  //   if (fileInputRef.current) fileInputRef.current.value = "";
-  // };
   const clearFile = () => {
     setFileNames([]);
     toast.info("JSON files removed.");
@@ -173,20 +134,6 @@ const JSONDropzone = ({
         <p className="text-xs text-center">
           Drag and drop a <span className="font-medium">JSON</span> file here or click to browse
         </p>
-        {/* <input
-          ref={fileInputRef}
-          type="file"
-          accept={acceptedFileTypes.join(",")}
-          multiple
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            handleFile(file);
-            e.target.value = "";
-          }}
-          className="hidden"
-          id="json-upload"
-        /> */}
 
         <input
           ref={fileInputRef}
@@ -214,20 +161,6 @@ const JSONDropzone = ({
           or select manually
         </label>
       </div>
-
-      {/* {fileName && (
-        <div className={`mt-4 flex flex-col text-center text-xs font-medium space-y-2 ${getFileNameClasses()}`}>
-          <div>
-            Uploaded: <span className={getFileNameValueClasses()}>{fileName}</span>
-          </div>
-          <button
-            onClick={clearFile}
-            className={getRemoveButtonClasses()}
-          >
-            <CiSquareRemove className="w-4 h-4" /> Remove uploaded JSON
-          </button>
-        </div>
-      )} */}
 
       {fileNames.length > 0 && (
         <div className={`mt-4 flex flex-col text-center text-xs font-medium space-y-2 ${getFileNameClasses()}`}>

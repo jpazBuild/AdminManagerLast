@@ -6,7 +6,7 @@ interface TextInputWithClearButtonProps {
   label?: string;
   id: string;
   value: string;
-  onChangeHandler: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  onChangeHandler?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   placeholder: string;
   type?: string;
   disabled?: boolean;
@@ -20,6 +20,7 @@ interface TextInputWithClearButtonProps {
   required?: boolean;
   inputMode?: "text" | "search" | "none"
   isDarkMode?: boolean;
+  defaultValue?: string;
 }
   
 
@@ -33,6 +34,8 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
   type = "text",
   className = "",
   isDarkMode = false,
+  defaultValue = "",
+  readOnly = false,
   ...props
 }) => {
   const spanRef = useRef<HTMLSpanElement>(null);
@@ -58,7 +61,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
   useEffect(() => {
     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
     debounceTimeout.current = setTimeout(() => {
-      if (localValue !== value) {
+      if (localValue !== value && onChangeHandler) {
         onChangeHandler({
           target: { value: localValue }
         } as React.ChangeEvent<HTMLInputElement>);
@@ -94,6 +97,8 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
             rows={lineCount < 3 ? 3 : lineCount}
             onChange={e => setLocalValue(e.target.value)}
             className={`w-full p-2 pr-10 rounded-md ${isDarkMode ? "bg-primary/20 text-white/90 focus:ring-white/60" : "bg-primary/20  text-primary/80 focus:ring-primary/90"} resize-none focus:outline-none focus:ring-2  shadow-md`}
+            defaultValue={defaultValue}
+            readOnly={readOnly}
           />
         ) : (
           <input
@@ -105,11 +110,12 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
             value={localValue}
             onChange={e => setLocalValue(e.target.value)}
             className={`w-full p-2 pr-10 rounded-md  focus:outline-none focus:ring-2 ${isDarkMode ? "focus:ring-white/90 bg-primary/10 text-white/90" :"!bg-primary/20  text-primary/80 focus:ring-primary/90"} shadow-md ${className}`}
-
+            defaultValue={defaultValue}
+            readOnly={readOnly}
           />
         )}
 
-          {!isPassword && localValue?.length > 0 && (
+          {!isPassword && localValue?.length > 0 && readOnly === false && (
           <button
             type="button"
             onClick={clearInput}

@@ -6,7 +6,7 @@ import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 import ReportUI from "./Report";
 import { useTestExecution } from "../hooks/useTestExecution";
 import { StopCircle, Download as DownloadIcon } from "lucide-react";
-import { handleDownloadHTMLReport } from "../hooks/HTMLReport";
+import { handleDownloadHTMLReport, handleDownloadHTMLReportSingle } from "../hooks/HTMLReport";
 import { handleDownloadPDFReport } from "@/lib/PDFReport";
 import { ExecutionSummary } from "./ExecutionSummary";
 
@@ -123,7 +123,7 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
     const handleStopAllTests = () => {
         const newStopped: Record<string, boolean> = { ...stopped };
         const newLoading: Record<string, boolean> = {};
-        
+
         selectedTest.forEach((test: any) => {
             const reportId = test.id || test.testCaseId;
             const connectionId = stepMap[reportId]?.connectionId;
@@ -208,20 +208,40 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
 
                     return (
                         <div key={reportId} id={reportId} className="p-1 flex flex-col gap-2">
-                            {progressValue < 100 && !stopped[reportId] && (
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleStopTest(reportId, connectionId, reports.find((p: any) => (p.testCaseId || p.id) === reportId)?.socket);
-                                        setLoading((prev: any) => ({ ...prev, [reportId]: false }));
-                                    }}
-                                    className="self-end flex items-center shadow-lg rounded-lg cursor-pointer border gap-2 px-3 py-2 hover:text-red-600 text-red-500 bg-white hover:bg-red-50 transition-all duration-200"
-                                    title="Stop Test"
-                                >
-                                    <StopCircle className="w-5 h-5 animate-pulse" />
-                                    <span className="text-sm font-medium">Stop</span>
-                                </button>
-                            )}
+                            <div className="flex justify-start gap-2 pr-1">
+                                {progressValue === 100 && (
+                                    <button
+                                        onClick={() =>
+                                            handleDownloadHTMLReportSingle(
+                                                reportId,
+                                                reports,
+                                                testData,
+                                                selectedTest
+                                            )
+                                        }
+                                        className="flex cursor-pointer items-center gap-2 text-xs border-primary/60 border-2 text-primary/60 font-semibold px-3 py-1 rounded hover:shadow-md"
+                                    >
+                                        <DownloadIcon size={16} /> HTML Report (Test)
+                                    </button>
+                                )}
+
+                                {progressValue < 100 && !stopped[reportId] && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleStopTest(reportId, connectionId, reports.find((p: any) => (p.testCaseId || p.id) === reportId)?.socket);
+                                            setLoading((prev: any) => ({ ...prev, [reportId]: false }));
+                                        }}
+                                        className="self-end flex items-center shadow-lg rounded-lg cursor-pointer border gap-2 px-3 py-2 hover:text-red-600 text-red-500 bg-white hover:bg-red-50 transition-all duration-200"
+                                        title="Stop Test"
+                                    >
+                                        <StopCircle className="w-5 h-5 animate-pulse" />
+                                        <span className="text-sm font-medium">Stop</span>
+                                    </button>
+                                )}
+                            </div>
+
+
 
                             <Card
                                 className={`relative cursor-pointer shadow-lg transition-all duration-300 hover:shadow-xl border-3 border-l-4 rounded-xl overflow-hidden  ${isFailed

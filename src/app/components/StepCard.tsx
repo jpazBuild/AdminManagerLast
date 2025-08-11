@@ -71,23 +71,14 @@ const StepScreenshot = ({ step, handleImageClick }: any) => {
     );
 };
 
-// interface StepCardProps {
-//     step: StepData;
-//     stepData: StepData;
-//     index: number;
-//     handleImageClick: () => void;
-//     stopped?: boolean; // <--- agrega esto
-// }
 
 const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: StepCardProps) => {
     const status = (step?.status ?? "").toLowerCase();
 
-    // Flags
     const isStepSuccess = status === "completed";
     const isStepError = status === "failed";
     const isProcessing = status === "processing";
     const isSkipped = status === "skipped";
-    // Usamos la prop stopped para mostrar "Stopped" y estilos
     const isStopped = stopped;
     console.log("StepCard stopped:", stopped, "status:", status);
 
@@ -140,11 +131,6 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
                     <div className="w-5 h-5 border-4 border-gray-300 border-t-primary rounded-full animate-spin"></div>
                 </div>
             )}
-            {/* {isStopped && (
-                <div className="absolute bottom-2 right-2 text-gray-400 text-xs font-semibold">
-                    <span>Stopped</span>
-                </div>
-            )} */}
             {step?.screenshot && (
                 <StepScreenshot step={step} handleImageClick={handleImageClick} />
             )}

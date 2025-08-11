@@ -1,5 +1,5 @@
 import { Trash2, Check } from "lucide-react";
-import { Button } from "@/components/ui/button"; // Asegúrate que esté usando tu diseño base
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 const DeleteButton = ({ onClick }: { onClick: () => void }) => {
