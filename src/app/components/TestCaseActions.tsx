@@ -40,8 +40,8 @@ const TestCaseActions = ({ test, onDelete, onUpdate,isLoadingUpdate,isLoadingDel
                         </button>
                         <button
                             onClick={() => {
-                                if (test?.testCaseId) {
-                                    onDelete(test.testCaseId);
+                                if (test?.id) {
+                                    onDelete(test?.id);
                                     setOpenDialog(false);
                                 } else {
                                     toast.error("No testCaseId found");

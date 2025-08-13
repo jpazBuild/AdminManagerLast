@@ -460,9 +460,9 @@ const ApiFlowBuilder = () => {
                                                         {expandedCards[idx] ? <ChevronDown /> : <ChevronRight />}
                                                         <MethodBadge method={api?.request?.method} />
                                                         <span className="font-semibold">{api.name}</span>
-                                                        
 
-                                                        
+
+
                                                     </div>
                                                     <Button
                                                         variant="ghost"
@@ -530,7 +530,7 @@ const ApiFlowBuilder = () => {
                                                                                     className="text-xs w-2/3 text-primary/90"
                                                                                     readOnly={false}
                                                                                 />
-                                                                                
+
                                                                                 <Button
                                                                                     variant="ghost"
                                                                                     size="icon"
@@ -648,9 +648,6 @@ const ApiFlowBuilder = () => {
                                         // const requestBlock = msg?.response?.find((el: any) => el.type === "request");
                                         // if (!requestBlock) return null;
                                         msg = msg?.response
-
-                                        // console.log("msg response ",msg?.response);
-
                                         return (
                                             <Card key={idx} className="mb-2">
                                                 <CardContent className="p-4 text-primary">
