@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DashboardHeader } from "../../Layouts/main";
 import axios from "axios";
 import { URL_API_ALB } from "@/config";
 import { toast } from "sonner";
-import { Loader, ChevronDown, ChevronRight, Edit } from "lucide-react";
+import { Loader, ChevronDown, ChevronRight, Edit, Plus } from "lucide-react";
 import { checkConnection } from "@/utils/DBBUtils";
 import InteractionItem from "@/app/components/Interaction";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,12 @@ import TextInputWithClearButton from "@/app/components/InputClear";
 import { SearchCombobox } from "@/app/components/SearchCombobox";
 import StepActions from "@/app/components/StepActions";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
 } from "@/components/ui/dialog";
 
 type ReusableHeader = {
@@ -58,10 +58,12 @@ const Reusables = () => {
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [reusableToDelete, setReusableToDelete] = useState<ReusableHeader | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+
     const [expanded, setExpanded] = useState<Record<string, boolean>>({});
     const [details, setDetails] = useState<Record<string, ReusableDetail | undefined>>({});
     const [loadingById, setLoadingById] = useState<Record<string, boolean>>({});
     const [errorById, setErrorById] = useState<Record<string, string | undefined>>({});
+    
     const [tags, setTags] = useState<any[]>([]);
     const [selectedTag, setSelectedTag] = useState<string>("");
     const [isLoadingTags, setIsLoadingTags] = useState<boolean>(false);
@@ -78,46 +80,78 @@ const Reusables = () => {
         selectedTagId?: string;
         selectedTagName?: string;
     }>>({});
+    const tagOptions = useMemo(
+        () => [{ label: "All", value: "" }, ...tags.map((t: any) => ({ label: t.name, value: t.id }))],
+        [tags]
+    );
 
-    useEffect(() => {
-        const fetchInitialData = async () => {
-            try {
-                setIsLoadingReusables(true);
-                await checkConnection();
-                const reusableRes = await axios.post(`${URL_API_ALB}getReusableStepsHeaders`, {});
-                if (reusableRes.data?.error) throw new Error(reusableRes.data.error);
-                const data = Array.isArray(reusableRes.data) ? reusableRes.data : [];
-                setReusables(data);
-            } catch (error: any) {
-                console.error("Error fetching initial data:", error);
-                toast.error(error?.message ?? "Error fetching reusables");
-                setReusables([]);
-            } finally {
-                setIsLoadingReusables(false);
-            }
-        };
+    const selectedTagName = useMemo(
+        () => tags.find((t: any) => t.id === selectedTag)?.name ?? "",
+        [selectedTag, tags]
+    );
 
-        fetchInitialData();
-    }, []);
+    const filteredReusables = useMemo(() => {
+        if (!selectedTag) return reusables;
+        return reusables.filter((r) => {
+            const byId = Array.isArray(r.tagIds) && r.tagIds.includes(selectedTag);
+            const byName = Array.isArray(r.tagNames) && r.tagNames.includes(selectedTagName);
+            return byId || byName;
+        });
+    }, [reusables, selectedTag, selectedTagName]);
+
+    const [createOpen, setCreateOpen] = useState(false);
+    const [isCreating, setIsCreating] = useState(false);
+    const [createForm, setCreateForm] = useState<{
+        name: string;
+        description: string;
+        selectedTagId?: string;
+        selectedTagName?: string;
+        createdBy: string;
+        temp: boolean;
+        stepsData: any[];
+    }>({
+        name: "",
+        description: "",
+        selectedTagId: undefined,
+        selectedTagName: undefined,
+        createdBy: "jpaz",
+        temp: false,
+        stepsData: [],
+    });
+
+    const fetchReusables = async (tagId?: string) => {
+        try {
+            setIsLoadingReusables(true);
+            await checkConnection();
+            const body = tagId ? { tagIds: [tagId] } : {};
+            const reusableRes = await axios.post(`${URL_API_ALB}getReusableStepsHeaders`, body);
+            if (reusableRes.data?.error) throw new Error(reusableRes.data.error);
+            const data = Array.isArray(reusableRes.data) ? reusableRes.data : [];
+            setReusables(data);
+        } catch (error: any) {
+            console.error("Error fetching reusables:", error);
+            toast.error(error?.message ?? "Error fetching reusables");
+            setReusables([]);
+        } finally {
+            setIsLoadingReusables(false);
+        }
+    };
+
+    useEffect(() => { fetchReusables(); }, []);
 
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
                 setIsLoadingTags(true);
-                await checkConnection()
+                await checkConnection();
                 const tagsRes = await axios.post(`${URL_API_ALB}tags`, {});
-
                 if (tagsRes.data.error) throw new Error(tagsRes.data.error);
-
                 setTags(Array.isArray(tagsRes.data) ? tagsRes.data : []);
-
             } catch (error) {
                 console.error("Error fetching initial data:", error);
                 toast.error(error instanceof Error ? error.message : "Error fetching tags");
-
                 setTags([]);
                 setSelectedTag("");
-
             } finally {
                 setIsLoadingTags(false);
             }
@@ -310,13 +344,12 @@ const Reusables = () => {
             setIsDeleting(true);
             await checkConnection();
             const res = await axios.delete(`${URL_API_ALB}reusableSteps`, {
-                data: { id: reusableToDelete.id }, // axios DELETE con body
+                data: { id: reusableToDelete.id },
             });
             if (res.status !== 200 || res.data?.error) {
                 throw new Error(res.data?.error || "Delete failed");
             }
 
-            // Actualiza estado local
             setReusables(prev => prev.filter(r => r.id !== reusableToDelete.id));
             setDetails(prev => {
                 const copy = { ...prev };
@@ -332,18 +365,136 @@ const Reusables = () => {
             toast.success(`Reusable "${reusableToDelete.name}" deleted successfully`);
             setDeleteOpen(false);
             setReusableToDelete(null);
+            fetchReusables(selectedTag || undefined);
+
         } catch (e: any) {
             toast.error(e?.message ?? "Failed to delete reusable");
         } finally {
             setIsDeleting(false);
         }
     };
+
+    const makeCreateStepSetters = () => {
+        const setResponseTest = (updater: any) => {
+            setCreateForm(prev => {
+                const prevObj = { stepsData: prev.stepsData ?? [] };
+                const nextObj = typeof updater === "function" ? updater(prevObj) : updater;
+                const nextSteps = Array.isArray(nextObj?.stepsData) ? nextObj.stepsData : prev.stepsData ?? [];
+                return { ...prev, stepsData: reindexSteps(nextSteps) };
+            });
+        };
+
+        const setTestCasesData = (updater: any) => {
+            setCreateForm(prev => {
+                const arr = [{ testCaseId: "create", stepsData: prev.stepsData ?? [] }];
+                const nextArr = typeof updater === "function" ? updater(arr) : updater;
+                const found = Array.isArray(nextArr) ? nextArr.find((tc) => tc.testCaseId === "create") : undefined;
+                const nextSteps = Array.isArray(found?.stepsData) ? found.stepsData : prev.stepsData ?? [];
+                return { ...prev, stepsData: reindexSteps(nextSteps) };
+            });
+        };
+
+        return { setResponseTest, setTestCasesData };
+    };
+
+    const resetCreateForm = () => {
+        setCreateForm({
+            name: "",
+            description: "",
+            selectedTagId: undefined,
+            selectedTagName: undefined,
+            createdBy: "jpaz",
+            temp: false,
+            stepsData: [],
+        });
+    };
+
+    const submitCreate = async () => {
+        if (!createForm.name?.trim()) {
+            toast.error("Name is required");
+            return;
+        }
+        if (!createForm.selectedTagName) {
+            toast.error("Select a tag");
+            return;
+        }
+
+        const payload = {
+            tagNames: createForm.selectedTagName ? [createForm.selectedTagName] : [],
+            name: createForm.name.trim(),
+            description: createForm.description ?? "",
+            stepsData: Array.isArray(createForm.stepsData) ? createForm.stepsData : [],
+            createdBy: createForm.createdBy || "jpaz",
+            temp: Boolean(createForm.temp),
+        };
+
+        try {
+            setIsCreating(true);
+            await checkConnection();
+            const res = await axios.put(`${URL_API_ALB}reusableSteps`, payload);
+            if (res.status !== 200 || res.data?.error) {
+                throw new Error(res.data?.error || "Create failed");
+            }
+
+            const returned = res.data ?? {};
+            const newItem: ReusableHeader = {
+                id: returned.id || crypto.randomUUID(),
+                name: returned.name ?? payload.name,
+                tagNames: Array.isArray(returned.tagNames) ? returned.tagNames : payload.tagNames,
+                createdAt: returned.createdAt ?? new Date().toISOString(),
+                createdBy: returned.createdBy ?? payload.createdBy,
+                description: returned.description ?? payload.description,
+                stepsData: returned.stepsData ?? payload.stepsData,
+            };
+
+            setReusables(prev => [newItem, ...prev]);
+            toast.success(`Reusable "${payload.name}" created successfully`);
+            setCreateOpen(false);
+            resetCreateForm();
+            fetchReusables(selectedTag || undefined);
+        } catch (e: any) {
+            toast.error(e?.message ?? "Failed to create reusable");
+        } finally {
+            setIsCreating(false);
+        }
+    };
+
     return (
         <DashboardHeader onDarkModeChange={handleDarkModeChange}>
             <div className={`p-4 flex justify-center items-center w-full flex-col gap-4 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-primary"} transition-colors duration-300`}>
                 <div className="w-full max-w-5xl flex flex-col gap-4 mb-4 mt-2">
-                    <h2 className="font-medium tracking-wide text-center text-[20px]">Find Reusables</h2>
 
+                    <div className="flex items-center justify-between">
+                        <h2 className="font-medium tracking-wide text-[20px]">Reusables</h2>
+
+                        <div className="flex items-center gap-2">
+                            {/* <div className="w-56">
+                                <SearchCombobox
+                                    textOptionSelect="Filter by tag"
+                                    textSearch="tag..."
+                                    options={[{ label: "All", value: "" }, ...tags.map((t: any) => ({ label: t.name, value: t.id }))]}
+                                    value={selectedTag}
+                                    onChange={(value) => {
+                                        const v = value || "";
+                                        setSelectedTag(v);
+                                        fetchReusables(v || undefined);
+                                    }}
+                                    disabled={isLoadingTags}
+                                />
+                            </div> */}
+
+                            <Button
+                                size="sm"
+                                className="text-white"
+                                onClick={() => {
+                                    resetCreateForm();
+                                    setCreateOpen(true);
+                                }}
+                            >
+                                <Plus className="h-4 w-4 mr-1" /> Create reusable
+                            </Button>
+                        </div>
+                    </div>
                     {isLoadingReusables ? (
                         <div className="flex flex-col items-center justify-center text-center text-primary/70 py-10">
                             <Loader className="animate-spin h-8 w-8 mb-4" />
@@ -360,7 +511,6 @@ const Reusables = () => {
                                 const detail = details[reusable.id];
                                 const isEditing = !!editingById[reusable.id];
                                 const form = formById[reusable.id];
-                                console.log("reusable detail:", detail?.tagNames);
 
                                 const { setResponseTest, setTestCasesData } = makeStepSetters(reusable.id);
 
@@ -411,7 +561,6 @@ const Reusables = () => {
                                                 ) : detail ? (
                                                     <div className="space-y-4">
                                                         <div className="flex flex-wrap gap-2">
-
                                                             {!isEditing ? (
                                                                 <>
                                                                     <Button size="sm" variant="outline" onClick={() => startEdit(reusable)}>
@@ -430,40 +579,31 @@ const Reusables = () => {
                                                                     </Button>
                                                                 </>
                                                             ) : (
-
                                                                 <>
-                                                                    {!isEditing ? (
-                                                                        <Button size="sm" variant="outline" onClick={() => startEdit(reusable)}>
-                                                                            <Edit /> Edit
-                                                                        </Button>
-                                                                    ) : (
-                                                                        <>
-                                                                            <button className="border border-primary/40 p-1 text-xs rounded-md"
-                                                                                disabled={isLoadingSave}
-                                                                                onClick={() => cancelEdit(reusable)}>
-                                                                                Cancel
-                                                                            </button>
+                                                                    <button
+                                                                        className="border border-primary/40 p-1 text-xs rounded-md"
+                                                                        disabled={isLoadingSave}
+                                                                        onClick={() => cancelEdit(reusable)}
+                                                                    >
+                                                                        Cancel
+                                                                    </button>
 
-                                                                            <Button
-                                                                                size="sm"
-                                                                                onClick={() => saveReusable(reusable)}
-                                                                                className="text-white"
-                                                                                disabled={isLoadingSave}
-                                                                            >
-                                                                                {isLoadingSave ? (
-                                                                                    <div className="flex items-center gap-2">
-                                                                                        <Loader className="animate-spin h-4 w-4" /> Saving…
-                                                                                    </div>
-                                                                                ) : (
-                                                                                    "Save"
-                                                                                )}
-                                                                            </Button>
-                                                                        </>
-                                                                    )}
+                                                                    <Button
+                                                                        size="sm"
+                                                                        onClick={() => saveReusable(reusable)}
+                                                                        className="text-white"
+                                                                        disabled={isLoadingSave}
+                                                                    >
+                                                                        {isLoadingSave ? (
+                                                                            <div className="flex items-center gap-2">
+                                                                                <Loader className="animate-spin h-4 w-4" /> Saving…
+                                                                            </div>
+                                                                        ) : (
+                                                                            "Save"
+                                                                        )}
+                                                                    </Button>
                                                                 </>
-
                                                             )}
-
                                                         </div>
 
                                                         {isEditing && form && (
@@ -491,7 +631,6 @@ const Reusables = () => {
                                                                     />
                                                                 </div>
                                                                 <div className="grid gap-1 md:col-span-2">
-
                                                                     <TextInputWithClearButton
                                                                         id={`description-${reusable.id}`}
                                                                         label="Description"
@@ -502,7 +641,6 @@ const Reusables = () => {
                                                                         isDarkMode={isDarkMode}
                                                                     />
                                                                 </div>
-
 
                                                                 <div className="grid gap-1 md:col-span-2">
                                                                     <label className="text-sm font-medium">Tags</label>
@@ -543,7 +681,7 @@ const Reusables = () => {
                                                             </div>
                                                         )}
 
-                                                        <div >
+                                                        <div>
                                                             <h4 className="text-md text-primary/70 font-semibold mb-1">Steps</h4>
                                                             {isEditing && (
                                                                 <StepActions
@@ -589,7 +727,6 @@ const Reusables = () => {
                                                                                     showReusable={false}
                                                                                 />
                                                                             )}
-
                                                                         </div>
                                                                     ))}
                                                                 </div>
@@ -660,6 +797,153 @@ const Reusables = () => {
                 </DialogContent>
             </Dialog>
 
+            <Dialog open={createOpen} onOpenChange={(open) => {
+                if (!open && !isCreating) {
+                    setCreateOpen(false);
+                    resetCreateForm();
+                } else {
+                    setCreateOpen(open);
+                }
+            }}>
+                <DialogContent className="max-w-3xl text-primary">
+                    <DialogHeader>
+                        <DialogTitle>Create reusable</DialogTitle>
+                        <DialogDescription>Fill the fields and add steps to create a new reusable.</DialogDescription>
+                    </DialogHeader>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="grid gap-1">
+                            <TextInputWithClearButton
+                                id="create-name"
+                                label="Name"
+                                value={createForm.name}
+                                onChangeHandler={(e) => setCreateForm(p => ({ ...p, name: e.target.value }))}
+                                placeholder="Reusable name"
+                                className="border rounded px-2 py-1"
+                                isDarkMode={isDarkMode}
+                            />
+                        </div>
+                        <div className="grid gap-1">
+                            <TextInputWithClearButton
+                                id="create-createdBy"
+                                label="Created By"
+                                value={createForm.createdBy}
+                                onChangeHandler={(e) => setCreateForm(p => ({ ...p, createdBy: e.target.value }))}
+                                placeholder="Author"
+                                className="border rounded px-2 py-1"
+                                isDarkMode={isDarkMode}
+                            />
+                        </div>
+                        <div className="grid gap-1 md:col-span-2">
+                            <TextInputWithClearButton
+                                id="create-description"
+                                label="Description"
+                                value={createForm.description}
+                                onChangeHandler={(e) => setCreateForm(p => ({ ...p, description: e.target.value }))}
+                                placeholder="Description (optional)"
+                                className="border rounded px-2 py-1"
+                                isDarkMode={isDarkMode}
+                            />
+                        </div>
+
+                        <div className="grid gap-1 md:col-span-2">
+                            <label className="text-sm font-medium">Tag</label>
+                            <SearchCombobox
+                                textOptionSelect="Tag"
+                                textSearch="tag..."
+                                options={tags.map((tag: any) => ({ label: tag.name, value: tag.id }))}
+                                value={createForm.selectedTagId ?? ""}
+                                onChange={(value, option) => {
+                                    setCreateForm(p => ({
+                                        ...p,
+                                        selectedTagId: value || undefined,
+                                        selectedTagName: option?.label || undefined,
+                                    }));
+                                }}
+                                disabled={isLoadingTags}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="mt-4">
+                        <h4 className="text-sm font-semibold text-primary/80 mb-2">Steps</h4>
+
+                        <StepActions
+                            index={-1}
+                            steps={createForm.stepsData || []}
+                            test={{ testCaseId: "create" }}
+                            {...makeCreateStepSetters()}
+                            showReusable={false}
+                        />
+
+                        {Array.isArray(createForm.stepsData) && createForm.stepsData.length > 0 ? (
+                            <div className="flex flex-col gap-3 overflow-y-auto max-h-[360px] mt-2">
+                                {createForm.stepsData.map((step, idx) => (
+                                    <div key={`create-step-${idx}`} className="border rounded p-2">
+                                        <InteractionItem
+                                            data={{ id: `create-step-${idx}`, ...step }}
+                                            index={idx}
+                                            isDarkMode={isDarkMode}
+                                            test={{ testCaseId: "create" }}
+                                            onDelete={(indexToDelete: number) => {
+                                                setCreateForm(p => ({
+                                                    ...p,
+                                                    stepsData: reindexSteps(p.stepsData.filter((_: any, i: number) => i !== indexToDelete))
+                                                }));
+                                            }}
+                                            onUpdate={(indexToUpdate: number, updatedStep: any) => {
+                                                setCreateForm(p => {
+                                                    const next = [...p.stepsData];
+                                                    next[indexToUpdate] = { ...next[indexToUpdate], ...updatedStep };
+                                                    return { ...p, stepsData: reindexSteps(next) };
+                                                });
+                                            }}
+                                            showDelete
+                                        />
+                                        <StepActions
+                                            index={idx}
+                                            steps={createForm.stepsData || []}
+                                            test={{ testCaseId: "create" }}
+                                            {...makeCreateStepSetters()}
+                                            showReusable={false}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-xs opacity-70 mt-1">No steps.</div>
+                        )}
+                    </div>
+
+                    <DialogFooter className="flex gap-2 mt-2">
+                        <Button
+                            variant="outline"
+                            disabled={isCreating}
+                            onClick={() => {
+                                if (isCreating) return;
+                                setCreateOpen(false);
+                                resetCreateForm();
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={submitCreate}
+                            disabled={isCreating}
+                            className="text-white"
+                        >
+                            {isCreating ? (
+                                <span className="inline-flex items-center gap-2">
+                                    <Loader className="h-4 w-4 animate-spin" />
+                                    Creating…
+                                </span>
+                            ) : (
+                                "Create"
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </DashboardHeader>
     );
 };
