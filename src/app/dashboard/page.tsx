@@ -411,7 +411,8 @@ const DashboardPage = () => {
         if (selectedCases.length === 0) {
             toast.error("Please select at least one test case");
             return;
-        }        
+        }
+         
         await executeTests(selectedTests, await testData?.data, maxBrowsers, isHeadless);
     }, [selectedCases, selectedTests, testData, maxBrowsers, isHeadless, executeTests]);
 

@@ -143,8 +143,9 @@ export const useTestExecution = () => {
 
         const socket = new WebSocket(URL_API_RUNNER);
 
-        socket.onopen = () => {            
-            const rawData = testData?.data?.[testId] || {};
+        socket.onopen = () => { 
+                       
+            const rawData = testData?.[testId] || {};
             
             const sanitizedTestData = sanitizeTestData(rawData);
 
@@ -156,7 +157,7 @@ export const useTestExecution = () => {
                 testData: rawData,
                 temp: false
             };            
-            console.log(`📤 Enviando payload para test ${testId} ${payload}`);
+            console.log(`📤 Enviando payload para test ${testId} ${JSON.stringify(payload,null,2)}`);
 
             const payloadStr = JSON.stringify(payload);
             if (payloadStr.length > 1000000) {
