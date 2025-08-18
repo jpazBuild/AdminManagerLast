@@ -311,7 +311,7 @@ const DashboardPage = () => {
             if (groupId) searchParams.groupId = groupId;
             // if (selectedTag) searchParams.tagNames = [selectedTag];
             if (moduleId) searchParams.moduleId = moduleId;
-            if (submoduleId) searchParams.subModuleIds = [submoduleId];
+            if (submoduleId) searchParams.subModuleId = submoduleId;
 
             const response = await axios.post(`${URL_API_ALB}getTestHeaders`, searchParams);
             setDataTestCases(response.data || []);
