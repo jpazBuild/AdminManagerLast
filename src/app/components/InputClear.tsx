@@ -96,7 +96,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
             value={localValue}
             rows={lineCount < 3 ? 3 : lineCount}
             onChange={e => setLocalValue(e.target.value)}
-            className={`w-full p-2 pr-10 rounded-md ${isDarkMode ? "bg-primary/20 text-white/90 focus:ring-white/60" : "bg-primary/20  text-primary/80 focus:ring-primary/90"} resize-none focus:outline-none focus:ring-2  shadow-md`}
+            className={`w-full p-2 pr-10 rounded-md ${isDarkMode ? "bg-primary/20 text-white/90 focus:ring-white/60" : "bg-primary/20  text-primary/80 focus:ring-primary/90"} resize-none focus:outline-none focus:ring-1  shadow-md`}
             defaultValue={defaultValue}
             readOnly={readOnly}
           />
@@ -109,7 +109,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
             placeholder={placeholder}
             value={localValue}
             onChange={e => setLocalValue(e.target.value)}
-            className={`w-full p-2 pr-10 rounded-md  focus:outline-none focus:ring-2 ${isDarkMode ? "focus:ring-white/90 bg-primary/10 text-white/90" :"!bg-primary/20  text-primary/80 focus:ring-primary/90"} shadow-md ${className}`}
+            className={`w-full p-2 pr-10 rounded-md  focus:outline-none focus:ring-1 ${isDarkMode ? "focus:ring-white/90 bg-primary/10 text-white/90" :"!bg-primary/20  text-primary/80 focus:ring-primary/90"} shadow-md ${className}`}
             defaultValue={defaultValue}
             readOnly={readOnly}
           />

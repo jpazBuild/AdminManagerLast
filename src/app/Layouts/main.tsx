@@ -18,28 +18,6 @@ export const DashboardHeader = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState<boolean>(false);
 
-  // useEffect(() => {
-  //   const saved = localStorage.getItem("darkMode");
-  //   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  //   const initial = saved === null ? prefersDark : saved === "true";
-
-  //   setDarkMode(initial);
-  //   applyDarkModeClass(initial);
-  //   onDarkModeChange?.(initial);
-
-  //   const media = window.matchMedia("(prefers-color-scheme: dark)");
-  //   const handleChange = (e: MediaQueryListEvent) => {
-  //     if (localStorage.getItem("darkMode") === null) {
-  //       setDarkMode(e.matches);
-  //       applyDarkModeClass(e.matches);
-  //       onDarkModeChange?.(e.matches);
-  //     }
-  //   };
-
-  //   media.addEventListener("change", handleChange);
-  //   return () => media.removeEventListener("change", handleChange);
-  // }, [onDarkModeChange]);
-
   const applyDarkModeClass = (enabled: boolean) => {
     if (enabled) {
       document.documentElement.classList.add("dark");
@@ -72,7 +50,7 @@ export const DashboardHeader = ({
             className="h-10 w-auto rounded-md p-2"
           />
 
-          <div className="flex items-center gap-4 lg:hidden">
+          {/* <div className="flex items-center gap-4 lg:hidden">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className={`text-2xl cursor-pointer p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-[#021d3d] transition-colors duration-300 ${
@@ -83,12 +61,12 @@ export const DashboardHeader = ({
             >
               {mobileMenuOpen ? <FaTimes /> : <FaBars />}
             </button>
-          </div>
+          </div> */}
 
           <div>
             <Link 
               href="/dashboard" 
-              className={`hidden lg:inline-block text-md font-medium px-4 py-2 rounded-lg transition-colors duration-300 ${
+              className={`lg:inline-block text-md font-medium px-4 py-2 rounded-lg transition-colors duration-300 ${
                 darkMode 
                   ? "text-gray-100 hover:bg-gray-700" 
                   : "text-gray-900 hover:bg-gray-200"

@@ -274,3 +274,16 @@ div[role="tooltip"], .chartjs-tooltip {
 [data-radix-popper-content-wrapper]:has([data-slot="popover-content"][data-state="open"]) {
   z-index: 2147483647 !important;
 }
+
+
+/* el wrapper de radix no debe capturar eventos */
+[data-radix-popper-content-wrapper] { pointer-events: none; }
+
+/* el contenido del popover sí debe recibirlos */
+[data-slot="popover-content"] { pointer-events: auto; }
+
+/* por si tu navegador ignora overscroll en algunos casos */
+[data-slot="command-list"] {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch; /* iOS */
+}

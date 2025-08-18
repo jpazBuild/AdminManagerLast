@@ -90,9 +90,12 @@ function CommandList({
     <CommandPrimitive.List
       data-slot="command-list"
       className={cn(
-        "max-h-[300px] scroll-py-1 overflow-x-hidden overflow-y-auto",
+        "max-h-60 overflow-y-auto overflow-x-hidden overscroll-contain",
+        "touch-pan-y",
         className
       )}
+      onWheelCapture={(e) => e.stopPropagation()}
+      onTouchMoveCapture={(e) => e.stopPropagation()}
       {...props}
     />
   )
