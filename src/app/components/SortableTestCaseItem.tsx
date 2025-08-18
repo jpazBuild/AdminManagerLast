@@ -207,7 +207,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
     const handleDelete = useCallback(async () => {
         const res = await handleAxiosRequest(() =>
-            axios.delete(`${URL_API_ALB}tests`, {
+            axios.delete(`${URL_API_ALB?.replace(/\/+$/, "")}tests`, {
                 data: { id: test.id },
             }),
             "Test case deleted successfully"
