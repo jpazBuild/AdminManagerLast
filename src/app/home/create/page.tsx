@@ -432,6 +432,15 @@ const CreateForm = () => {
         fetchGroups();
     }, [])
 
+    useEffect(() => {
+        const handleBeforeUnload = (event: BeforeUnloadEvent): void => {
+            event.preventDefault();
+            event.returnValue = "";
+        };
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return (): void => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, []);
+
     const createGroupHandler = async (groupName: string, createdByGroup: string) => {
         console.log("Creating group with name:", groupName);
 
