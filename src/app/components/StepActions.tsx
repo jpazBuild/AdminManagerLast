@@ -18,6 +18,7 @@ interface StepActionsProps {
     test: any;
     setTestCasesData?: React.Dispatch<React.SetStateAction<any[]>>;
     setResponseTest?: React.Dispatch<React.SetStateAction<any>>;
+    showReusable?: boolean;
 }
 
 interface ReusableHeader {
@@ -40,6 +41,7 @@ const StepActions: React.FC<StepActionsProps> = ({
     test,
     setTestCasesData,
     setResponseTest,
+    showReusable = true
 }) => {
     const [waitInputs, setWaitInputs] = useState<Record<number, string | undefined>>({});
     const [viewActionStep, setViewActionStep] = useState<
@@ -151,7 +153,7 @@ const StepActions: React.FC<StepActionsProps> = ({
             };
 
             console.log("Updating reusable step with payload:", payload);
-            
+
             const res = await axios.patch(
                 `${URL_API_ALB}reusableSteps`,
                 payload
@@ -280,19 +282,22 @@ const StepActions: React.FC<StepActionsProps> = ({
                     <Wand2 className="mr-1 h-3 w-3" /> Add Custom Step
                 </Button>
 
-                <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-xs w-fit cursor-pointer"
-                    onClick={() => {
-                        setIsModalOpen(true);
-                        setSelectedReusable(null);
-                        setSelectedReusableSteps([]);
-                        fetchReusableHeaders();
-                    }}
-                >
-                    <Layers className="mr-1 h-3 w-3" /> Add Reusable Step
-                </Button>
+                {showReusable && (
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-xs w-fit cursor-pointer"
+                        onClick={() => {
+                            setIsModalOpen(true);
+                            setSelectedReusable(null);
+                            setSelectedReusableSteps([]);
+                            fetchReusableHeaders();
+                        }}
+                    >
+                        <Layers className="mr-1 h-3 w-3" /> Add Reusable Step
+                    </Button>
+                )}
+
             </div>
 
             {viewActionStep === "wait" && waitInputs[index] !== undefined && (

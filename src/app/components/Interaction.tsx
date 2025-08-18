@@ -29,6 +29,7 @@ interface InteractionItemProps {
     steps?: any[];
     setTestCasesData?: React.Dispatch<React.SetStateAction<any[]>>;
     setResponseTest?: React.Dispatch<React.SetStateAction<any>>;
+    showDelete?: boolean;
 }
 
 interface JSONBoxProps {
@@ -743,6 +744,7 @@ const ReusableStepsBlock = ({
                                 test={test}
                                 setTestCasesData={customSetTestCasesData}
                                 setResponseTest={customSetResponseTest}
+                                showDelete={false}
                             />
 
                         </div>
@@ -758,7 +760,7 @@ const ReusableStepsBlock = ({
     );
 };
 
-const InteractionItem = ({ data, index, onDelete, onUpdate, isDarkMode = false, ...rest }: InteractionItemProps) => {
+const InteractionItem = ({ data, index, onDelete, onUpdate,showDelete=true, isDarkMode = false, ...rest}: InteractionItemProps) => {
     const isReusableStep = data.type?.startsWith('STEPS') && Array.isArray(data.stepsData);
 
     if (isReusableStep) {
@@ -804,7 +806,7 @@ const InteractionItem = ({ data, index, onDelete, onUpdate, isDarkMode = false, 
                     <div className={getStepNumberClasses()}>{actualStepData.indexStep || data.indexStep}</div>
 
                     <div className={`absolute top-0 right-0 flex gap-2 items-center ${isDarkMode ? 'text-slate-300' : 'text-gray-700'}`}>
-                        {onDelete && <DeleteButton onClick={() => onDelete(index)} isDarkMode={isDarkMode}/>}
+                        {onDelete && showDelete && <DeleteButton onClick={() => onDelete(index)} isDarkMode={isDarkMode}/>}
                         <CopyToClipboard text={JSON.stringify(data)} isDarkMode={isDarkMode}/>
                     </div>
                 </div>
