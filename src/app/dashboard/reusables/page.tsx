@@ -468,7 +468,7 @@ const Reusables = () => {
                         <h2 className="font-medium tracking-wide text-[20px]">Reusables</h2>
 
                         <div className="flex items-center gap-2">
-                            {/* <div className="w-56">
+                            <div className="w-56">
                                 <SearchCombobox
                                     textOptionSelect="Filter by tag"
                                     textSearch="tag..."
@@ -481,7 +481,7 @@ const Reusables = () => {
                                     }}
                                     disabled={isLoadingTags}
                                 />
-                            </div> */}
+                            </div>
 
                             <Button
                                 size="sm"
