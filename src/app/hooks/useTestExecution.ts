@@ -144,7 +144,8 @@ export const useTestExecution = () => {
         const socket = new WebSocket(URL_API_RUNNER);
 
         socket.onopen = () => { 
-                       
+            console.log("testData in useTestExecution", testData);
+                         
             const rawData = testData?.[testId] || {};
             
             const sanitizedTestData = sanitizeTestData(rawData);
@@ -156,7 +157,9 @@ export const useTestExecution = () => {
                 testCaseName: testCase?.testCaseName || testCase?.name,
                 testData: rawData,
                 temp: false
-            };            
+            };
+            console.log("payload in useTestExecution", payload);
+                        
             console.log(`📤 Enviando payload para test ${testId} ${JSON.stringify(payload,null,2)}`);
 
             const payloadStr = JSON.stringify(payload);
