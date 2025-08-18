@@ -143,20 +143,20 @@ export const useTestExecution = () => {
 
         const socket = new WebSocket(URL_API_RUNNER);
 
-        socket.onopen = () => {
-            const rawData = testData.data?.[testId] || {};
+        socket.onopen = () => {            
+            const rawData = testData?.data?.[testId] || {};
+            
             const sanitizedTestData = sanitizeTestData(rawData);
 
             const payload = {
                 action: "executeTest",
                 testCaseId: testId,
                 isHeadless,
-                testCaseName: testCase.testCaseName || testCase.name,
-                testData: sanitizedTestData,
+                testCaseName: testCase?.testCaseName || testCase?.name,
+                testData: rawData,
                 temp: false
-            };
-
-            console.log(`📤 Enviando payload para test ${testId}`);
+            };            
+            console.log(`📤 Enviando payload para test ${testId} ${payload}`);
 
             const payloadStr = JSON.stringify(payload);
             if (payloadStr.length > 1000000) {

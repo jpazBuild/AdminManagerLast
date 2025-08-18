@@ -5,7 +5,7 @@ import { DashboardHeader } from "../Layouts/main";
 import { Filter, Loader } from "lucide-react";
 import { SearchField } from "../components/SearchField";
 import axios from "axios";
-import { FaSearch} from "react-icons/fa";
+import { FaSearch } from "react-icons/fa";
 import { toast } from "sonner";
 import { FiPlay } from "react-icons/fi";
 import TestCaseList from "../components/TestCaseList";
@@ -411,8 +411,8 @@ const DashboardPage = () => {
         if (selectedCases.length === 0) {
             toast.error("Please select at least one test case");
             return;
-        }
-        executeTests(selectedTests, testData, maxBrowsers, isHeadless);
+        }        
+        await executeTests(selectedTests, await testData?.data, maxBrowsers, isHeadless);
     }, [selectedCases, selectedTests, testData, maxBrowsers, isHeadless, executeTests]);
 
     return (
@@ -557,7 +557,7 @@ const DashboardPage = () => {
 
                         {availableCreators.length > 0 && (
                             <SearchCombobox
-                                textOptionSelect="Created By" textSearch="created by ..." 
+                                textOptionSelect="Created By" textSearch="created by ..."
                                 options={[
                                     { label: "All", value: "All" },
                                     ...availableCreators.map(creator => ({ label: creator, value: creator }))
@@ -570,7 +570,7 @@ const DashboardPage = () => {
                         {dataTestCases?.length > 1 && (
 
                             <SearchCombobox
-                                textOptionSelect="Test Case Name" textSearch="Test Case Name ..." 
+                                textOptionSelect="Test Case Name" textSearch="Test Case Name ..."
                                 options={dataTestCases
                                     .filter(tc => typeof tc.name === "string")
                                     .map((tc) => ({

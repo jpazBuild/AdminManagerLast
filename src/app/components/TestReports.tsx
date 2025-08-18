@@ -12,8 +12,7 @@ import { ExecutionSummary } from "./ExecutionSummary";
 
 const TestReports = ({ reports, setLoading, progress, selectedTest, testData, stopped, setStopped }: any) => {
     const [expandedReports, setExpandedReports] = useState<Record<string, boolean>>({});
-    const { stopTest } = useTestExecution();
-
+    const { stopTest } = useTestExecution();    
     const stepMap: Record<string, { connectionId: string; steps: Record<number, any> }> = {};
 
 
@@ -188,24 +187,17 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
 
             <div className="">
                 {selectedTest.map((test: any) => {
-                    console.log("test st6eps", steps);
-
-
-                    const reportId = test.id || test.testCaseId;
+                    const reportId = test?.id || test.testCaseId;
                     const progressValue = progress.find((p: any) => p.testCaseId === reportId)?.percent || 0;
                     const isExpanded = expandedReports[reportId] ?? false;
                     const testSteps = steps.filter((s) => s?.reportId === reportId);
-                    console.log("testSteps", testSteps);
-
+                    
                     const latestStep = testSteps.at(-1);
                     const finalStatus = latestStep?.ev?.status || latestStep?.ev?.finalStatus || "processing";
                     const isFailed = finalStatus === "failed";
-                    const dataSteps = test?.stepsData;
+                    const dataSteps = test?.stepsData || test?.stepsIds;
                     const connectionId = stepMap[reportId]?.connectionId;
-                    console.log(" stopped[reportId] ", stopped[reportId], " reportId ", reportId, " connectionId ", connectionId, " test ", test);
-
-                    console.log("stepMap[reportId] ", stepMap[reportId]);
-
+                    
                     return (
                         <div key={reportId} id={reportId} className="p-1 flex flex-col gap-2">
                             <div className="flex justify-start gap-2 pr-1">
