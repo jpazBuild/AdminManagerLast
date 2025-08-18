@@ -1,4 +1,3 @@
-// components/JsonViewer/JsonViewer.tsx
 import { useState } from "react";
 
 const JsonViewer = ({ jsonData }: { jsonData: any }) => {

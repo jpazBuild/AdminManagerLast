@@ -45,6 +45,7 @@ body {
 @theme {
   /* Color System */
   --color-primary: #021d3d;
+  --color-primary-blue:#3956E8;
   --color-background: rgba(2, 29, 61, 0.2);
   --color-foreground: 0 0% 3.9%;
   
@@ -270,3 +271,6 @@ div[role="tooltip"], .chartjs-tooltip {
   @apply !z-[9999] !text-[#223853] !bg-[#f0f0f0] !rounded-lg !shadow-md !p-3;
 }
 
+[data-radix-popper-content-wrapper]:has([data-slot="popover-content"][data-state="open"]) {
+  z-index: 2147483647 !important;
+}
