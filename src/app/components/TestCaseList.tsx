@@ -55,7 +55,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
     setEditMode,
     isDarkMode = false
 }) => {
-    const [dynamicValues, setDynamicValues] = useState<{ id: string; input: Record<string, string>; order?: number; testCaseName?: string; createdBy?: string }[]>([]);
+    const [dynamicValues, setDynamicValues] = useState<{ id: string; input: Record<string, string>; order?: number; testCaseName?: string; createdByName?: string }[]>([]);
     const [viewMode, setViewMode] = useState<'data' | 'steps' | 'editLocation'>('data');
     const [testCasesData, setTestCasesData] = useState<TestCase[]>([]);
     const [openDialog, setOpenDialog] = useState(false);
@@ -175,7 +175,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                             updated[existingIndex] = {
                                 ...updated[existingIndex],
                                 testCaseName: testCase.testCaseName,
-                                createdBy: testCase.createdBy,
+                                createdByName: testCase.createdByName,
                                 input: {
                                     ...updated[existingIndex].input,
                                     [fieldName]: value,
@@ -186,7 +186,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                             updated.push({
                                 id: testCase.id!,
                                 testCaseName: testCase.testCaseName,
-                                createdBy: testCase.createdBy,
+                                createdByName: testCase.createdByName,
                                 input: { [fieldName]: value },
                                 order: idx
                             });
@@ -209,13 +209,13 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                 const current = updated[existingIndex];
                 if (current.input[fieldName] !== value ||
                     current.testCaseName !== testCase.testCaseName ||
-                    current.createdBy !== testCase.createdBy ||
+                    current.createdByName !== testCase.createdByName ||
                     current.order !== orderIndex) {
 
                     updated[existingIndex] = {
                         ...current,
                         testCaseName: testCase.testCaseName,
-                        createdBy: testCase.createdBy,
+                        createdByName: testCase.createdByName,
                         input: {
                             ...current.input,
                             [fieldName]: value,
@@ -227,7 +227,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                 updated.push({
                     id,
                     testCaseName: testCase.testCaseName,
-                    createdBy: testCase.createdBy,
+                    createdByName: testCase.createdByName,
                     input: { [fieldName]: value },
                     order: orderIndex
                 });
@@ -257,7 +257,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
             input: Record<string, string>;
             order?: number;
             testCaseName?: string;
-            createdBy?: string;
+            createdByName?: string;
         }[] = [];
 
         const testCaseMap = new Map<string, typeof parsed[number]>();
@@ -273,7 +273,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                         input: item.input,
                         order: typeof item.order === "number" ? item.order : undefined,
                         testCaseName: matchingTest?.testCaseName,
-                        createdBy: matchingTest?.createdBy
+                        createdByName: matchingTest?.createdByName
                     });
                 }
             }
@@ -321,12 +321,12 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
             return orderA - orderB;
         });
 
-        const exportData = sortedDynamicValues.map(({ id, input, order, testCaseName, createdBy }) => ({
+        const exportData = sortedDynamicValues.map(({ id, input, order, testCaseName, createdByName }) => ({
             id,
             input,
             order,
             testCaseName,
-            createdBy
+            createdByName
         }));
 
         const blob = new Blob([JSON.stringify(exportData, null, 2)], {

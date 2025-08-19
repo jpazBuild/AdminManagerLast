@@ -1,15 +1,15 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { URL_API_ALB, URL_API_RUNNER } from "../../config";
 import { logger } from "../../utils/logger";
 import axios from "axios";
 import { toast } from "sonner";
 
 const sanitizeTestData = (data: any) => {
-    const copy = { ...data };
-    delete copy.screenshot;
-    delete copy.htmlContent;
-    delete copy.domSnapshot;
-    delete copy.logs;
+    const copy = { ...(data || {}) };
+    delete (copy as any).screenshot;
+    delete (copy as any).htmlContent;
+    delete (copy as any).domSnapshot;
+    delete (copy as any).logs;
     return copy;
 };
 
@@ -30,12 +30,16 @@ export const useTestExecution = () => {
     const [activeTests, setActiveTests] = useState(0);
     const [isHeadless, setIsHeadless] = useState(true);
     const [testData, setTestData] = useState<any>({});
-
     const pendingTestsRef = useRef<any[]>([]);
     const maxBrowsersRef = useRef<number>(1);
     const activeTestsRef = useRef<number>(0);
     const runningTestsRef = useRef<Set<string>>(new Set());
     const processingQueueRef = useRef<boolean>(false);
+    const testDataRef = useRef<any>({});
+
+    useEffect(() => {
+        testDataRef.current = testData;
+    }, [testData]);
 
     const updateProgress = useCallback((testId: string, completedSteps: number) => {
         setStepsCountMap(prevSteps => {
@@ -54,10 +58,10 @@ export const useTestExecution = () => {
     const getTestWithId = async (testId: string) => {
         try {
             const response = await axios.post(`${URL_API_ALB}tests`, {
-                "id": testId,
-                "flatReusableSteps": true,
-                "includeStepsData": true,
-                "includeImages": false
+                id: testId,
+                flatReusableSteps: true,
+                includeStepsData: true,
+                includeImages: false,
             });
             return response.data;
         } catch (err) {
@@ -65,7 +69,194 @@ export const useTestExecution = () => {
             toast.error("Error fetching test data");
             return null;
         }
-    }
+    };
+
+    const handleTestCompletion = useCallback(
+        (testId: string) => {
+            console.log(`🏁 Test ${testId} completado`);
+
+            activeTestsRef.current = Math.max(0, activeTestsRef.current - 1);
+            runningTestsRef.current.delete(testId);
+
+            setActiveTests(activeTestsRef.current);
+
+            console.log(
+                `📊 Slots después de completion: activos=${activeTestsRef.current}/${maxBrowsersRef.current}`
+            );
+
+            processQueue();
+        },
+        []
+    );
+
+    const runTestCase = useCallback(
+        async (testCase: any) => {
+            const testId = String(testCase?.id);
+
+            if (invalidTests[testId] || runningTestsRef.current.has(testId)) {
+                console.log(`⏭️ Test ${testId} ya está corriendo o es inválido`);
+                return;
+            }
+
+            if (!URL_API_RUNNER) {
+                logger("❌ URL_API_RUNNER is undefined. Cannot create WebSocket.");
+                setError("WebSocket URL is not configured.");
+                return;
+            }
+
+            console.log(
+                `🚀 Iniciando test ${testId}. Slots: ${activeTestsRef.current + 1}/${maxBrowsersRef.current}`
+            );
+
+            activeTestsRef.current += 1;
+            runningTestsRef.current.add(testId);
+
+            setActiveTests(activeTestsRef.current);
+            setIdReports(prev => [...prev, testId]);
+
+            const test = await getTestWithId(testId);
+            if (!test) {
+                console.error(`❌ No se pudo obtener datos del test ${testId}`);
+                handleTestCompletion(testId);
+                return;
+            }
+
+            setStepsCountMap(prev => ({ ...prev, [testId]: test?.[0]?.stepsData?.length || 0 }));
+
+            const rawData = testDataRef.current?.[testId] ?? {};
+            const hasRaw = rawData && Object.keys(rawData).length > 0;
+            console.log(`[${testId}] rawData listo?`, hasRaw, hasRaw ? Object.keys(rawData) : "(vacío)");
+
+            const sanitizedTestData = sanitizeTestData(rawData);
+
+            const payload = {
+                action: "executeTest",
+                testCaseId: testId,
+                isHeadless,
+                testCaseName: testCase?.testCaseName || testCase?.name,
+                testData: sanitizedTestData,
+                temp: false,
+            };
+
+            const payloadStr = JSON.stringify(payload);
+            if (payloadStr.length > 1_000_000) {
+                logger(`🚫 Payload demasiado grande para test ${testId}, cancelando:`, payloadStr.length);
+                setError(`Payload too large for test ${testId}, skipping.`);
+                handleTestCompletion(testId);
+                return;
+            }
+
+            const socket = new WebSocket(URL_API_RUNNER);
+
+            socket.onopen = () => {
+                console.log(`[${testId}] enviando payload`, { size: payloadStr.length });
+                socket.send(payloadStr);
+            };
+
+            socket.onerror = error => {
+                console.error(`❌ Error en WebSocket para test ${testId}:`, error);
+                handleTestCompletion(testId);
+                setLoading(prev => ({ ...prev, [testId]: false }));
+            };
+
+            socket.onclose = () => {
+                console.log(`🔌 WebSocket cerrado para test ${testId}`);
+                if (runningTestsRef.current.has(testId)) {
+                    handleTestCompletion(testId);
+                }
+            };
+
+            socket.onmessage = event => {
+                try {
+                    const message = JSON.parse(event.data);
+                    console.log(`📥 Mensaje recibido para test ${testId}:`, message);
+
+                    const { response, routeKey, connectionId, testCaseId } = message;
+                    const id = String(testCaseId);
+
+                    if (stopped[id]) {
+                        console.log(`⏹️ Test ${id} marcado como detenido`);
+                        socket.close();
+                        return;
+                    }
+
+                    if (connectionId) {
+                        setConnectionMap(prev => ({ ...prev, [id]: connectionId }));
+                    }
+
+                    if (response?.indexStep !== undefined) {
+                        const stepData = response;
+                        setReports(prev => {
+                            const idx = prev.findIndex(r => r.testCaseId === id);
+                            const existingData = idx >= 0 ? prev[idx].data || [] : [];
+                            const existingStepIndex = existingData.findIndex((d: any) => d.indexStep === stepData.indexStep);
+                            const updatedSteps = [...existingData];
+
+                            if (existingStepIndex >= 0) {
+                                updatedSteps[existingStepIndex] = stepData;
+                            } else {
+                                updatedSteps.push(stepData);
+                            }
+
+                            updateProgress(id, updatedSteps.length);
+                            const updatedReport = { testCaseId: id, connectionId, data: updatedSteps, socket };
+                            const updated = [...prev];
+
+                            if (idx >= 0) {
+                                updated[idx] = updatedReport;
+                            } else {
+                                updated.push(updatedReport);
+                            }
+
+                            return updated;
+                        });
+                    }
+
+                    if (
+                        routeKey === "executeTest" &&
+                        response?.action &&
+                        (response.action === "Test execution completed" || response.action === "Test execution failed")
+                    ) {
+                        const finalStatus = response.action === "Test execution completed" ? "completed" : "failed";
+                        const msg = response?.description || "Test finalizado.";
+
+                        console.log(`✅ Test ${id} ${finalStatus}: ${msg}`);
+
+                        updateProgress(id, stepsCountMap[id] || 0);
+                        setLoading(prev => ({ ...prev, [id]: false }));
+
+                        setReports(prev => {
+                            const idx = prev.findIndex(r => r.testCaseId === id);
+                            const report = idx >= 0 ? prev[idx] : undefined;
+                            const updated = [...prev];
+                            const newEntry = {
+                                ...(report || { testCaseId: id, connectionId, data: [], socket }),
+                                data: [...((report?.data as any[]) || []), { finalStatus, message: msg }],
+                            };
+
+                            if (idx >= 0) {
+                                updated[idx] = newEntry;
+                            } else {
+                                updated.push(newEntry);
+                            }
+
+                            return updated;
+                        });
+
+                        socket.close();
+                    }
+                } catch (err) {
+                    console.error("❌ Error procesando mensaje:", event.data, err);
+                }
+            };
+        },
+        [isHeadless, stopped, updateProgress, stepsCountMap, invalidTests, handleTestCompletion]
+    );
+
+    const runTestCaseRef = useRef(runTestCase);
+    useEffect(() => {
+        runTestCaseRef.current = runTestCase;
+    }, [runTestCase]);
 
     const processQueue = useCallback(() => {
         if (processingQueueRef.current) {
@@ -77,7 +268,6 @@ export const useTestExecution = () => {
         const maxBrowsers = maxBrowsersRef.current;
         const pendingTests = pendingTestsRef.current;
         const availableSlots = maxBrowsers - activeCount;
-
 
         if (pendingTests.length === 0 || availableSlots <= 0) {
             console.log("⭐ No hay tests pendientes o no hay slots disponibles");
@@ -91,193 +281,35 @@ export const useTestExecution = () => {
 
         testsToRun.forEach((testCase, index) => {
             console.log(`🎯 Iniciando test ${index + 1}/${testsToRun.length}: ${testCase.id}`);
-            runTestCase(testCase);
+            runTestCaseRef.current(testCase);
         });
 
         processingQueueRef.current = false;
     }, []);
 
-    const handleTestCompletion = useCallback((testId: string) => {
-        console.log(`🏁 Test ${testId} completado`);
-        
-        activeTestsRef.current = Math.max(0, activeTestsRef.current - 1);
-        runningTestsRef.current.delete(testId);
-        
-        setActiveTests(activeTestsRef.current);
-        
-        console.log(`📊 Slots después de completion: activos=${activeTestsRef.current}/${maxBrowsersRef.current}`);
-        
-        setTimeout(() => processQueue(), 100);
-    }, [processQueue]);
-
-    const runTestCase = useCallback(async (testCase: any) => {
-        const testId = String(testCase.id);
-        
-        if (invalidTests[testId] || runningTestsRef.current.has(testId)) {
-            console.log(`⏭️ Test ${testId} ya está corriendo o es inválido`);
-            return;
+    useEffect(() => {
+        if (Object.keys(testData).length > 0 && pendingTestsRef.current.length > 0) {
+            console.log("🚀 Iniciando procesamiento de la cola (trigger por testData)");
+            processQueue();
         }
+    }, [testData, processQueue]);
 
-        if (!URL_API_RUNNER) {
-            logger("❌ URL_API_RUNNER is undefined. Cannot create WebSocket.");
-            setError("WebSocket URL is not configured.");
-            return;
-        }
-
-        console.log(`🚀 Iniciando test ${testId}. Slots: ${activeTestsRef.current + 1}/${maxBrowsersRef.current}`);
-        
-        activeTestsRef.current += 1;
-        runningTestsRef.current.add(testId);
-        
-        setActiveTests(activeTestsRef.current);
-        setIdReports(prev => [...prev, testId]);
-
-        const test = await getTestWithId(testId);
-        if (!test) {
-            console.error(`❌ No se pudo obtener datos del test ${testId}`);
-            handleTestCompletion(testId);
-            return;
-        }
-
-        setStepsCountMap(prev => ({ ...prev, [testId]: (test[0]?.stepsData?.length || 0) }));
-
-        const socket = new WebSocket(URL_API_RUNNER);
-
-        socket.onopen = () => { 
-            console.log("testData in useTestExecution", testData);
-                         
-            const rawData = testData?.[testId] || {};
-            
-            const sanitizedTestData = sanitizeTestData(rawData);
-
-            const payload = {
-                action: "executeTest",
-                testCaseId: testId,
-                isHeadless,
-                testCaseName: testCase?.testCaseName || testCase?.name,
-                testData: rawData,
-                temp: false
-            };
-            console.log("payload in useTestExecution", payload);
-                        
-            console.log(`📤 Enviando payload para test ${testId} ${JSON.stringify(payload,null,2)}`);
-
-            const payloadStr = JSON.stringify(payload);
-            if (payloadStr.length > 1000000) {
-                logger(`🚫 Payload demasiado grande para test ${testId}, cancelando:`, payloadStr.length);
-                setError(`Payload too large for test ${testId}, skipping.`);
-                handleTestCompletion(testId);
-                socket.close();
-                return;
-            }
-
-            socket.send(payloadStr);
-        };
-
-        socket.onerror = (error) => {
-            console.error(`❌ Error en WebSocket para test ${testId}:`, error);
-            handleTestCompletion(testId);
-            setLoading(prev => ({ ...prev, [testId]: false }));
-        };
-
-        socket.onclose = () => {
-            console.log(`🔌 WebSocket cerrado para test ${testId}`);
-            if (runningTestsRef.current.has(testId)) {
-                handleTestCompletion(testId);
-            }
-        };
-
-        socket.onmessage = (event) => {
-            try {
-                const message = JSON.parse(event.data);
-                const { response, routeKey, connectionId, testCaseId } = message;
-                const id = String(testCaseId);
-                
-                if (stopped[id]) {
-                    console.log(`⏹️ Test ${id} marcado como detenido`);
-                    socket.close();
-                    return;
-                }
-
-                if (connectionId) {
-                    setConnectionMap(prev => ({ ...prev, [id]: connectionId }));
-                }
-
-                if (response?.indexStep !== undefined) {
-                    const stepData = response;
-                    setReports(prev => {
-                        const idx = prev.findIndex(r => r.testCaseId === id);
-                        const existingData = idx >= 0 ? prev[idx].data || [] : [];
-                        const existingStepIndex = existingData.findIndex((d: any) => d.indexStep === stepData.indexStep);
-                        const updatedSteps = [...existingData];
-                        
-                        if (existingStepIndex >= 0) {
-                            updatedSteps[existingStepIndex] = stepData;
-                        } else {
-                            updatedSteps.push(stepData);
-                        }
-                        
-                        updateProgress(id, updatedSteps.length);
-                        const updatedReport = { testCaseId: id, connectionId, data: updatedSteps, socket };
-                        const updated = [...prev];
-                        
-                        if (idx >= 0) {
-                            updated[idx] = updatedReport;
-                        } else {
-                            updated.push(updatedReport);
-                        }
-                        
-                        return updated;
-                    });
-                }
-
-                if (
-                    routeKey === "executeTest" &&
-                    response?.action &&
-                    (response.action === "Test execution completed" || response.action === "Test execution failed")
-                ) {
-                    const finalStatus = response.action === "Test execution completed" ? "completed" : "failed";
-                    const msg = response?.description || "Test finalizado.";
-
-                    console.log(`✅ Test ${id} ${finalStatus}: ${msg}`);
-
-                    updateProgress(id, stepsCountMap[id] || 0);
-                    setLoading(prev => ({ ...prev, [id]: false }));
-                    
-                    setReports(prev => {
-                        const idx = prev.findIndex(r => r.testCaseId === id);
-                        const report = prev[idx];
-                        const updated = [...prev];
-                        const newEntry = {
-                            ...report,
-                            data: [...(report?.data || []), { finalStatus, message: msg }],
-                        };
-                        
-                        if (idx >= 0) {
-                            updated[idx] = newEntry;
-                        } else {
-                            updated.push(newEntry);
-                        }
-                        
-                        return updated;
-                    });
-
-                    socket.close();
-                }
-            } catch (err) {
-                console.error("❌ Error procesando mensaje:", event.data, err);
-            }
-        };
-    }, [isHeadless, testData, stopped, updateProgress, stepsCountMap, invalidTests, handleTestCompletion]);
-
-    const executeTests = async (selectedCases: any[], testDataInput: any, max: number, headless: boolean) => {
+    const executeTests = async (
+        selectedCases: any[],
+        testDataInput: any,
+        max: number,
+        headless: boolean
+    ) => {
         console.log(`🔍 Iniciando ejecución de ${selectedCases.length} tests con máximo ${max} navegadores`);
-        
         const initialLoading: Record<string, boolean> = {};
         const initialStopped: Record<string, boolean> = {};
-        
+
+        const normalizedData = Object.fromEntries(
+            Object.entries(testDataInput || {}).map(([k, v]) => [String(k), v])
+        );
+
         selectedCases.forEach(tc => {
-            const testId = String(tc.id);
+            const testId = String(tc?.id);
             initialLoading[testId] = true;
             initialStopped[testId] = false;
         });
@@ -291,37 +323,41 @@ export const useTestExecution = () => {
         setConnectionMap({});
         setStepsCountMap({});
         setCompletedStepsMap({});
-        setTestData(testDataInput);
         setIsHeadless(headless);
-        
+
+        setTestData(normalizedData);
+        testDataRef.current = normalizedData;
+
         activeTestsRef.current = 0;
         runningTestsRef.current = new Set();
         maxBrowsersRef.current = max;
         pendingTestsRef.current = [...selectedCases];
         processingQueueRef.current = false;
-        
+
         setActiveTests(0);
-        
-        console.log(`📋 ${selectedCases.length} tests añadidos a la cola con límite de ${max} navegadores`);
-        
-        setTimeout(() => {
-            console.log(`🚀 Iniciando procesamiento de la cola`);
-            processQueue();
-        }, 100);
+
+        console.log(
+            `📋 ${selectedCases.length} tests añadidos a la cola con límite de ${max} navegadores`
+        );
+
     };
 
-    const stopTest = (testCaseId: string, connectionId: string, socket: WebSocket | undefined) => {
+    const stopTest = (
+        testCaseId: string,
+        connectionId: string,
+        socket: WebSocket | undefined
+    ) => {
         const testId = String(testCaseId);
         console.log(`⏹️ Deteniendo test ${testId}`);
-        
+
         setLoading(prev => ({ ...prev, [testId]: false }));
         setStopped(prev => ({ ...prev, [testId]: true }));
-        
+
         if (!socket || socket.readyState !== WebSocket.OPEN) {
             handleTestCompletion(testId);
             return;
         }
-        
+
         if (!connectionId) {
             socket.close();
             return;
@@ -332,7 +368,7 @@ export const useTestExecution = () => {
             testCaseId: testId,
             lambdaID: connectionId,
         };
-        
+
         try {
             socket.send(JSON.stringify(payload));
             socket.close();
@@ -358,6 +394,6 @@ export const useTestExecution = () => {
         setLoading,
         activeTests,
         pendingTests: pendingTestsRef.current.length,
-        maxBrowsers: maxBrowsersRef.current
+        maxBrowsers: maxBrowsersRef.current,
     };
 };

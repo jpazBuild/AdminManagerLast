@@ -26,6 +26,7 @@ export interface TestCase {
     };
     name: string;
     createdBy?: string;
+    createdByName?: string;
     createdAt?: string;
     tagNames?: string[];
     groupName?: string;

@@ -512,7 +512,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                     {(test.testCaseId || test.id) && <CopyToClipboard text={String(test.testCaseId || test.id)} isDarkMode={isDarkMode} />}
                                 </div>
                                 <span className={styleClasses.createdBy}>
-                                    {test.createdBy}
+                                    {test.createdByName}
                                 </span>
                             </div>
                             <h3 className={styleClasses.title}>{test.testCaseName || test.name}</h3>

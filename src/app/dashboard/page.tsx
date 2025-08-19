@@ -22,6 +22,7 @@ interface TestCase {
     id: string;
     name: string;
     createdBy?: string;
+    createdByName?: string;
     group?: string;
     tagNames?: string[];
     module?: string;
@@ -287,9 +288,11 @@ const DashboardPage = () => {
         if (Array.isArray(dataTestCases) && dataTestCases.length > 0) {
             const uniqueCreators = Array.from(new Set(
                 dataTestCases
-                    .map((tc: any) => tc?.createdBy)
+                    .map((tc: any) => tc?.createdByName)
                     .filter(Boolean)
             ));
+            console.log("Unique creators:", uniqueCreators);
+            
             setAvailableCreators(uniqueCreators);
         } else {
             setAvailableCreators([]);
@@ -329,7 +332,7 @@ const DashboardPage = () => {
         return dataTestCases.filter((tc: TestCase) => {
             const matchesCreator =
                 !selectedCreatedBy || selectedCreatedBy === "All" ||
-                tc?.createdBy?.toLowerCase() === selectedCreatedBy?.toLowerCase();
+                tc?.createdByName?.toLowerCase() === selectedCreatedBy?.toLowerCase();
 
             const matchesName =
                 !searchTestCaseName ||
@@ -412,8 +415,9 @@ const DashboardPage = () => {
             toast.error("Please select at least one test case");
             return;
         }
-         
-        await executeTests(selectedTests, await testData?.data, maxBrowsers, isHeadless);
+        console.log("testData?.data ",await testData?.data);
+        const testdataIn = await testData?.data;
+        await executeTests(selectedTests, testdataIn, maxBrowsers, isHeadless);
     }, [selectedCases, selectedTests, testData, maxBrowsers, isHeadless, executeTests]);
 
     return (
