@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { TestCase } from "../home/types";
+import { TestCase } from "../../types/types";
 import { Edit2, Trash2Icon } from "lucide-react";
 
 interface Props {

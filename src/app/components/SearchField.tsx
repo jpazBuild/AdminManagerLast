@@ -111,7 +111,7 @@ export const SearchField = ({
             shadow-sm hover:shadow-md transition-all duration-200 z-20
             ${!value ? "text-primary/50" : "text-white"}
             ${disabled ? "opacity-50 cursor-not-allowed" : "hover:border-gray-300"}
-            ${open ? (darkMode ? "!bg-white/20 border-white/30" : "!bg-white/20 border-primary/50") : ""}
+            ${open ? (darkMode ? "!bg-white/20 border-white/30" : "!bg-primary/5 border-primary/50") : ""}
             ${darkMode
               ? "!bg-white/10 border-white/20 text-white shadow-xl"
               : "!bg-primary/20 border-gray-300 text-primary/90"}
@@ -140,13 +140,13 @@ export const SearchField = ({
             className={`
       absolute top-[calc(100%+0.25rem)] left-0 w-full z-50 
       rounded-xl border shadow-lg overflow-hidden
-      ${darkMode ? "bg-[#101317] border-white/15" : "border-gray-200 bg-[#021d3d]/20"}
+      ${darkMode ? "bg-[#101317] border-white/15" : "border-gray-200 bg-white"}
     `}
             onClick={(e) => e.stopPropagation()}
           >
             <div
-              className={` border-b top-0 z-20 rounded-xl
-        ${darkMode ? "border-white/10 bg-[#021d3d]" : "border-gray-200 bg-[#021d3d]/20"}`}
+              className={` border-b top-0 z-20 rounded-full
+        ${darkMode ? "border-white/10 bg-[#021d3d]" : "border-primary/5 bg-white"}`}
             >
               <input
                 type="text"
@@ -155,10 +155,9 @@ export const SearchField = ({
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className={`
           w-full pl-3 pr-4 py-2 rounded-lg text-sm outline-none
-          focus:ring-2 focus:ring-offset-0 transition
-          ${darkMode
-                    ? "bg-[#0B0E11] text-white border border-white/15 focus:ring-white/20"
-                    : "bg-[#021d3d]/20 text-primary border border-gray-300 focus:ring-primary/40"}
+           ${darkMode
+                    ? "bg-[#0B0E11] text-white border border-white/15"
+                    : "bg-[#021d3d]/20 text-primary border border-gray-300"}
         `}
                 
               />  
@@ -211,7 +210,7 @@ export const SearchField = ({
       {open && isMobile && (
         <div
           ref={scrollSearchField}
-          className="fixed inset-0 z-50 bg-primary/40 backdrop-blur-sm flex items-end justify-center"
+          className="fixed inset-0 z-50 bg-white flex items-end justify-center"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               setOpen(false);
@@ -222,8 +221,8 @@ export const SearchField = ({
           <div
             className={`w-full mx-2 rounded-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300 shadow-2xl
               ${darkMode
-                ? "bg-white/10 backdrop-blur-xl text-white border border-white/20"
-                : "bg-primary/20 text-primary"}
+                ? "bg-white backdrop-blur-xl text-primary/80 border border-white/20"
+                : "bg-white text-primary"}
             `}
             style={{
               height: isKeyboardOpen ? "95vh" : "60vh",
@@ -248,7 +247,7 @@ export const SearchField = ({
                 }}
                 className={`p-2 rounded-full transition-colors ${darkMode ? "hover:bg-white/20" : "hover:bg-primary/30"}`}
               >
-                <X className={`h-5 w-5 ${darkMode ? "text-white/50" : "text-primary/50"}`} />
+                <X className={`h-5 w-5 ${darkMode ? "text-white/50" : "text-white"}`} />
               </button>
             </div>
 

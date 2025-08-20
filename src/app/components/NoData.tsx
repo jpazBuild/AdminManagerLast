@@ -1,4 +1,4 @@
-const NoData = () => {
+const NoData = ({ text = "Try adjusting your search or filters." }: { text?: string }) => {
     return (
       <div className="flex flex-col items-center justify-center text-center text-primary/70 py-10">
         <svg
@@ -16,7 +16,7 @@ const NoData = () => {
           />
         </svg>
         <h3 className="text-lg font-medium">No results found</h3>
-        <p className="text-sm text-gray-400">Try adjusting your search or filters.</p>
+        <p className="text-sm text-gray-400">{text}</p>
       </div>
     );
   };
