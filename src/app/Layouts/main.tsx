@@ -36,7 +36,7 @@ export const DashboardHeader = ({
     const isActive =
       (path === "/dashboard" && pathname === "/dashboard") ||
       (path.startsWith("/dashboard/reusables") &&
-        pathname.startsWith("/dashboard/reusables"));
+        pathname.startsWith("/dashboard/reusables")) || path === pathname;
 
     if (isActive) {
       return `lg:inline-block text-md font-medium px-4 py-2 rounded-lg transition-colors duration-300 ${
@@ -76,6 +76,13 @@ export const DashboardHeader = ({
               className={getLinkClasses("/dashboard/reusables")}
             >
               Reusables
+            </Link>
+
+            <Link
+              href="/create"
+              className={getLinkClasses("/create")}
+            >
+              Create Entities
             </Link>
           </div>
 

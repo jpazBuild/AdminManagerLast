@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import StepCard from "./StepCard";
-import { StepData } from "../home/types";
+import { StepData } from "../../types/types";
 import { FaXmark } from "react-icons/fa6";
 import { FaSearchMinus, FaSearchPlus } from "react-icons/fa";
 
