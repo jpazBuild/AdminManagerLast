@@ -412,12 +412,8 @@ export default function CreateForm() {
     return (
         <DashboardHeader>
             <div className="w-2/3 flex flex-col items-center justify-start h-full gap-6 px-4 py-8">
-                <Link href="/home" className="fixed flex self-start items-center gap-2 text-primary/80 hover:text-primary transition">
-                    <MdArrowBack className="w-5 h-5" />
-                    <span>Back to Home</span>
-                </Link>
 
-                <h2 className=" text-2xl font-bold mb-2 text-primary/80 text-center">Create Entities</h2>
+                <h2 className=" text-2xl font-bold mb-2 text-primary/80 text-center">Location Information</h2>
 
                 <div className="flex gap-2 justify-center mb-2">
                     <TabButton active={activeTab === "tag"} onClick={() => setActiveTab("tag")}>Tag</TabButton>
@@ -565,9 +561,9 @@ export default function CreateForm() {
                 {activeTab === "submodule" && (
                     <div className="w-full flex flex-col gap-4 text-primary/80">
                         <div className="flex flex-col gap-3">
+                            <TextInputWithClearButton id="submoduleName" type="text" inputMode="text" placeholder="Enter Submodule Name" className="p-2 !bg-primary/20 rounded-md text-primary/90 placeholder:text-primary/60" onChangeHandler={(e: any) => setSubmoduleName(e.target.value)} value={submoduleName} />
                             <SearchField label="Select Group" value={selectedGroupForSubmodule} onChange={(v: string) => { setSelectedGroupForSubmodule(v); setParentModule(""); }} options={groupOptions} placeholder={loadingGroups ? "Loading groups…" : "Select group"} />
                             <SearchField label="Select Parent Module" value={parentModule} onChange={setParentModule} options={moduleOptions} placeholder={loadingModules ? "Loading modules…" : "Select module"} />
-                            <TextInputWithClearButton id="submoduleName" type="text" inputMode="text" placeholder="Enter Submodule Name" className="p-2 !bg-primary/20 rounded-md text-primary/90 placeholder:text-primary/60" onChangeHandler={(e: any) => setSubmoduleName(e.target.value)} value={submoduleName} />
                             <SearchField label="Created By" value={createdBySubmodule} onChange={setCreatedBySubmodule} options={userOptions} placeholder={loadingUsers ? "Loading users…" : "Select creator"} />
                         </div>
                         <button disabled={creatingSubmodule} onClick={createSubmoduleHandler} className="cursor-pointer bg-slate-600 hover:bg-slate-700 disabled:opacity-60 shadow-md text-white py-2 px-4 rounded-md transition-colors">{creatingSubmodule ? "Saving…" : "Save Submodule"}</button>
