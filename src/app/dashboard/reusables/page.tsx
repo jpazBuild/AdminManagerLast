@@ -19,6 +19,7 @@ import {
     DialogDescription,
     DialogFooter,
 } from "@/components/ui/dialog";
+import { SearchField } from "@/app/components/SearchField";
 
 type ReusableHeader = {
     id: string;
@@ -607,7 +608,7 @@ const Reusables = () => {
                                                         </div>
 
                                                         {isEditing && form && (
-                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 border rounded-md p-3">
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 rounded-md p-3">
                                                                 <div className="grid gap-1">
                                                                     <TextInputWithClearButton
                                                                         id={`name-${reusable.id}`}
@@ -615,7 +616,7 @@ const Reusables = () => {
                                                                         value={form.name}
                                                                         onChangeHandler={e => setFormById(p => ({ ...p, [reusable.id]: { ...p[reusable.id], name: e.target.value } }))}
                                                                         placeholder="Reusable Step Name"
-                                                                        className="border rounded px-2 py-1"
+                                                                        
                                                                         isDarkMode={isDarkMode}
                                                                     />
                                                                 </div>
@@ -626,7 +627,6 @@ const Reusables = () => {
                                                                         value={form.updatedBy}
                                                                         onChangeHandler={e => setFormById(p => ({ ...p, [reusable.id]: { ...p[reusable.id], updatedBy: e.target.value } }))}
                                                                         placeholder="Updated By"
-                                                                        className="border rounded px-2 py-1"
                                                                         isDarkMode={isDarkMode}
                                                                     />
                                                                 </div>
@@ -637,25 +637,17 @@ const Reusables = () => {
                                                                         value={form.description}
                                                                         onChangeHandler={e => setFormById(p => ({ ...p, [reusable.id]: { ...p[reusable.id], description: e.target.value } }))}
                                                                         placeholder="Description (optional)"
-                                                                        className="border rounded px-2 py-1"
                                                                         isDarkMode={isDarkMode}
                                                                     />
                                                                 </div>
 
                                                                 <div className="grid gap-1 md:col-span-2">
                                                                     <label className="text-sm font-medium">Tags</label>
-                                                                    <SearchCombobox
-                                                                        textOptionSelect="Tag"
-                                                                        textSearch="tag..."
-                                                                        options={tags.map((tag: any) => ({
-                                                                            label: tag.name,
-                                                                            value: tag.id,
-                                                                        }))}
-                                                                        value={
-                                                                            form.selectedTagId
-                                                                            ?? (detail.tagIds?.[0] ?? "")
-                                                                        }
-                                                                        onChange={(value, option) => {
+                                                                    <SearchField
+                                                                        options={tagOptions}
+                                                                        value={form.selectedTagId || ""}
+                                                                        onChange={(value) => {
+                                                                            const option = tagOptions.find(opt => opt.value === value);
                                                                             setFormById(p => ({
                                                                                 ...p,
                                                                                 [reusable.id]: {
@@ -666,14 +658,7 @@ const Reusables = () => {
                                                                                     tagNamesCSV: option?.label || "",
                                                                                 }
                                                                             }));
-                                                                            setDetails(prev => ({
-                                                                                ...prev,
-                                                                                [reusable.id]: {
-                                                                                    ...(prev[reusable.id] ?? {}),
-                                                                                    tagIds: value ? [value] : [],
-                                                                                    tagNames: option?.label ? [option.label] : [],
-                                                                                }
-                                                                            }));
+                                                                            setSelectedTag(value || "");
                                                                         }}
                                                                         disabled={isLoadingTags}
                                                                     />
@@ -819,7 +804,6 @@ const Reusables = () => {
                                 value={createForm.name}
                                 onChangeHandler={(e) => setCreateForm(p => ({ ...p, name: e.target.value }))}
                                 placeholder="Reusable name"
-                                className="border rounded px-2 py-1"
                                 isDarkMode={isDarkMode}
                             />
                         </div>

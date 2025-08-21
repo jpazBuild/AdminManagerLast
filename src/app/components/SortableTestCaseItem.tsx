@@ -21,6 +21,7 @@ import ReusableStepModal from "./ReusableStepModal";
 import { URL_API_ALB } from "@/config";
 import TestCaseActions from "./TestCaseActions";
 import ReportTestCaseList from "./ReportsHistoricTestCaseList";
+import UnifiedInput from "./Unified";
 
 const useScrollPosition = (dependencies: any[]) => {
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -62,7 +63,7 @@ interface Props {
     setTestCasesData: React.Dispatch<React.SetStateAction<TestCase[]>>;
     testCasesData: TestCase[];
     getFieldValue: (id: string, field: string) => string;
-    handleValueChange: (field: string, value: string, id: string) => void;
+    handleValueChange: (field: string, value: string, id: string, originalExpression?: string) => void;
     testFields: string[];
     onRefreshAfterUpdateOrDelete: () => void;
     dynamicValues: any[];
@@ -109,6 +110,8 @@ const SortableTestCaseItem: React.FC<Props> = ({
     const [jsonError, setJsonError] = useState<string | null>(null);
     const [isCloning, setIsCloning] = useState(false);
 
+    const fakerExprByFieldRef = useRef<Record<string, string>>({});
+    const keyFor = (testId: string, field: string) => `${testId}::${field}`;
     const [isLoadingTest, setIsLoadingTest] = useState(false);
     const [hasFetched, setHasFetched] = useState(false);
     const [isLoadingUpdate, setIsLoadingUpdate] = useState(false);
@@ -206,8 +209,9 @@ const SortableTestCaseItem: React.FC<Props> = ({
     }, [test]);
 
     const handleDelete = useCallback(async () => {
+        const apiUrl = (URL_API_ALB ?? '');
         const res = await handleAxiosRequest(() =>
-            axios.delete(`${URL_API_ALB?.replace(/\/+$/, "")}tests`, {
+            axios.delete(`${apiUrl}tests`, {
                 data: { id: test.id },
             }),
             "Test case deleted successfully"
@@ -220,8 +224,8 @@ const SortableTestCaseItem: React.FC<Props> = ({
         }
     }, [test.id, setTestCasesData, setDynamicValues, onRefreshAfterUpdateOrDelete]);
 
-   const handleToggleSelect = useCallback(() => {
-    toggleSelect(testId);
+    const handleToggleSelect = useCallback(() => {
+        toggleSelect(testId);
 
         setOpenItems((prev) => {
             if (!prev.includes(testId)) {
@@ -415,69 +419,91 @@ const SortableTestCaseItem: React.FC<Props> = ({
             : `rounded-md ${baseClasses} ${isSelected ? 'border-yellow-500 bg-yellow-50' : 'border-gray-300 hover:border-gray-400'}`;
     }, [selectionMode, selectedStepsForReusable, isDarkMode]);
 
-    const buildUpdatePayload = useCallback((responseTest: any, updatedBy: string) => {
-        const seenIds = new Set<string>();
 
-        const transformedSteps = responseTest.stepsData.map((step: any) => {
-            if (!step) return step;
+    const buildMetaUpdatePayload = (t: any, updatedBy: string) => ({
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        groupName: t.groupName,
+        moduleName: t.moduleName,
+        subModuleName: t.subModuleName,
+        tagIds: t.tagIds || [],
+        tagNames: t.tagNames || (Array.isArray(t.tagName) ? t.tagName : []),
+        contextGeneral: t.contextGeneral,
+        updatedBy,
+        deleteS3Images: true,
+        temp: false,
+    });
 
-            const { stepsId, ...cleanStep } = step;
+    const buildAppendPayload = (testCaseId: string, stepsBatch: any[], updatedBy: string) => ({
+        id: testCaseId,
+        stepsData: stepsBatch,
+        updatedBy,
+    });
 
-            if (cleanStep?.stepsData && Array.isArray(cleanStep.stepsData)) {
-                return cleanStep.id;
-            }
-
-            return cleanStep;
-        });
-
-        const uniqueSteps = transformedSteps.filter((step: any) => {
-            const stepId = typeof step === "string" ? step : step.id;
-
-            if (!stepId) return true;
-
-            if (seenIds.has(stepId)) return false;
-            seenIds.add(stepId);
-            return true;
-        });
-
-        return {
-            id: responseTest.id,
-            name: responseTest.name,
-            description: responseTest.description,
-            groupName: responseTest.groupName,
-            moduleName: responseTest.moduleName,
-            subModuleName: responseTest.subModuleName,
-            tagIds: responseTest.tagIds || [],
-            tagNames: responseTest.tagNames || [],
-            contextGeneral: responseTest.contextGeneral,
-            stepsData: uniqueSteps,
-            updatedBy,
-            deleteS3Images: true,
-            temp: false,
-        };
-    }, []);
+    const normalizeStepsForAppend = (steps: any[]) => {
+        return (steps || [])
+            .filter(Boolean)
+            .map((s) => {
+                if (typeof s === "string" || (typeof s?.type === "string" && s.type.startsWith("STEPS#"))) {
+                    return s;
+                }
+                const { stepsId, ...clean } = s || {};
+                return clean;
+            });
+    };
+    const chunkArray = <T,>(arr: T[], size = 1): T[][] => {
+        if (size <= 1) return arr.map((x) => [x]);
+        const out: T[][] = [];
+        for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+        return out;
+    };
 
     const handleUpdateConfirm = useCallback(async () => {
-        if (!responseTest) {
+        if (!responseTest?.id) {
             toast.error("No test data available to update");
             return;
         }
 
-        const payload = buildUpdatePayload(responseTest, "Niyi");
-        console.log("Payload final para updateTest:", payload);
+        const updatedBy = responseTest?.updatedBy || responseTest?.createdBy || "unknown";
+        const apiBase = (URL_API_ALB ?? '');
 
         try {
-            setIsLoadingUpdate(true);            
-            const apiUrl = (URL_API_ALB ?? '');
-            const res = await axios.patch(`${apiUrl}tests`, payload);
+            setIsLoadingUpdate(true);
 
-            if (res.status === 200) toast.success("Test updated successfully");
-        } catch (error:any) {
-            toast.error("Failed to update test case",error);
+            const metaPayload = buildMetaUpdatePayload(responseTest, updatedBy);
+            await axios.patch(`${apiBase}tests`, metaPayload);
+
+            const allSteps = normalizeStepsForAppend(responseTest?.stepsData || []);
+            const urlAppend = new URL("appendTestSteps", apiBase).toString();
+
+            const chunkSize = 1;
+            const batches = chunkArray(allSteps, chunkSize);
+
+            const stepBlockIds: Set<string> = new Set();
+
+            for (const batch of batches) {
+                const appendPayload = buildAppendPayload(responseTest.id, batch, updatedBy);
+                const r = await axios.patch(urlAppend, appendPayload);
+
+                const items = Array.isArray(r?.data) ? r.data : [];
+                for (const it of items) {
+                    if (typeof it?.type === "string" && it.type.startsWith("STEPS#")) {
+                        const blockId = it.type.split("#")[1];
+                        if (blockId) stepBlockIds.add(blockId);
+                    }
+                }
+            }
+
+            toast.success("Test updated successfully");
+        } catch (err) {
+            console.error("Update failed", err);
+            toast.error("Failed to update test case");
         } finally {
             setIsLoadingUpdate(false);
         }
-    }, [responseTest, buildUpdatePayload]);
+    }, [responseTest, URL_API_ALB]);
+
 
     const uniqueFields = useMemo(() => Array.from(new Set(testFields)), [testFields]);
 
@@ -599,16 +625,17 @@ const SortableTestCaseItem: React.FC<Props> = ({
                         >
                             {!isLoadingTest && responseTest?.testData?.map((field: string, idx: number) => (
                                 <div key={`${field}-${idx}`} className="flex flex-col gap-4 px-1 break-words">
-                                    <Label className={styleClasses.label}>{field}</Label>
-                                    <FakerInputWithAutocomplete
+                                    <UnifiedInput
                                         id={`${field}-${test.testCaseId || test.id}`}
                                         value={getFieldValue((test.testCaseId || test.id) ?? '', field)}
                                         placeholder={`Enter ${field}`}
+                                        label={`Enter ${field}`}
                                         isDarkMode={isDarkMode}
-                                        onChange={(val) => {
+                                        enableFaker= {true}
+                                        onChange={(val, originalExpression) => {
                                             const testId = (test.testCaseId || test.id) ?? '';
 
-                                            handleValueChange(field, val, testId);
+                                            handleValueChange(field, val, testId, originalExpression);
 
                                             setResponseTest((prev: any) => {
                                                 if (!prev) return prev;
@@ -639,6 +666,45 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                             });
                                         }}
                                     />
+                                    {/* <FakerInputWithAutocomplete
+                                        id={`${field}-${test.testCaseId || test.id}`}
+                                        value={getFieldValue((test.testCaseId || test.id) ?? '', field)}
+                                        placeholder={`Enter ${field}`}
+                                        isDarkMode={isDarkMode}
+                                        onChange={(val, originalExpression) => {
+                                            const testId = (test.testCaseId || test.id) ?? '';
+
+                                            handleValueChange(field, val, testId, originalExpression);
+
+                                            setResponseTest((prev: any) => {
+                                                if (!prev) return prev;
+
+                                                const allFields = prev.testData || [];
+                                                const updatedTestDataObj: Record<string, string> = {};
+
+                                                allFields.forEach((f: string) => {
+                                                    const currentVal =
+                                                        f === field
+                                                            ? val
+                                                            : getFieldValue(testId, f) || "";
+                                                    updatedTestDataObj[f] = currentVal;
+                                                });
+
+                                                setTestCasesData(prevCases =>
+                                                    prevCases.map(tc =>
+                                                        tc.id === testId
+                                                            ? { ...tc, testData: updatedTestDataObj }
+                                                            : tc
+                                                    )
+                                                );
+
+                                                return {
+                                                    ...prev,
+                                                    testDataObj: updatedTestDataObj
+                                                };
+                                            });
+                                        }}
+                                    /> */}
                                 </div>
                             ))}
 
@@ -814,7 +880,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                     )}
 
                     {viewMode === 'Historic reports' && test.id && (
-                       <ReportTestCaseList
+                        <ReportTestCaseList
                             test={{ ...test, testCaseId: test.id }}
                             visible={true}
                             viewMode={viewMode}

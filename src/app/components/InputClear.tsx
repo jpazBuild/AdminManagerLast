@@ -22,7 +22,6 @@ interface TextInputWithClearButtonProps {
   isDarkMode?: boolean;
   defaultValue?: string;
 }
-  
 
 const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
   label,
@@ -68,9 +67,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
       }
     }, 200);
     return () => {
-      if (debounceTimeout.current) {
-        clearTimeout(debounceTimeout.current);
-      }
+      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
     };
   }, [localValue]);
 
@@ -81,24 +78,27 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
   const isPassword = type === "password";
   const inputType = isPassword ? (showPassword ? "text" : "password") : type;
 
+  const baseSurface = isDarkMode ? "bg-primary/10" : "bg-primary/10";
+  const textColor = isDarkMode ? "text-white/90" : "text-primary/80";
+  const labelColor = isDarkMode ? "text-white/70" : "text-primary/70";
+  const labelColorFocused = isDarkMode ? "peer-focus:text-white/90" : "peer-focus:text-primary/90";
+  const ringFocus = isDarkMode ? "focus:ring-white/90" : "focus:ring-primary/90";
+
   return (
-    <div className="relative w-full">
-      {label && (
-        <label htmlFor={id} className={`text-sm ${isDarkMode ? "text-white/90 " : "text-primary/80 "}`}>
-          {label}
-        </label>
-      )}
-      <div className="relative w-full flex items-center justify-between">
+    <div className={`relative w-full ${baseSurface} rounded-lg`}>
+      <div className="relative w-full">
         {useTextarea ? (
           <textarea
             id={id}
-            placeholder={placeholder}
+            aria-label={placeholder}
+            placeholder={" "}
             value={localValue}
             rows={lineCount < 3 ? 3 : lineCount}
             onChange={e => setLocalValue(e.target.value)}
-            className={`w-full p-2 pr-10 rounded-md ${isDarkMode ? "bg-primary/20 text-white/90 focus:ring-white/60" : "bg-primary/20  text-primary/80 focus:ring-primary/90"} resize-none focus:outline-none focus:ring-1  shadow-md`}
+            className={`peer w-full ml-3 pr-10 pt-5 pb-2 rounded-md resize-none ${textColor} ${ringFocus} bg-transparent focus:outline-none ${className}`}
             defaultValue={defaultValue}
             readOnly={readOnly}
+            {...props}
           />
         ) : (
           <input
@@ -106,42 +106,57 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
             inputMode={inputMode}
             id={id}
             type={inputType}
-            placeholder={placeholder}
+            aria-label={placeholder}
+            placeholder={" "}
             value={localValue}
             onChange={e => setLocalValue(e.target.value)}
-            className={`w-full p-2 pr-10 rounded-md  focus:outline-none focus:ring-1 ${isDarkMode ? "focus:ring-white/90 bg-primary/10 text-white/90" :"!bg-primary/20  text-primary/80 focus:ring-primary/90"} shadow-md ${className}`}
+            className={`peer w-full ml-3 pr-10 pt-5 pb-2 rounded-md ${textColor} ${ringFocus} bg-transparent focus:outline-none ${className}`}
             defaultValue={defaultValue}
             readOnly={readOnly}
+            {...props}
           />
         )}
 
-          {!isPassword && localValue?.length > 0 && readOnly === false && (
+        {label && (
+          <label
+            htmlFor={id}
+            className={`
+              absolute left-3 tracking-wider 
+              top-1/2 -translate-y-1/2 
+              ${labelColor} ${labelColorFocused}
+              pointer-events-none 
+              transition-all duration-150 ease-out 
+              tracking-wide font-medium
+              /* Estados: enfocado o con contenido => pequeño y arriba */
+              peer-focus:top-2 peer-focus:-translate-y-0 peer-focus:text-xs
+              peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:-translate-y-0 peer-[:not(:placeholder-shown)]:text-xs
+            `}
+          >
+            {label}
+          </label>
+        )}
+
+        {!isPassword && localValue?.length > 0 && readOnly === false && (
           <button
             type="button"
             onClick={clearInput}
-            className={`absolute cursor-pointer right-3 top-1/2 transform -translate-y-1/2  ${isDarkMode ? "text-white/90 hover:text-white/80" : "text-primary/80 hover:text-primary/90"}`}
+            className={`absolute right-3 top-1/2 -translate-y-1/2 ${isDarkMode ? "text-white/90 hover:text-white/80" : "text-primary/80 hover:text-primary/90"}`}
           >
             <AiOutlineClose className="w-4 h-4" />
           </button>
         )}
+
         {isPassword && (
           <button
             type="button"
             onClick={togglePasswordVisibility}
-            className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${isDarkMode ? "text-white/90 hover:text-white/80" : "text-primary/80 hover:text-primary/90"}`}
+            className={`absolute right-3 top-1/2 -translate-y-1/2 ${isDarkMode ? "text-white/90 hover:text-white/80" : "text-primary/80 hover:text-primary/90"}`}
           >
-            {showPassword ? (
-              <Eye className="w-4 h-4" />
-            ) : (
-              <EyeClosed className="w-4 h-4" />
-            )}
+            {showPassword ? <Eye className="w-4 h-4" /> : <EyeClosed className="w-4 h-4" />}
           </button>
         )}
 
-        <span
-          ref={spanRef}
-          className="absolute invisible whitespace-pre font-mono text-xs px-2"
-        >
+        <span ref={spanRef} className="absolute invisible whitespace-pre font-mono text-xs px-2">
           {localValue}
         </span>
       </div>

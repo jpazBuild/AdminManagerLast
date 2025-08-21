@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { X, ChevronDown, Check } from "lucide-react";
+import { X, ChevronDown, Check, Search } from "lucide-react";
 import { useLockScrollBubbling } from "../hooks/useLockScrollBubbling";
 
 interface SelectOption {
@@ -98,23 +98,23 @@ export const SearchField = ({
   return (
     <>
       <div className="flex flex-col gap-2 w-full relative" ref={wrapperRef}>
-        {label && (
+        {/* {label && (
           <label className={`font-medium text-sm ${darkMode ? "text-white/90" : "text-primary"} ${textColorLabel}`}>
             {label}
           </label>
-        )}
+        )} */}
         <div
           onClick={() => !disabled && setOpen(true)}
           className={`
             flex items-center justify-between w-full px-4 py-3 
             border rounded-xl text-sm cursor-pointer 
-            shadow-sm hover:shadow-md transition-all duration-200 z-20
+             transition-all duration-200 z-20 font-normal
             ${!value ? "text-primary/50" : "text-white"}
-            ${disabled ? "opacity-50 cursor-not-allowed" : "hover:border-gray-300"}
-            ${open ? (darkMode ? "!bg-white/20 border-white/30" : "!bg-primary/5 border-primary/50") : ""}
+            ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+            ${open ? (darkMode ? "bg-white/20 border-white/30" : "bg-primary/5 border-primary/10") : ""}
             ${darkMode
-              ? "!bg-white/10 border-white/20 text-white shadow-xl"
-              : "!bg-primary/20 border-gray-300 text-primary/90"}
+              ? "bg-white/10 border-white/20 text-white shadow-xl"
+              : "bg-primary/10 border-transparent text-primary/80"}
             ${className}
           `}
         >
@@ -145,22 +145,22 @@ export const SearchField = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div
-              className={` border-b top-0 z-20 rounded-full
-        ${darkMode ? "border-white/10 bg-[#021d3d]" : "border-primary/5 bg-white"}`}
+              className={`flex items-center border-b top-0 z-20 rounded-md
+        ${darkMode ? "border-white/10 bg-[#021d3d]" : "bg-primary/10 border-transparent"}`}
             >
+              <Search className={`h-5 w-5 ml-4 ${darkMode ? "text-white/50" : "text-primary/60"}`} />
               <input
                 type="text"
                 placeholder="Search options..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className={`
-          w-full pl-3 pr-4 py-2 rounded-lg text-sm outline-none
+          w-full px-4 py-3 rounded-lg text-sm outline-none
            ${darkMode
                     ? "bg-[#0B0E11] text-white border border-white/15"
-                    : "bg-[#021d3d]/20 text-primary border border-gray-300"}
+                    : "bg-transparent placeholder:text-primary/60 text-primary border border-transparent"}
         `}
-                
-              />  
+              />
             </div>
 
             <div
@@ -183,12 +183,12 @@ export const SearchField = ({
                         key={`${opt.value}-${opt.label}-${index}`}
                         onClick={() => handleSelect(opt.value)}
                         className={`
-                  w-full flex items-center justify-between p-2 rounded-lg text-left text-sm
+                  w-full flex items-center justify-between px-4 py-3 rounded-lg text-left text-sm
                   transition-colors
-                  focus:outline-none focus:ring-2
+                  focus:outline-none focus:ring-2 
                   ${darkMode
-                            ? `text-white hover:bg-white/10 focus:ring-white/20 ${selected ? "bg-white/10" : ""}`
-                            : `text-gray-800 hover:bg-gray-100 focus:ring-primary/40 ${selected ? "bg-gray-100" : ""}`
+                            ? `text-white hover:bg-primary/10 focus:ring-white/20 ${selected ? "bg-white/10" : ""}`
+                            : `text-gray-800 hover:bg-primary/10 focus:ring-primary/40 ${selected ? "bg-gray-100" : ""}`
                           }
                 `}
                       >

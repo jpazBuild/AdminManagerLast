@@ -64,7 +64,7 @@ const KeyValueEditor = ({
                         onChange(key, updatedArr, idx, val);
                       }}
                       placeholder="Locator"
-                      className="flex-1"
+                      label="Enter locator"
                     />
                   </div>
                 ))}
@@ -108,9 +108,10 @@ const KeyValueEditor = ({
             <TextInputWithClearButton
               id={String(getId(key, idx))}
               value={valueLabel(val)}
+              label={`Enter value for ${keyLabel(key)}`}
               onChangeHandler={e => onChange(key, e.target.value, idx, val)}
               placeholder={placeholder(key)}
-              className="flex-1"
+
             />
           </div>
         );

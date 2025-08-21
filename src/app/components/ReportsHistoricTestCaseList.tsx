@@ -214,55 +214,66 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
                 cleanExpiredCache();
                 manageCacheMemory();
 
-                const url = `${String(URL_API_ALB)}getReport`;
+                const url = `${String(URL_API_ALB)}getReports`;
                 
                 const axiosConfig = {
                     timeout: 15000,
                     headers: { 'Content-Type': 'application/json' }
                 };
 
-                const res = await axios.post(url, { testCaseId }, axiosConfig);
-                const reportJsonUrl: string = res.data?.url || res.data?.reportUrl || res.data;
+                const res = await axios.post(url, { 
+                    "type": "tests-reports",
+                    id: testCaseId
+                 }, axiosConfig);
+                 const reports = res.data[testCaseId]
 
-                if (!reportJsonUrl) {
-                    throw new Error("Report URL not found in response");
-                }
-
-                try {
-                    const headResponse = await fetch(reportJsonUrl, { method: 'HEAD' });
-                    const contentLength = headResponse.headers.get('content-length');
-                    const fileSize = contentLength ? parseInt(contentLength, 10) : 0;
-                    
-                    if (fileSize > LARGE_JSON_THRESHOLD) {
-                        setIsLargeFile(true);
-                        console.log(`Large JSON file detected: ${fileSize} bytes`);
-                    }
-                } catch (headError) {
-                    console.warn('Could not get file size:', headError);
-                }
-
-                const reportData = await streamFetchJSON(reportJsonUrl, (progress) => {
-                    setLoadingProgress(progress);
+                 console.log('reports', reports);
+                 reports.array.forEach((element:any) => {
+                        console.log('element', element);
+                        
                 });
+                
+                // const reports: string =res.data[testCaseId][0].urlReport || res.data?.url || res.data?.reportUrl || res.data;
 
-                const processedData = await processLargeJSON(reportData);
+                // if (!reportJsonUrl) {
+                //     throw new Error("Report URL not found in response");
+                // }
+
+                // try {
+                //     const headResponse = await fetch(reportJsonUrl, { method: 'HEAD' });
+                //     const contentLength = headResponse.headers.get('content-length');
+                //     const fileSize = contentLength ? parseInt(contentLength, 10) : 0;
+                    
+                //     if (fileSize > LARGE_JSON_THRESHOLD) {
+                //         setIsLargeFile(true);
+                //         console.log(`Large JSON file detected: ${fileSize} bytes`);
+                //     }
+                // } catch (headError) {
+                //     console.warn('Could not get file size:', headError);
+                // }
+
+                // const reportData = await streamFetchJSON(reportJsonUrl, (progress) => {
+                //     setLoadingProgress(progress);
+                // });
+
+                // const processedData = await processLargeJSON(reportData);
                 
-                const dataSize = calculateObjectSize(processedData);
-                const shouldCompress = dataSize > LARGE_JSON_THRESHOLD;
+                // const dataSize = calculateObjectSize(processedData);
+                // const shouldCompress = dataSize > LARGE_JSON_THRESHOLD;
                 
-                const cacheEntry: CacheEntry = {
-                    data: shouldCompress ? compressData(processedData) : processedData,
-                    timestamp: Date.now(),
-                    ttl: CACHE_TTL,
-                    size: dataSize,
-                    compressed: shouldCompress
-                };
+                // const cacheEntry: CacheEntry = {
+                //     data: shouldCompress ? compressData(processedData) : processedData,
+                //     timestamp: Date.now(),
+                //     ttl: CACHE_TTL,
+                //     size: dataSize,
+                //     compressed: shouldCompress
+                // };
                 
-                reportCache[testCaseId] = cacheEntry;
+                // reportCache[testCaseId] = cacheEntry;
                 
-                console.log(`Cached report: ${dataSize} bytes${shouldCompress ? ' (compressed)' : ''}`);
+                // console.log(`Cached report: ${dataSize} bytes${shouldCompress ? ' (compressed)' : ''}`);
                 
-                return processedData;
+                // return processedData;
 
             } catch (err:any) {
                 console.error('Error fetching report:', err);
@@ -380,6 +391,9 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
             </div>
         );
     }
+
+    console.log(`Report for ${testCaseId} loaded successfully`, report);
+    
 
     if (!report) {
         return (

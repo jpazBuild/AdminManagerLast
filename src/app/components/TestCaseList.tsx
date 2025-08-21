@@ -9,6 +9,8 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 import { TestCase } from "@/types/TestCase";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FakerInputWithAutocomplete } from "./FakerInput";
+import UnifiedInput from "./Unified";
 
 interface TestStep {
     action: string;
@@ -44,6 +46,15 @@ interface DynamicValues {
     data: Record<string, Record<string, string>>;
 }
 
+interface DynamicValueEntry {
+    id: string;
+    input: Record<string, string>;
+    originalExpressions?: Record<string, string>; // New field to store faker expressions
+    order?: number;
+    testCaseName?: string;
+    createdByName?: string;
+}
+
 const TestCaseList: React.FC<TestCaseListProps> = ({
     testCases = [],
     selectedCases,
@@ -55,7 +66,9 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
     setEditMode,
     isDarkMode = false
 }) => {
-    const [dynamicValues, setDynamicValues] = useState<{ id: string; input: Record<string, string>; order?: number; testCaseName?: string; createdByName?: string }[]>([]);
+    const [dynamicValues, setDynamicValues] = useState<DynamicValueEntry[]>([]);
+
+    // const [dynamicValues, setDynamicValues] = useState<{ id: string; input: Record<string, string>; order?: number; testCaseName?: string; createdByName?: string }[]>([]);
     const [viewMode, setViewMode] = useState<'data' | 'steps' | 'editLocation'>('data');
     const [testCasesData, setTestCasesData] = useState<TestCase[]>([]);
     const [openDialog, setOpenDialog] = useState(false);
@@ -136,6 +149,9 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
         }
     }, []);
 
+    const isFakerExpression = useCallback((str: string): boolean => {
+        return typeof str === "string" && str.startsWith("faker.");
+    }, []);
     const uniqueDynamicFields = useMemo(() => {
         if (!testCasesData || testCasesData.length === 0) return [];
         const allFieldSets = testCasesData.map(testCase => {
@@ -156,8 +172,89 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
         return result;
     }, [testCasesData, getDynamicFields]);
 
-    const handleValueChange = useCallback((fieldName: string, value: string, id?: string) => {
-        console.log('📝 Cambiando valor:', { fieldName, value, id, editMode });
+    // const handleValueChange = useCallback((fieldName: string, value: string, id?: string) => {
+    //     console.log('📝 Cambiando valor:', { fieldName, value, id, editMode });
+
+    //     setDynamicValues(prev => {
+    //         const updated = [...prev];
+
+    //         if (editMode === 'global' && uniqueDynamicFields.includes(fieldName)) {
+    //             console.log('🌐 Modo global: aplicando a todos los test cases');
+
+    //             testCasesData.forEach((testCase, idx) => {
+    //                 const testCaseFields = getDynamicFields(testCase);
+
+    //                 if (testCaseFields.includes(fieldName)) {
+    //                     const existingIndex = updated.findIndex(entry => entry.id === testCase.id);
+
+    //                     if (existingIndex !== -1) {
+    //                         updated[existingIndex] = {
+    //                             ...updated[existingIndex],
+    //                             testCaseName: testCase.testCaseName,
+    //                             createdByName: testCase.createdByName,
+    //                             input: {
+    //                                 ...updated[existingIndex].input,
+    //                                 [fieldName]: value,
+    //                             },
+    //                             order: idx
+    //                         };
+    //                     } else {
+    //                         updated.push({
+    //                             id: testCase.id!,
+    //                             testCaseName: testCase.testCaseName,
+    //                             createdByName: testCase.createdByName,
+    //                             input: { [fieldName]: value },
+    //                             order: idx
+    //                         });
+    //                     }
+    //                 }
+    //             });
+
+    //             return updated;
+    //         }
+
+    //         if (!id) return prev;
+
+    //         const existingIndex = updated.findIndex(entry => entry.id === id);
+    //         const orderIndex = testCasesData.findIndex(tc => tc.id === id);
+    //         const testCase = testCasesData.find(tc => tc.id === id);
+
+    //         if (!testCase) return prev;
+
+    //         if (existingIndex !== -1) {
+    //             const current = updated[existingIndex];
+    //             if (current.input[fieldName] !== value ||
+    //                 current.testCaseName !== testCase.testCaseName ||
+    //                 current.createdByName !== testCase.createdByName ||
+    //                 current.order !== orderIndex) {
+
+    //                 updated[existingIndex] = {
+    //                     ...current,
+    //                     testCaseName: testCase.testCaseName,
+    //                     createdByName: testCase.createdByName,
+    //                     input: {
+    //                         ...current.input,
+    //                         [fieldName]: value,
+    //                     },
+    //                     order: orderIndex
+    //                 };
+    //             }
+    //         } else {
+    //             updated.push({
+    //                 id,
+    //                 testCaseName: testCase.testCaseName,
+    //                 createdByName: testCase.createdByName,
+    //                 input: { [fieldName]: value },
+    //                 order: orderIndex
+    //             });
+    //         }
+
+    //         return updated;
+    //     });
+    // }, [editMode, uniqueDynamicFields, testCasesData, getDynamicFields]);
+
+    const handleValueChange = useCallback((fieldName: string, value: string, id?: string, originalExpression?: string) => {
+        console.log('📝 Cambiando valor:', { fieldName, value, originalExpression, id, editMode });
 
         setDynamicValues(prev => {
             const updated = [...prev];
@@ -172,13 +269,18 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                         const existingIndex = updated.findIndex(entry => entry.id === testCase.id);
 
                         if (existingIndex !== -1) {
+                            const currentEntry = updated[existingIndex];
                             updated[existingIndex] = {
-                                ...updated[existingIndex],
+                                ...currentEntry,
                                 testCaseName: testCase.testCaseName,
                                 createdByName: testCase.createdByName,
                                 input: {
-                                    ...updated[existingIndex].input,
+                                    ...currentEntry.input,
                                     [fieldName]: value,
+                                },
+                                originalExpressions: {
+                                    ...currentEntry.originalExpressions,
+                                    ...(originalExpression ? { [fieldName]: originalExpression } : {}),
                                 },
                                 order: idx
                             };
@@ -188,6 +290,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                 testCaseName: testCase.testCaseName,
                                 createdByName: testCase.createdByName,
                                 input: { [fieldName]: value },
+                                originalExpressions: originalExpression ? { [fieldName]: originalExpression } : {},
                                 order: idx
                             });
                         }
@@ -220,6 +323,10 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                             ...current.input,
                             [fieldName]: value,
                         },
+                        originalExpressions: {
+                            ...current.originalExpressions,
+                            ...(originalExpression ? { [fieldName]: originalExpression } : {}),
+                        },
                         order: orderIndex
                     };
                 }
@@ -229,6 +336,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                     testCaseName: testCase.testCaseName,
                     createdByName: testCase.createdByName,
                     input: { [fieldName]: value },
+                    originalExpressions: originalExpression ? { [fieldName]: originalExpression } : {},
                     order: orderIndex
                 });
             }
@@ -249,18 +357,52 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
         return found?.input?.[fieldName] || '';
     }, [dynamicValues]);
 
+    const handleClearJSONData = useCallback(() => {
+        setDynamicValues([]);
+        toast.info("Dynamic values cleared.");
+        if (setEditMode) setEditMode('global');
+    }, [setEditMode]);
+
+    const handleExportAsDataObject = useCallback(() => {
+        const sortedDynamicValues = [...dynamicValues].sort((a, b) => {
+            const orderA = a.order ?? 9999;
+            const orderB = b.order ?? 9999;
+            return orderA - orderB;
+        });
+
+        const exportData = sortedDynamicValues.map(({ id, input, order, testCaseName, createdByName, originalExpressions }) => {
+            const exportInput: Record<string, string> = {};
+
+            Object.keys(input).forEach(key => {
+                exportInput[key] = originalExpressions?.[key] || input[key];
+            });
+
+            return {
+                id,
+                input: exportInput,
+                order,
+                testCaseName,
+                createdByName
+            };
+        });
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+            type: "application/json",
+        });
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "dynamic-data.json";
+        a.click();
+        URL.revokeObjectURL(url);
+    }, [dynamicValues]);
+
     const handleParsedJSON = useCallback((json: any[]) => {
         if (!Array.isArray(json)) return;
 
-        const parsed: {
-            id: string;
-            input: Record<string, string>;
-            order?: number;
-            testCaseName?: string;
-            createdByName?: string;
-        }[] = [];
-
-        const testCaseMap = new Map<string, typeof parsed[number]>();
+        const parsed: DynamicValueEntry[] = [];
+        const testCaseMap = new Map<string, DynamicValueEntry>();
 
         for (const item of json) {
             if (item?.id && typeof item.input === 'object') {
@@ -271,6 +413,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                     testCaseMap.set(item.id, {
                         id: item.id,
                         input: item.input,
+                        originalExpressions: item.originalExpressions || {},
                         order: typeof item.order === "number" ? item.order : undefined,
                         testCaseName: matchingTest?.testCaseName,
                         createdByName: matchingTest?.createdByName
@@ -314,46 +457,13 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
         });
     }, [testCasesData]);
 
-    const handleExportAsDataObject = useCallback(() => {
-        const sortedDynamicValues = [...dynamicValues].sort((a, b) => {
-            const orderA = a.order ?? 9999;
-            const orderB = b.order ?? 9999;
-            return orderA - orderB;
-        });
-
-        const exportData = sortedDynamicValues.map(({ id, input, order, testCaseName, createdByName }) => ({
-            id,
-            input,
-            order,
-            testCaseName,
-            createdByName
-        }));
-
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-            type: "application/json",
-        });
-
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "dynamic-data.json";
-        a.click();
-        URL.revokeObjectURL(url);
-    }, [dynamicValues]);
-
-    const handleClearJSONData = useCallback(() => {
-        setDynamicValues([]);
-        toast.info("Dynamic values cleared.");
-        if (setEditMode) setEditMode('global');
-    }, [setEditMode]);
-
     const styleClasses = useMemo(() => ({
         container: isDarkMode
             ? "p-4 rounded-lg shadow-md border bg-gray-800 text-white border-gray-600"
-            : "p-4 rounded-lg shadow-md border bg-white text-primary border-gray-200",
+            : "p-4 rounded-lg shadow-md border bg-white text-primary border-primary/10",
         globalFields: isDarkMode
             ? "p-4 rounded-lg space-y-4 shadow-md border-t-4 border-primary/60 bg-gray-700 text-white"
-            : "p-4 rounded-lg space-y-4 shadow-md border-t-4 border-primary/60 bg-gray-50 text-primary",
+            : "p-4 rounded-lg space-y-4 shadow-md border-t-4 border-primary/60 bg-primary/5 text-primary",
         legend: isDarkMode
             ? "w-full flex gap-3 items-center text-xs text-gray-400 mb-1"
             : "w-full flex gap-3 items-center text-xs text-muted-foreground mb-1",
@@ -362,14 +472,14 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
             : "self-end mt-2 cursor-pointer text-xs flex items-center gap-2 bg-white text-primary/90 border-primary/80 hover:bg-primary/20",
         label: isDarkMode
             ? "w-32 text-gray-300 font-medium"
-            : "w-32 text-gray-700 font-medium",
+            : "w-32 text-primary/80 font-medium",
         globalFieldsTitle: isDarkMode
             ? "font-semibold text-white text-lg mb-2"
-            : "font-semibold text-gray-900 text-lg mb-2",
+            : "font-semibold text-primary/80 text-lg mb-2",
         globalFieldsSubtitle: isDarkMode
             ? "text-sm text-gray-400 mb-4"
-            : "text-sm text-gray-600 mb-4",
-        fieldContainer: "flex flex-col sm:flex-row sm:items-center gap-2 p-3 rounded-md border border-opacity-20 " +
+            : "text-sm text-primary/75 mb-4",
+        fieldContainer: "flex flex-col gap-2 p-3 rounded-md border border-opacity-20 " +
             (isDarkMode ? "border-gray-500 bg-gray-800" : "border-gray-300 bg-white")
     }), [isDarkMode]);
 
@@ -464,6 +574,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
         }
     }, [allIds, selectedCases, toggleSelect]);
 
+    
     return (
         <div className="space-y-4">
             <div className={styleClasses.container}>
@@ -493,17 +604,17 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
 
                     <div className="space-y-3">
                         {uniqueDynamicFields.map((fieldName) => (
-                            <div key={fieldName} className={styleClasses.fieldContainer}>
-                                <Label className={styleClasses.label}>
-                                    {fieldName}
-                                </Label>
+                            <div key={fieldName} className="flex flex-col ">
                                 <div className="flex-1">
-                                    <TextInputWithClearButton
+
+                                    <UnifiedInput
                                         id={`global-${fieldName}`}
                                         value={getGlobalFieldValue(fieldName)}
-                                        onChangeHandler={(e) => handleValueChange(fieldName, e.target.value)}
+                                        onChange={(value, originalExpression) => handleValueChange(fieldName, value, undefined, originalExpression)}
                                         placeholder={`Enter value for ${fieldName} (applies to all tests)`}
                                         isDarkMode={isDarkMode}
+                                        enableFaker={true}
+                                        label={fieldName}
                                     />
                                 </div>
                             </div>
@@ -580,7 +691,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                     onClick={handleCollapseAll}
                     variant="outline"
                     size="sm"
-                    className={isDarkMode ? "bg-gray-700 text-white" :  "bg-white text-primary/90 hover:bg-primary/20"}
+                    className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-primary/90 hover:bg-primary/20"}
                 >
                     Collapse All
                 </Button>

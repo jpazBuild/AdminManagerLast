@@ -11,7 +11,7 @@ export const FakerInputWithAutocomplete = ({
     isDarkMode = false
 }: {
     value: string;
-    onChange: (val: string) => void;
+    onChange: (val: string, originalExpression?: string) => void;
     placeholder?: string;
     id?: string;
     isDarkMode?: boolean;
@@ -21,8 +21,10 @@ export const FakerInputWithAutocomplete = ({
     const [highlightedIndex, setHighlightedIndex] = useState(0);
     const [fakerExpression, setFakerExpression] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-
+    const [currentInput, setCurrentInput] = useState(value);
+    
     const inputRef = useRef<HTMLInputElement | null>(null);
+    
     const evaluateFakerExpression = (expr: string): string | null => {
         try {
             if (!isFakerExpression(expr)) return null;
@@ -35,23 +37,28 @@ export const FakerInputWithAutocomplete = ({
             return null;
         }
     };
+
     useEffect(() => {
-        if (isFakerExpression(value) && endsWithCall(value)) {
-            const evaluated = evaluateFakerExpression(value);
-            if (evaluated && evaluated !== value) {
-                onChange(evaluated);
-                setFakerExpression(value);
+        setCurrentInput(value);
+    }, [value]);
+
+    useEffect(() => {
+        if (isFakerExpression(currentInput) && endsWithCall(currentInput)) {
+            const evaluated = evaluateFakerExpression(currentInput);
+            if (evaluated && evaluated !== currentInput) {
+                onChange(evaluated, currentInput);
+                setFakerExpression(currentInput);
                 setShowSuggestions(false);
                 setError(null);
             } else if (evaluated === null) {
                 setError("Expresión inválida o error al ejecutar Faker.");
             }
         }
-    }, [value, onChange]);
+    }, [currentInput, onChange]);
 
     useEffect(() => {
-        if (isFakerExpression(value) && !endsWithCall(value)) {
-            const parts = value.replace("faker.", "").split(".");
+        if (isFakerExpression(currentInput) && !endsWithCall(currentInput)) {
+            const parts = currentInput.replace("faker.", "").split(".");
             let current: any = faker;
             let currentPath = "faker";
             for (let i = 0; i < parts.length - 1; i++) {
@@ -77,14 +84,21 @@ export const FakerInputWithAutocomplete = ({
         } else {
             setShowSuggestions(false);
         }
-    }, [value]);
+    }, [currentInput]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        onChange(e.target.value);
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const newValue = e.target.value;
+        setCurrentInput(newValue);
+        
+        if (!isFakerExpression(newValue) || !endsWithCall(newValue)) {
+            onChange(newValue);
+        }
+        
         setError(null);
     };
 
     const handleClear = () => {
+        setCurrentInput("");
         onChange("");
         setFakerExpression("");
         setShowSuggestions(false);
@@ -92,7 +106,20 @@ export const FakerInputWithAutocomplete = ({
     };
 
     const handleSuggestionClick = (suggestion: string) => {
-        onChange(suggestion);
+        setCurrentInput(suggestion);
+        
+        if (endsWithCall(suggestion)) {
+            const evaluated = evaluateFakerExpression(suggestion);
+            if (evaluated) {
+                onChange(evaluated, suggestion);
+                setFakerExpression(suggestion);
+            } else {
+                onChange(suggestion);
+            }
+        } else {
+            onChange(suggestion);
+        }
+        
         setShowSuggestions(false);
         setError(null);
     };
@@ -111,9 +138,7 @@ export const FakerInputWithAutocomplete = ({
             e.preventDefault();
             const selected = filteredSuggestions[highlightedIndex];
             if (selected) {
-                onChange(selected);
-                setShowSuggestions(false);
-                setError(null);
+                handleSuggestionClick(selected);
             }
         }
     };
@@ -123,22 +148,24 @@ export const FakerInputWithAutocomplete = ({
 
     const endsWithCall = (str: string) => /\)\s*$/.test(str);
 
-
-
     return (
         <div className="relative w-full overflow-visible z-40 flex flex-col gap-2">
             <div className="relative w-full">
                 <input
                     ref={inputRef}
                     id={id}
-                    value={value}
+                    value={currentInput}
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}
                     placeholder={placeholder}
                     autoComplete="off"
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary ${isDarkMode ? "bg-primary/20 text-white border-gray-700" : "bg-primary/20 text-gray-800 border-gray-300"}`}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary ${
+                        isDarkMode 
+                            ? "bg-primary/20 text-white border-gray-700" 
+                            : "bg-primary/20 text-gray-800 border-gray-300"
+                    }`}
                 />
-                {value && (
+                {currentInput && (
                     <button
                         type="button"
                         onClick={handleClear}
@@ -162,7 +189,11 @@ export const FakerInputWithAutocomplete = ({
                 inputRef.current &&
                 ReactDOM.createPortal(
                     <ul
-                        className={`z-50 absolute ${isDarkMode ? "bg-primary/90 border-primary/80" : "bg-white border border-gray-300"} rounded-md shadow-lg max-h-60 overflow-auto text-sm w-[300px]`}
+                        className={`z-50 absolute ${
+                            isDarkMode 
+                                ? "bg-primary/90 border-primary/80" 
+                                : "bg-white border border-gray-300"
+                        } rounded-md shadow-lg max-h-60 overflow-auto text-sm w-[300px]`}
                         style={{
                             position: "absolute",
                             top: inputRef.current.getBoundingClientRect().bottom + window.scrollY,
@@ -173,10 +204,11 @@ export const FakerInputWithAutocomplete = ({
                             <li
                                 key={suggestion}
                                 onClick={() => handleSuggestionClick(suggestion)}
-                                className={`px-3 py-2 cursor-pointer ${index === highlightedIndex
-                                    ? "bg-primary text-white"
-                                    : "hover:bg-gray-100"
-                                    }`}
+                                className={`px-3 py-2 cursor-pointer ${
+                                    index === highlightedIndex
+                                        ? "bg-primary text-white"
+                                        : "hover:bg-gray-100"
+                                }`}
                             >
                                 {suggestion}
                             </li>
