@@ -121,7 +121,6 @@ const ReusableStepModal: React.FC<ReusableStepModalProps> = ({
                 
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="TagNames">Tag Names</Label>
                         {responseTest?.tagNames && responseTest.tagNames.length > 0 ? (
                             <div className="flex gap-2">
                                 {responseTest.tagNames.map((tag: string, index: number) => (
@@ -138,42 +137,39 @@ const ReusableStepModal: React.FC<ReusableStepModalProps> = ({
                                 value={newTags}
                                 onChangeHandler={e => setNewTags(e.target.value)}
                                 placeholder="Enter tags separated by commas"
-                                className={getInputClasses()}
+                                label='Enter tags'
                                 isDarkMode={isDarkMode}
                             />
                         )}
 
-                        <Label htmlFor="name">Name *</Label>
                         <TextInputWithClearButton
                             id="name"
                             value={name}
+                            label="Enter reusable step name"
                             onChangeHandler={e => setName(e.target.value)}
                             placeholder="Enter reusable step name"
-                            className={getInputClasses()}
                             isDarkMode={isDarkMode}
                         />
                     </div>
                     
                     <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
                         <TextInputWithClearButton   
                             id="description"
                             value={description}
+                            label={`Enter description`}
                             onChangeHandler={e => setDescription(e.target.value)}
                             placeholder="Enter description (optional)"
-                            className={getInputClasses()}
                             isDarkMode={isDarkMode}
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="createdBy">Created By</Label>
                         <TextInputWithClearButton   
                             id="createdBy"
                             value={createdBy}
+                            label={`Enter creator`}
                             onChangeHandler={e => setCreatedBy(e.target.value)}
                             placeholder="Enter creator"
-                            className={getInputClasses()}
                             isDarkMode={isDarkMode}
                         />
                     </div>

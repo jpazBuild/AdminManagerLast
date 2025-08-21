@@ -206,8 +206,10 @@ const StepActions: React.FC<StepActionsProps> = ({
                             id={`wait-input-reusable-${idx}`}
                             type="number"
                             value={localWait}
+                            label="Enter wait time in ms"
                             onChangeHandler={(e) => setLocalWait(e.target.value)}
                             placeholder="Wait (ms)"
+                            
                         />
                         <button
                             className="text-xs cursor-pointer text-gray-400 hover:text-primary/70 p-1"
@@ -310,6 +312,7 @@ const StepActions: React.FC<StepActionsProps> = ({
                             setWaitInputs((prev) => ({ ...prev, [index]: e.target.value }))
                         }
                         placeholder="Wait (ms)"
+                        label="Enter wait time in ms"
                     />
                     <button
                         className="text-xs cursor-pointer text-gray-400 hover:text-primary/70 p-1"

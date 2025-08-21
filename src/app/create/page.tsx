@@ -1,7 +1,5 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import { MdArrowBack } from "react-icons/md";
-import Link from "next/link";
 import TextInputWithClearButton from "@/app/components/InputClear";
 import axios from "axios";
 import { toast } from "sonner";
@@ -21,25 +19,206 @@ type User = {
 
 type Group = { id: string; name: string; createdByName?: string; createdAt?: number };
 type Tag = { id: string; name: string; createdByName?: string; createdAt?: number };
-type Module = { id: string; name: string; groupId?: string; groupName?: string; createdByName?: string; createdAt?: number };
-type Submodule = { id: string; name: string; groupId?: string; moduleId?: string; moduleName?: string; createdByName?: string; createdAt?: number };
+type Module = {
+    id: string;
+    name: string;
+    groupId?: string;
+    groupName?: string;
+    createdByName?: string;
+    createdAt?: number;
+};
+type Submodule = {
+    id: string;
+    name: string;
+    groupId?: string;
+    moduleId?: string;
+    moduleName?: string;
+    createdByName?: string;
+    createdAt?: number;
+};
 
 type Tab = "group" | "tag" | "module" | "submodule";
 
-const TabButton = ({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
+const TabButton = ({
+    active,
+    onClick,
+    children,
+}: {
+    active: boolean;
+    onClick: () => void;
+    children: React.ReactNode;
+}) => (
     <button
         onClick={onClick}
-        className={`px-4 cursor-pointer py-2 rounded-xl transition shadow-sm border text-sm md:text-base ${active ? "bg-primary/20 text-primary/90 border-transparent" : "bg-white/70 text-primary/80 hover:bg-white border-white/50"
+        className={`px-4 cursor-pointer py-2 rounded-xl transition shadow-sm border text-sm md:text-base ${active
+            ? "bg-primary/20 text-primary/90 border-transparent"
+            : "bg-white/70 text-primary/80 hover:bg-white border-white/50"
             }`}
     >
         {children}
     </button>
 );
 
-const fmtDate = (ts?: number) => (ts ? new Intl.DateTimeFormat("es-ES", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(Number(ts)) : "");
+const fmtDate = (ts?: number) =>
+    ts
+        ? new Intl.DateTimeFormat("es-ES", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        }).format(Number(ts))
+        : "";
 
-export default function CreateForm() {
+const PAGE_SIZE_OPTIONS = [5, 10, 15, 20];
+
+type Column<T> = {
+    key: string;
+    header: string;
+    className?: string;
+    render?: (row: T) => React.ReactNode;
+};
+
+type PaginatedTableProps<T> = {
+    data: T[];
+    columns: Column<T>[];
+    page: number;
+    setPage: (n: number) => void;
+    pageSize: number;
+    setPageSize: (n: number) => void;
+    loading?: boolean;
+    emptyText: string;
+    rowKey: (row: T, idx: number) => string | number;
+};
+
+function PaginatedTable<T>({
+    data,
+    columns,
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    loading,
+    emptyText,
+    rowKey,
+}: PaginatedTableProps<T>) {
+    const total = data.length;
+    const maxPage = Math.max(1, Math.ceil(total / pageSize));
+    const safePage = Math.min(page, maxPage);
+    const start = (safePage - 1) * pageSize;
+    const end = Math.min(start + pageSize, total);
+    const slice = data.slice(start, end);
+
+    useEffect(() => {
+        if (page > maxPage) setPage(maxPage);
+    }, [total, pageSize]);
+
+    return (
+        <div className="w-full flex flex-col gap-4">
+            <div className="text-sm text-primary/70">
+                {loading ? (
+                    <span>Loading data...</span>
+                ) : total > 0 ? (
+                    <span>
+                        Show <b>{start + 1}</b>–<b>{end}</b> of <b>{total}</b>
+                    </span>
+                ) : (
+                    "No data available"
+                )}
+            </div>
+            <div className="w-full overflow-hidden rounded-lg border border-primary/20">
+
+                <div className="grid grid-cols-12 bg-primary/10 text-primary/80 text-sm font-medium">
+                    {columns.map((c, i) => (
+                        <div key={i} className={`px-3 py-2 ${c.className ?? "col-span-3"}`}>
+                            {c.header}
+                        </div>
+                    ))}
+                </div>
+                {loading ? (
+                    <div className="p-4 text-sm">Cargando…</div>
+                ) : slice.length > 0 ? (
+                    slice.map((row, idx) => (
+                        <div
+                            key={rowKey(row, idx)}
+                            className="grid grid-cols-12 items-center border-t border-primary/10 hover:bg-primary/5"
+                        >
+                            {columns.map((c, i) => (
+                                <div key={i} className={`px-3 py-2 ${c.className ?? "col-span-3"}`}>
+                                    {c.render ? (c.render as any)(row) : (row as any)[c.key]}
+                                </div>
+                            ))}
+                        </div>
+                    ))
+                ) : (
+                    <NoData text={emptyText} />
+                )}
+            </div>
+
+            <div className="w-full flex items-center justify-between mb-2 gap-3">
+
+                <div className="w-full flex items-center gap-2">
+                    <div className="w-full"></div>
+                    <div className="w-full flex items-center gap-1">
+                        <button
+                            className="px-2 py-1 rounded border border-primary/20 text-sm hover:bg-primary/10 disabled:opacity-50"
+                            onClick={() => setPage(1)}
+                            disabled={safePage === 1}
+                        >
+                            «
+                        </button>
+                        <button
+                            className="px-2 py-1 rounded border border-primary/20 text-sm hover:bg-primary/10 disabled:opacity-50"
+                            onClick={() => setPage(Math.max(1, safePage - 1))}
+                            disabled={safePage === 1}
+                        >
+                            Prev
+                        </button>
+                        <span className="px-2 text-sm text-primary/70">
+                            {safePage} / {maxPage}
+                        </span>
+                        <button
+                            className="px-2 py-1 rounded border border-primary/20 text-sm hover:bg-primary/10 disabled:opacity-50"
+                            onClick={() => setPage(Math.min(maxPage, safePage + 1))}
+                            disabled={safePage === maxPage}
+                        >
+                            Next
+                        </button>
+                        <button
+                            className="px-2 py-1 rounded border border-primary/20 text-sm hover:bg-primary/10 disabled:opacity-50"
+                            onClick={() => setPage(maxPage)}
+                            disabled={safePage === maxPage}
+                        >
+                            »
+                        </button>
+                    </div>
+
+                    <div className="self-end w-full flex items-center justify-end gap-1">
+                        <label className="text-sm text-primary/70">Rows per page</label>
+                        <select
+                            className="rounded-md border border-primary/20 bg-white px-2 py-1 text-sm"
+                            value={pageSize}
+                            onChange={(e) => {
+                                setPageSize(Number(e.target.value));
+                                setPage(1);
+                            }}
+                        >
+                            {PAGE_SIZE_OPTIONS.map((opt) => (
+                                <option key={opt} value={opt}>
+                                    {opt}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+const CreateForm = () => {
     const [activeTab, setActiveTab] = useState<Tab>("tag");
+
     const [users, setUsers] = useState<User[]>([]);
     const [loadingUsers, setLoadingUsers] = useState(false);
 
@@ -84,6 +263,18 @@ export default function CreateForm() {
     const [editEntity, setEditEntity] = useState<any>(null);
     const [editModules, setEditModules] = useState<Module[]>([]);
 
+    const [grpPage, setGrpPage] = useState(1);
+    const [grpPageSize, setGrpPageSize] = useState(10);
+
+    const [tagPage, setTagPage] = useState(1);
+    const [tagPageSize, setTagPageSize] = useState(10);
+
+    const [modPage, setModPage] = useState(1);
+    const [modPageSize, setModPageSize] = useState(10);
+
+    const [subPage, setSubPage] = useState(1);
+    const [subPageSize, setSubPageSize] = useState(10);
+
     const fetchUsers = async () => {
         try {
             setLoadingUsers(true);
@@ -127,7 +318,6 @@ export default function CreateForm() {
         try {
             setLoadingModules(true);
             const payload = groupId ? { groupId } : {};
-
             const response = await axios.post(`${URL_API_ALB}modules`, payload);
             setModules(Array.isArray(response.data) ? (response.data as Module[]) : []);
         } catch (error) {
@@ -171,8 +361,16 @@ export default function CreateForm() {
     }, []);
 
     useEffect(() => {
-        if (activeTab === "module" && modules.length === 0) {
+        if (activeTab === "group") fetchGroups();
+        if (activeTab === "tag") fetchTags();
+        if (activeTab === "module") {
+            fetchGroups();
             fetchModules();
+        }
+        if (activeTab === "submodule") {
+            fetchGroups();
+            fetchModules();
+            fetchSubmodules();
         }
     }, [activeTab]);
 
@@ -183,58 +381,59 @@ export default function CreateForm() {
     }, [activeTab, selectedGroupForSubmodule]);
 
     useEffect(() => {
-        if (activeTab === "group") fetchGroups();
-        if (activeTab === "tag") fetchTags();
-        if (activeTab === "module") { fetchGroups(); fetchModules(); }
-        if (activeTab === "submodule") { fetchGroups(); fetchModules(); fetchSubmodules(); }
-    }, [activeTab]);
-
-    useEffect(() => {
         if (isEditOpen && editEntityType === "submodule" && editEntity?.groupId) {
             fetchEditModules(editEntity.groupId);
         }
     }, [isEditOpen, editEntityType, editEntity?.groupId]);
 
-    const userOptions = useMemo(() => (users || []).map(u => ({ label: u.name, value: u.id })), [users]);
-    const groupOptions = useMemo(() => (groups || []).map(g => ({ label: g.name, value: g.id })), [groups]);
+    const userOptions = useMemo(
+        () => (users || []).map((u) => ({ label: u.name, value: u.id })),
+        [users]
+    );
+    const groupOptions = useMemo(
+        () => (groups || []).map((g) => ({ label: g.name, value: g.id })),
+        [groups]
+    );
     const moduleOptions = useMemo(
-        () => (modules || []).map(m => ({ label: m.name, value: m.id || m.name })),
+        () => (modules || []).map((m) => ({ label: m.name, value: m.id || m.name })),
         [modules]
     );
     const editModuleOptions = useMemo(
-        () => (editModules || []).map(m => ({ label: m.name, value: m.id || m.name })),
+        () => (editModules || []).map((m) => ({ label: m.name, value: m.id || m.name })),
         [editModules]
     );
 
-    const filteredGroups = useMemo(() =>
-        groups.filter(g => g.name.toLowerCase().includes(searchGroup.toLowerCase())),
+    const filteredGroups = useMemo(
+        () => groups.filter((g) => g.name.toLowerCase().includes(searchGroup.toLowerCase())),
         [groups, searchGroup]
     );
-
-    const filteredTags = useMemo(() =>
-        tags.filter(t => t.name.toLowerCase().includes(searchTag.toLowerCase())),
+    const filteredTags = useMemo(
+        () => tags.filter((t) => t.name.toLowerCase().includes(searchTag.toLowerCase())),
         [tags, searchTag]
     );
-
-    const filteredModules = useMemo(() =>
-        modules.filter(m => m.name.toLowerCase().includes(searchModule.toLowerCase())),
+    const filteredModules = useMemo(
+        () => modules.filter((m) => m.name.toLowerCase().includes(searchModule.toLowerCase())),
         [modules, searchModule]
     );
-
-    const filteredSubmodules = useMemo(() =>
-        submodules.filter(s => s.name.toLowerCase().includes(searchSubmodule.toLowerCase())),
+    const filteredSubmodules = useMemo(
+        () => submodules.filter((s) => s.name.toLowerCase().includes(searchSubmodule.toLowerCase())),
         [submodules, searchSubmodule]
     );
 
     const createGroupHandler = async () => {
-        if (!groupName || !createdByGroup) return toast.error("Group name and 'created by' fields are required.");
+        if (!groupName || !createdByGroup)
+            return toast.error("Group name and 'created by' fields are required.");
         try {
             setCreatingGroup(true);
-            const response = await axios.put(`${URL_API_ALB}groups`, { name: groupName, createdBy: createdByGroup });
+            const response = await axios.put(`${URL_API_ALB}groups`, {
+                name: groupName,
+                createdBy: createdByGroup,
+            });
             if (response.status === 200 && !String(response.data).includes("Error")) {
                 toast.success("Group created successfully!");
                 setGroupName("");
                 setCreatedByGroup("");
+                setGrpPage(1);
                 fetchGroups();
             } else {
                 toast.error("Error creating group: " + response.data);
@@ -242,18 +441,25 @@ export default function CreateForm() {
         } catch (error) {
             console.error("Error during group creation:", error);
             toast.error("Network or server error while creating group.");
-        } finally { setCreatingGroup(false); }
+        } finally {
+            setCreatingGroup(false);
+        }
     };
 
     const createTagHandler = async () => {
-        if (!tagName || !createdByTag) return toast.error("Tag name and created by fields are required.");
+        if (!tagName || !createdByTag)
+            return toast.error("Tag name and created by fields are required.");
         try {
             setCreatingTag(true);
-            const response = await axios.put(`${URL_API_ALB}tags`, { name: tagName, createdBy: createdByTag });
+            const response = await axios.put(`${URL_API_ALB}tags`, {
+                name: tagName,
+                createdBy: createdByTag,
+            });
             if (response.status === 200 && !String(response.data).includes("Error")) {
                 toast.success("Tag created successfully!");
                 setTagName("");
                 setCreatedByTag("");
+                setTagPage(1);
                 fetchTags();
             } else {
                 toast.error("Error creating tag: " + response.data);
@@ -261,19 +467,27 @@ export default function CreateForm() {
         } catch (error) {
             console.error("Error creating tag:", error);
             toast.error("Network or server error while creating tag.");
-        } finally { setCreatingTag(false); }
+        } finally {
+            setCreatingTag(false);
+        }
     };
 
     const createModuleHandler = async () => {
-        if (!moduleName || !createdByModule || !selectedGroupForModule) return toast.error("Module name, group and created by are required.");
+        if (!moduleName || !createdByModule || !selectedGroupForModule)
+            return toast.error("Module name, group and created by are required.");
         try {
             setCreatingModule(true);
-            const response = await axios.put(`${URL_API_ALB}modules`, { name: moduleName, groupId: selectedGroupForModule, createdBy: createdByModule });
+            const response = await axios.put(`${URL_API_ALB}modules`, {
+                name: moduleName,
+                groupId: selectedGroupForModule,
+                createdBy: createdByModule,
+            });
             if (response.status === 200 && !String(response.data).includes("Error")) {
                 toast.success("Module created successfully!");
                 setModuleName("");
                 setCreatedByModule("");
                 setSelectedGroupForModule("");
+                setModPage(1);
                 fetchModules();
             } else {
                 toast.error("Error creating module: " + response.data);
@@ -281,14 +495,24 @@ export default function CreateForm() {
         } catch (error) {
             console.error("Error creating module:", error);
             toast.error("Network or server error while creating module.");
-        } finally { setCreatingModule(false); }
+        } finally {
+            setCreatingModule(false);
+        }
     };
 
     const createSubmoduleHandler = async () => {
-        if (!submoduleName || !createdBySubmodule || !selectedGroupForSubmodule || !parentModule) return toast.error("Submodule name, group, parent module and created by are required.");
+        if (!submoduleName || !createdBySubmodule || !selectedGroupForSubmodule || !parentModule)
+            return toast.error(
+                "Submodule name, group, parent module and created by are required."
+            );
         try {
             setCreatingSubmodule(true);
-            const payload = { groupId: selectedGroupForSubmodule, moduleId: parentModule, name: submoduleName, createdBy: createdBySubmodule };
+            const payload = {
+                groupId: selectedGroupForSubmodule,
+                moduleId: parentModule,
+                name: submoduleName,
+                createdBy: createdBySubmodule,
+            };
             const response = await axios.put(`${URL_API_ALB}subModules`, payload);
             if (response.status === 200 && !String(response.data).includes("Error")) {
                 toast.success("Submodule created successfully!");
@@ -296,6 +520,7 @@ export default function CreateForm() {
                 setCreatedBySubmodule("");
                 setSelectedGroupForSubmodule("");
                 setParentModule("");
+                setSubPage(1);
                 fetchSubmodules();
             } else {
                 toast.error("Error creating submodule: " + response.data);
@@ -303,7 +528,9 @@ export default function CreateForm() {
         } catch (error) {
             console.error("Error creating submodule:", error);
             toast.error("Network or server error while creating submodule.");
-        } finally { setCreatingSubmodule(false); }
+        } finally {
+            setCreatingSubmodule(false);
+        }
     };
 
     const deleteGroup = async (id: string) => {
@@ -357,22 +584,41 @@ export default function CreateForm() {
         try {
             if (!editEntityType || !editEntity) return;
             if (editEntityType === "group") {
-                await axios.patch(`${URL_API_ALB}groups`, { id: editEntity.id, name: editEntity.name, updatedBy: editEntity.createdBy });
+                await axios.patch(`${URL_API_ALB}groups`, {
+                    id: editEntity.id,
+                    name: editEntity.name,
+                    updatedBy: editEntity.createdBy,
+                });
                 toast.success("Group updated");
                 fetchGroups();
             }
             if (editEntityType === "tag") {
-                await axios.patch(`${URL_API_ALB}tags`, { id: editEntity.id, name: editEntity.name, updatedBy: editEntity.createdBy });
+                await axios.patch(`${URL_API_ALB}tags`, {
+                    id: editEntity.id,
+                    name: editEntity.name,
+                    updatedBy: editEntity.createdBy,
+                });
                 toast.success("Tag updated");
                 fetchTags();
             }
             if (editEntityType === "module") {
-                await axios.patch(`${URL_API_ALB}modules`, { id: editEntity.id, name: editEntity.name, groupId: editEntity.groupId, updatedBy: editEntity.createdBy });
+                await axios.patch(`${URL_API_ALB}modules`, {
+                    id: editEntity.id,
+                    name: editEntity.name,
+                    groupId: editEntity.groupId,
+                    updatedBy: editEntity.createdBy,
+                });
                 toast.success("Module updated");
                 fetchModules();
             }
             if (editEntityType === "submodule") {
-                await axios.patch(`${URL_API_ALB}subModules`, { id: editEntity.id, name: editEntity.name, groupId: editEntity.groupId, moduleId: editEntity.moduleId, updatedBy: editEntity.createdBy });
+                await axios.patch(`${URL_API_ALB}subModules`, {
+                    id: editEntity.id,
+                    name: editEntity.name,
+                    groupId: editEntity.groupId,
+                    moduleId: editEntity.moduleId,
+                    updatedBy: editEntity.createdBy,
+                });
                 toast.success("Submodule updated");
                 fetchSubmodules();
             }
@@ -403,7 +649,7 @@ export default function CreateForm() {
         const name = editEntity?.groupName;
         if (id) return String(id);
         if (name) {
-            const match = (groupOptions || []).find(o => o.label === name);
+            const match = (groupOptions || []).find((o) => o.label === name);
             return match?.value ?? "";
         }
         return "";
@@ -412,196 +658,471 @@ export default function CreateForm() {
     return (
         <DashboardHeader>
             <div className="w-2/3 flex flex-col items-center justify-start h-full gap-6 px-4 py-8">
-
-                <h2 className=" text-2xl font-bold mb-2 text-primary/80 text-center">Location Information</h2>
+                <h2 className=" text-2xl font-bold mb-2 text-primary/80 text-center">
+                    Location Information
+                </h2>
 
                 <div className="flex gap-2 justify-center mb-2">
-                    <TabButton active={activeTab === "tag"} onClick={() => setActiveTab("tag")}>Tag</TabButton>
-                    <TabButton active={activeTab === "group"} onClick={() => setActiveTab("group")}>Group</TabButton>
-                    <TabButton active={activeTab === "module"} onClick={() => setActiveTab("module")}>Module</TabButton>
-                    <TabButton active={activeTab === "submodule"} onClick={() => setActiveTab("submodule")}>Submodule</TabButton>
+                    <TabButton active={activeTab === "tag"} onClick={() => setActiveTab("tag")}>
+                        Tag
+                    </TabButton>
+                    <TabButton active={activeTab === "group"} onClick={() => setActiveTab("group")}>
+                        Group
+                    </TabButton>
+                    <TabButton active={activeTab === "module"} onClick={() => setActiveTab("module")}>
+                        Module
+                    </TabButton>
+                    <TabButton
+                        active={activeTab === "submodule"}
+                        onClick={() => setActiveTab("submodule")}
+                    >
+                        Submodule
+                    </TabButton>
                 </div>
 
                 {activeTab === "group" && (
                     <div className="w-full flex flex-col gap-4 text-primary/80">
                         <div className="flex flex-col gap-3">
-                            <TextInputWithClearButton id="groupName" type="text" inputMode="text" placeholder="Enter Group Name" className="p-2 !bg-primary/20 rounded-md text-primary/90 placeholder:text-primary/60" onChangeHandler={(e: any) => setGroupName(e.target.value)} value={groupName} />
-                            <SearchField label="Created By" value={createdByGroup} onChange={setCreatedByGroup} options={userOptions} placeholder={loadingUsers ? "Loading users…" : "Select creator"} />
+                            <TextInputWithClearButton
+                                id="groupName"
+                                type="text"
+                                inputMode="text"
+                                placeholder="Enter Group Name"
+                                label="Enter Group Name"
+                                onChangeHandler={(e: any) => setGroupName(e.target.value)}
+                                value={groupName}
+                            />
+                            <SearchField
+                                label="Created By"
+                                value={createdByGroup}
+                                onChange={setCreatedByGroup}
+                                options={userOptions}
+                                placeholder={loadingUsers ? "Loading users…" : "Select creator"}
+                            />
                         </div>
-                        <button disabled={creatingGroup} onClick={createGroupHandler} className="cursor-pointer bg-slate-600 hover:bg-slate-700 disabled:opacity-60 shadow-md text-white py-2 px-4 rounded-md transition-colors">{creatingGroup ? "Saving…" : "Save Group"}</button>
+                        <button
+                            disabled={creatingGroup}
+                            onClick={createGroupHandler}
+                            className="cursor-pointer bg-slate-600 hover:bg-slate-700 disabled:opacity-60 shadow-md text-white py-2 px-4 rounded-md transition-colors"
+                        >
+                            {creatingGroup ? "Saving…" : "Save Group"}
+                        </button>
 
-                        {groups.length > 0 ? (
-                            <div className="w-full mt-4">
-                                <div className="flex items-center justify-between mb-2">
-                                    <h4 className="text-md font-semibold text-primary/80">Existing Groups</h4>
-                                    <TextInputWithClearButton
-                                        id="searchGroup"
-                                        type="text"
-                                        inputMode="text"
-                                        placeholder="Search groups..."
-                                        className="p-1 text-sm !bg-white border border-primary/20 rounded-md text-primary/90 placeholder:text-primary/60 "
-                                        onChangeHandler={(e: any) => setSearchGroup(e.target.value)}
-                                        value={searchGroup}
-                                    />
-                                </div>
-                                <div className="flex flex-col gap-2 max-h-72 overflow-y-auto">
-                                    {filteredGroups.length > 0 && filteredGroups.map(g => (
-                                        <div key={g.id} className="flex items-center justify-between p-2 border border-primary/20 rounded-md hover:bg-primary/10 transition-colors">
-                                            <div className="flex flex-col">
-                                                <span className="text-primary/80">{g.name}</span>
-                                                <span className="text-xs text-gray-500">{g.id}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs mr-2">{g.createdByName}</span>
-                                                <span className="text-xs mr-2">{fmtDate(g.createdAt)}</span>
-                                                <button onClick={() => openEdit("group", { ...g })} className="text-xs px-2 py-1 rounded bg-primary/20 hover:bg-primary/30">Edit</button>
-                                                <button onClick={() => deleteGroup(g.id)} className="text-xs px-2 py-1 rounded bg-red-500/80 text-white hover:bg-red-600">Delete</button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {filteredGroups.length === 0 && <NoData text="No groups found. Create a new group to get started." />}
-                                </div>
+                        <div className="w-full mt-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <h4 className="text-md font-semibold text-primary/80">
+                                    Existing Groups
+                                </h4>
+                                <TextInputWithClearButton
+                                    id="searchGroup"
+                                    type="text"
+                                    inputMode="text"
+                                    placeholder="Search groups..."
+                                    label="Search Groups"
+                                    onChangeHandler={(e: any) => {
+                                        setSearchGroup(e.target.value);
+                                        setGrpPage(1);
+                                    }}
+                                    value={searchGroup}
+                                />
                             </div>
-                        ):(
-                            <NoData text="No groups found. Create a new group to get started." />
-                        )}
+
+                            <PaginatedTable
+                                data={filteredGroups}
+                                columns={[
+                                    { key: "name", header: "Name", className: "col-span-3" },
+                                    {
+                                        key: "id",
+                                        header: "ID",
+                                        className: "col-span-3",
+                                        render: (g: Group) => (
+                                            <span className="text-xs text-gray-500">{g.id}</span>
+                                        ),
+                                    },
+                                    {
+                                        key: "meta",
+                                        header: "Meta",
+                                        className: "col-span-4",
+                                        render: (g: Group) => (
+                                            <div className="flex flex-col text-xs">
+                                                <span>{g.createdByName}</span>
+                                                <span className="text-gray-500">{fmtDate(g.createdAt)}</span>
+                                            </div>
+                                        ),
+                                    },
+                                    {
+                                        key: "actions",
+                                        header: "Actions",
+                                        className: "col-span-2",
+                                        render: (g: Group) => (
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => openEdit("group", { ...g })}
+                                                    className="text-xs px-2 py-1 rounded bg-primary/20 hover:bg-primary/30"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => deleteGroup(g.id)}
+                                                    className="text-xs px-2 py-1 rounded bg-red-500/80 text-white hover:bg-red-600"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        ),
+                                    },
+                                ]}
+                                page={grpPage}
+                                setPage={setGrpPage}
+                                pageSize={grpPageSize}
+                                setPageSize={setGrpPageSize}
+                                loading={loadingGroups}
+                                emptyText="No groups found. Create a new group to get started."
+                                rowKey={(g) => (g as Group).id}
+                            />
+                        </div>
                     </div>
                 )}
 
                 {activeTab === "tag" && (
                     <div className="w-full flex flex-col gap-4 text-primary/80">
                         <div className="flex flex-col gap-3">
-                            <TextInputWithClearButton id="tagName" type="text" inputMode="text" placeholder="Enter Tag Name" className="p-2 !bg-primary/20 rounded-md text-primary/90 placeholder:text-primary/60" onChangeHandler={(e: any) => setTagName(e.target.value)} value={tagName} />
-                            <SearchField label="Created By" value={createdByTag} onChange={setCreatedByTag} options={userOptions} placeholder={loadingUsers ? "Loading users…" : "Select creator"} />
+                            <TextInputWithClearButton
+                                label="Enter Tag"
+                                id="tagName"
+                                type="text"
+                                inputMode="text"
+                                placeholder="Enter Tag Name"
+                                onChangeHandler={(e: any) => setTagName(e.target.value)}
+                                value={tagName}
+                            />
+                            <SearchField
+                                label="Created By"
+                                value={createdByTag}
+                                onChange={setCreatedByTag}
+                                options={userOptions}
+                                placeholder={loadingUsers ? "Loading users…" : "Select creator"}
+                            />
                         </div>
-                        <button disabled={creatingTag} onClick={createTagHandler} className="cursor-pointer bg-primary/80 hover:bg-slate-700 disabled:opacity-60 shadow-md text-white py-2 px-4 rounded-md transition-colors">{creatingTag ? "Saving…" : "Save Tag"}</button>
+                        <button
+                            disabled={creatingTag}
+                            onClick={createTagHandler}
+                            className="cursor-pointer bg-primary/80 hover:bg-slate-700 disabled:opacity-60 shadow-md text-white py-2 px-4 rounded-md transition-colors"
+                        >
+                            {creatingTag ? "Saving…" : "Save Tag"}
+                        </button>
 
-                        {tags.length > 0 && (
-                            <div className="w-full mt-4">
-                                <div className="flex items-center justify-between mb-2">
-                                    <h4 className="text-md font-semibold text-primary/80">Existing Tags</h4>
-                                    <TextInputWithClearButton
-                                        id="searchTag"
-                                        type="text"
-                                        inputMode="text"
-                                        placeholder="Search tags..."
-                                        className="w-full p-1 text-sm !bg-white border border-primary/20 rounded-md text-primary/90 placeholder:text-primary/60 "
-                                        onChangeHandler={(e: any) => setSearchTag(e.target.value)}
-                                        value={searchTag}
-                                    />
-                                </div>
-                                <div className="flex flex-col gap-2 max-h-72 overflow-y-auto">
-                                    {filteredTags.length > 0 && filteredTags.map(t => (
-                                        <div key={t.id} className="flex items-center justify-between p-2 border border-primary/20 rounded-md hover:bg-primary/10 transition-colors">
-                                            <div className="flex flex-col">
-                                                <span className="text-primary/80">{t.name}</span>
-                                                <span className="text-xs text-gray-500">{t.id}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs mr-2">{t.createdByName}</span>
-                                                <span className="text-xs mr-2">{fmtDate(t.createdAt)}</span>
-                                                <button onClick={() => openEdit("tag", { ...t })} className="text-xs px-2 py-1 rounded bg-primary/20 hover:bg-primary/30">Edit</button>
-                                                <button onClick={() => deleteTag(t.id)} className="text-xs px-2 py-1 rounded bg-red-500/80 text-white hover:bg-red-600">Delete</button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {filteredTags.length === 0 && <NoData text="No tags found. Create a new tag to get started." />}
-                                </div>
+                        <div className="w-full mt-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <h4 className="text-md font-semibold text-primary/80">
+                                    Existing Tags
+                                </h4>
+                                <TextInputWithClearButton
+                                    id="searchTag"
+                                    type="text"
+                                    label="Search Tags"
+                                    inputMode="text"
+                                    placeholder="Search tags..."
+                                    onChangeHandler={(e: any) => {
+                                        setSearchTag(e.target.value);
+                                        setTagPage(1);
+                                    }}
+                                    value={searchTag}
+                                />
                             </div>
-                        )}
+
+                            <PaginatedTable
+                                data={filteredTags}
+                                columns={[
+                                    { key: "name", header: "Name", className: "col-span-3" },
+                                    {
+                                        key: "id",
+                                        header: "ID",
+                                        className: "col-span-3",
+                                        render: (t: Tag) => (
+                                            <span className="text-xs text-gray-500">{t.id}</span>
+                                        ),
+                                    },
+                                    {
+                                        key: "meta",
+                                        header: "Meta",
+                                        className: "col-span-4",
+                                        render: (t: Tag) => (
+                                            <div className="flex flex-col text-xs">
+                                                <span>{t.createdByName}</span>
+                                                <span className="text-gray-500">{fmtDate(t.createdAt)}</span>
+                                            </div>
+                                        ),
+                                    },
+                                    {
+                                        key: "actions",
+                                        header: "Actions",
+                                        className: "col-span-2",
+                                        render: (t: Tag) => (
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => openEdit("tag", { ...t })}
+                                                    className="text-xs px-2 py-1 rounded bg-primary/20 hover:bg-primary/30"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => deleteTag(t.id)}
+                                                    className="text-xs px-2 py-1 rounded bg-red-500/80 text-white hover:bg-red-600"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        ),
+                                    },
+                                ]}
+                                page={tagPage}
+                                setPage={setTagPage}
+                                pageSize={tagPageSize}
+                                setPageSize={setTagPageSize}
+                                loading={loadingTags}
+                                emptyText="No tags found. Create a new tag to get started."
+                                rowKey={(t) => (t as Tag).id}
+                            />
+                        </div>
                     </div>
                 )}
 
                 {activeTab === "module" && (
                     <div className="w-full flex flex-col gap-4 text-primary/80">
                         <div className="flex flex-col gap-3">
-                            <TextInputWithClearButton id="moduleName" type="text" inputMode="text" placeholder="Enter Module Name" className="p-2 !bg-primary/20 rounded-md text-primary/90 placeholder:text-primary/60" onChangeHandler={(e: any) => setModuleName(e.target.value)} value={moduleName} />
-                            <SearchField label="Select Group" value={selectedGroupForModule} onChange={setSelectedGroupForModule} options={groupOptions} placeholder={loadingGroups ? "Loading groups…" : "Select group"} />
-                            <SearchField label="Created By" value={createdByModule} onChange={setCreatedByModule} options={userOptions} placeholder={loadingUsers ? "Loading users…" : "Select creator"} />
+                            <TextInputWithClearButton
+                                id="moduleName"
+                                type="text"
+                                inputMode="text"
+                                label="Enter Module Name"
+                                placeholder="Enter Module Name"
+                                onChangeHandler={(e: any) => setModuleName(e.target.value)}
+                                value={moduleName}
+                            />
+                            <SearchField
+                                label="Select Group"
+                                value={selectedGroupForModule}
+                                onChange={setSelectedGroupForModule}
+                                options={groupOptions}
+                                placeholder={loadingGroups ? "Loading groups…" : "Select group"}
+                            />
+                            <SearchField
+                                label="Created By"
+                                value={createdByModule}
+                                onChange={setCreatedByModule}
+                                options={userOptions}
+                                placeholder={loadingUsers ? "Loading users…" : "Select creator"}
+                            />
                         </div>
-                        <button disabled={creatingModule} onClick={createModuleHandler} className="cursor-pointer bg-slate-600 hover:bg-slate-700 disabled:opacity-60 shadow-md text-white py-2 px-4 rounded-md transition-colors">{creatingModule ? "Saving…" : "Save Module"}</button>
+                        <button
+                            disabled={creatingModule}
+                            onClick={createModuleHandler}
+                            className="cursor-pointer bg-slate-600 hover:bg-slate-700 disabled:opacity-60 shadow-md text-white py-2 px-4 rounded-md transition-colors"
+                        >
+                            {creatingModule ? "Saving…" : "Save Module"}
+                        </button>
 
-                        {modules.length > 0 && (
-                            <div className="w-full mt-4">
-                                <div className="w-full flex items-center justify-between mb-2">
-                                    <h4 className="text-md font-semibold text-primary/80">Existing Modules</h4>
-                                    <TextInputWithClearButton
-                                        id="searchModule"
-                                        type="text"
-                                        inputMode="text"
-                                        placeholder="Search modules..."
-                                        className="w-full p-1 text-sm !bg-white border border-primary/20 rounded-md text-primary/90 placeholder:text-primary/60"
-                                        onChangeHandler={(e: any) => setSearchModule(e.target.value)}
-                                        value={searchModule}
-                                    />
-                                </div>
-                                <div className="flex flex-col gap-2 max-h-72 overflow-y-auto">
-                                    {filteredModules.length >0 && filteredModules.map(m => (
-                                        <div key={m.id} className="flex items-center justify-between p-2 border border-primary/20 rounded-md hover:bg-primary/10 transition-colors">
-                                            <div className="flex flex-col">
-                                                <span className="text-primary/80">{m.name}</span>
-                                                <span className="text-xs text-gray-500">{m.id}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs mr-2">{m.groupName}</span>
-                                                <span className="text-xs mr-2">{m.createdByName}</span>
-                                                <span className="text-xs mr-2">{fmtDate(m.createdAt)}</span>
-                                                <button onClick={() => openEdit("module", { ...m })} className="text-xs px-2 py-1 rounded bg-primary/20 hover:bg-primary/30">Edit</button>
-                                                <button onClick={() => deleteModule(m.id)} className="text-xs px-2 py-1 rounded bg-red-500/80 text-white hover:bg-red-600">Delete</button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {filteredModules.length === 0 && <NoData text="No modules found. Create a new module to get started." />}
-                                </div>
+                        <div className="w-full mt-4">
+                            <div className="w-full flex items-center justify-between mb-2">
+                                <h4 className="text-md font-semibold text-primary/80">
+                                    Existing Modules
+                                </h4>
+                                <TextInputWithClearButton
+                                    id="searchModule"
+                                    type="text"
+                                    label="Search Modules"
+                                    inputMode="text"
+                                    placeholder="Search modules..."
+                                    onChangeHandler={(e: any) => {
+                                        setSearchModule(e.target.value);
+                                        setModPage(1);
+                                    }}
+                                    value={searchModule}
+                                />
                             </div>
-                        )}
+
+                            <PaginatedTable
+                                data={filteredModules}
+                                columns={[
+                                    { key: "name", header: "Name", className: "col-span-3" },
+                                    {
+                                        key: "id",
+                                        header: "ID",
+                                        className: "col-span-3",
+                                        render: (m: Module) => (
+                                            <span className="text-xs text-gray-500">{m.id}</span>
+                                        ),
+                                    },
+                                    {
+                                        key: "meta",
+                                        header: "Meta",
+                                        className: "col-span-4",
+                                        render: (m: Module) => (
+                                            <div className="flex flex-col text-xs">
+                                                <span>{m.groupName}</span>
+                                                <div className="flex gap-2">
+                                                    <span>{m.createdByName}</span>
+                                                    <span className="text-gray-500">{fmtDate(m.createdAt)}</span>
+                                                </div>
+                                            </div>
+                                        ),
+                                    },
+                                    {
+                                        key: "actions",
+                                        header: "Actions",
+                                        className: "col-span-2",
+                                        render: (m: Module) => (
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => openEdit("module", { ...m })}
+                                                    className="text-xs px-2 py-1 rounded bg-primary/20 hover:bg-primary/30"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => deleteModule(m.id)}
+                                                    className="text-xs px-2 py-1 rounded bg-red-500/80 text-white hover:bg-red-600"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        ),
+                                    },
+                                ]}
+                                page={modPage}
+                                setPage={setModPage}
+                                pageSize={modPageSize}
+                                setPageSize={setModPageSize}
+                                loading={loadingModules}
+                                emptyText="No modules found. Create a new module to get started."
+                                rowKey={(m) => (m as Module).id}
+                            />
+                        </div>
                     </div>
                 )}
 
                 {activeTab === "submodule" && (
                     <div className="w-full flex flex-col gap-4 text-primary/80">
                         <div className="flex flex-col gap-3">
-                            <TextInputWithClearButton id="submoduleName" type="text" inputMode="text" placeholder="Enter Submodule Name" className="p-2 !bg-primary/20 rounded-md text-primary/90 placeholder:text-primary/60" onChangeHandler={(e: any) => setSubmoduleName(e.target.value)} value={submoduleName} />
-                            <SearchField label="Select Group" value={selectedGroupForSubmodule} onChange={(v: string) => { setSelectedGroupForSubmodule(v); setParentModule(""); }} options={groupOptions} placeholder={loadingGroups ? "Loading groups…" : "Select group"} />
-                            <SearchField label="Select Parent Module" value={parentModule} onChange={setParentModule} options={moduleOptions} placeholder={loadingModules ? "Loading modules…" : "Select module"} />
-                            <SearchField label="Created By" value={createdBySubmodule} onChange={setCreatedBySubmodule} options={userOptions} placeholder={loadingUsers ? "Loading users…" : "Select creator"} />
+                            <TextInputWithClearButton
+                                id="submoduleName"
+                                type="text"
+                                inputMode="text"
+                                placeholder="Enter Submodule Name"
+                                label="Enter Submodule Name"
+                                onChangeHandler={(e: any) => setSubmoduleName(e.target.value)}
+                                value={submoduleName}
+                            />
+                            <SearchField
+                                label="Select Group"
+                                value={selectedGroupForSubmodule}
+                                onChange={(v: string) => {
+                                    setSelectedGroupForSubmodule(v);
+                                    setParentModule("");
+                                }}
+                                options={groupOptions}
+                                placeholder={loadingGroups ? "Loading groups…" : "Select group"}
+                            />
+                            <SearchField
+                                label="Select Parent Module"
+                                value={parentModule}
+                                onChange={setParentModule}
+                                options={moduleOptions}
+                                placeholder={loadingModules ? "Loading modules…" : "Select module"}
+                            />
+                            <SearchField
+                                label="Created By"
+                                value={createdBySubmodule}
+                                onChange={setCreatedBySubmodule}
+                                options={userOptions}
+                                placeholder={loadingUsers ? "Loading users…" : "Select creator"}
+                            />
                         </div>
-                        <button disabled={creatingSubmodule} onClick={createSubmoduleHandler} className="cursor-pointer bg-slate-600 hover:bg-slate-700 disabled:opacity-60 shadow-md text-white py-2 px-4 rounded-md transition-colors">{creatingSubmodule ? "Saving…" : "Save Submodule"}</button>
+                        <button
+                            disabled={creatingSubmodule}
+                            onClick={createSubmoduleHandler}
+                            className="cursor-pointer bg-slate-600 hover:bg-slate-700 disabled:opacity-60 shadow-md text-white py-2 px-4 rounded-md transition-colors"
+                        >
+                            {creatingSubmodule ? "Saving…" : "Save Submodule"}
+                        </button>
 
-                        {submodules.length > 0 && (
-                            <div className="w-full mt-4">
-                                <div className="flex items-center justify-between mb-2">
-                                    <h4 className="text-md font-semibold text-primary/80">Existing Submodules</h4>
-                                    <TextInputWithClearButton
-                                        id="searchSubmodule"
-                                        type="text"
-                                        inputMode="text"
-                                        placeholder="Search submodules..."
-                                        className="p-1 text-sm !bg-white border border-primary/20 rounded-md text-primary/90 placeholder:text-primary/60"
-                                        onChangeHandler={(e: any) => setSearchSubmodule(e.target.value)}
-                                        value={searchSubmodule}
-                                    />
-                                </div>
-                                <div className="flex flex-col gap-2 max-h-72 overflow-y-auto">
-                                    {filteredSubmodules.length  > 0 && filteredSubmodules.map(s => (
-                                        <div key={s.id} className="flex items-center justify-between p-2 border border-primary/20 rounded-md hover:bg-primary/10 transition-colors">
-                                            <div className="flex flex-col">
-                                                <span className="text-primary/80">{s.name}</span>
-                                                <span className="text-xs text-gray-500">{s.id}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs mr-2">{s.moduleName}</span>
-                                                <span className="text-xs mr-2">{s.createdByName}</span>
-                                                <span className="text-xs mr-2">{fmtDate(s.createdAt)}</span>
-                                                <button onClick={() => openEdit("submodule", { ...s })} className="text-xs px-2 py-1 rounded bg-primary/20 hover:bg-primary/30">Edit</button>
-                                                <button onClick={() => deleteSubmodule(s.id)} className="text-xs px-2 py-1 rounded bg-red-500/80 text-white hover:bg-red-600">Delete</button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {filteredSubmodules.length === 0 && <NoData text="No submodules found. Create a new submodule to get started." />}
-                                </div>
+                        <div className="w-full mt-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <h4 className="text-md font-semibold text-primary/80">
+                                    Existing Submodules
+                                </h4>
+                                <TextInputWithClearButton
+                                    id="searchSubmodule"
+                                    type="text"
+                                    inputMode="text"
+                                    label="Search Submodules"
+                                    placeholder="Search submodules..."
+                                    onChangeHandler={(e: any) => {
+                                        setSearchSubmodule(e.target.value);
+                                        setSubPage(1);
+                                    }}
+                                    value={searchSubmodule}
+                                />
                             </div>
-                        )}
+
+                            <PaginatedTable
+                                data={filteredSubmodules}
+                                columns={[
+                                    { key: "name", header: "Name", className: "col-span-3" },
+                                    {
+                                        key: "id",
+                                        header: "ID",
+                                        className: "col-span-3",
+                                        render: (s: Submodule) => (
+                                            <span className="text-xs text-gray-500">{s.id}</span>
+                                        ),
+                                    },
+                                    {
+                                        key: "meta",
+                                        header: "Meta",
+                                        className: "col-span-4",
+                                        render: (s: Submodule) => (
+                                            <div className="flex flex-col text-xs">
+                                                <span>{s.moduleName}</span>
+                                                <div className="flex gap-2">
+                                                    <span>{s.createdByName}</span>
+                                                    <span className="text-gray-500">{fmtDate(s.createdAt)}</span>
+                                                </div>
+                                            </div>
+                                        ),
+                                    },
+                                    {
+                                        key: "actions",
+                                        header: "Actions",
+                                        className: "col-span-2",
+                                        render: (s: Submodule) => (
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => openEdit("submodule", { ...s })}
+                                                    className="text-xs px-2 py-1 rounded bg-primary/20 hover:bg-primary/30"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => deleteSubmodule(s.id)}
+                                                    className="text-xs px-2 py-1 rounded bg-red-500/80 text-white hover:bg-red-600"
+                                                >
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        ),
+                                    },
+                                ]}
+                                page={subPage}
+                                setPage={setSubPage}
+                                pageSize={subPageSize}
+                                setPageSize={setSubPageSize}
+                                loading={loadingSubmodules}
+                                emptyText="No submodules found. Create a new submodule to get started."
+                                rowKey={(s) => (s as Submodule).id}
+                            />
+                        </div>
                     </div>
                 )}
 
@@ -609,11 +1130,26 @@ export default function CreateForm() {
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
                         <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl p-6 space-y-4">
                             <div className="flex items-center justify-between">
-                                <h4 className="text-lg font-semibold text-primary/80">Edit {editEntityType}</h4>
-                                <button onClick={() => setIsEditOpen(false)} className="px-2 py-1 rounded hover:bg-black/5">✕</button>
+                                <h4 className="text-lg font-semibold text-primary/80">
+                                    Edit {editEntityType}
+                                </h4>
+                                <button
+                                    onClick={() => setIsEditOpen(false)}
+                                    className="px-2 py-1 rounded hover:bg-black/5"
+                                >
+                                    ✕
+                                </button>
                             </div>
 
-                            <TextInputWithClearButton className="p-2 !bg-primary/20 rounded-md text-primary/90 placeholder:text-primary/60" id="edit-name" type="text" inputMode="text" placeholder="Name" onChangeHandler={(e: any) => onEditField("name", e.target.value)} value={editEntity?.name || ""} />
+                            <TextInputWithClearButton
+                                label="Enter Name"
+                                id="edit-name"
+                                type="text"
+                                inputMode="text"
+                                placeholder="Name"
+                                onChangeHandler={(e: any) => onEditField("name", e.target.value)}
+                                value={editEntity?.name || ""}
+                            />
 
                             {editEntityType === "module" && (
                                 <SearchField
@@ -621,7 +1157,7 @@ export default function CreateForm() {
                                     value={editModuleGroupValue}
                                     onChange={(v: string) => {
                                         onEditField("groupId", v);
-                                        const match = (groupOptions || []).find(o => o.value === v);
+                                        const match = (groupOptions || []).find((o) => o.value === v);
                                         if (match) onEditField("groupName", match.label);
                                     }}
                                     options={groupOptions}
@@ -633,10 +1169,14 @@ export default function CreateForm() {
                                 <div className="grid gap-3 sm:grid-cols-2">
                                     <SearchField
                                         label="Group"
-                                        value={(editEntity?.groupId) || ((groupOptions.find(o => o.label === editEntity?.groupName))?.value ?? "")}
+                                        value={
+                                            editEntity?.groupId ||
+                                            (groupOptions.find((o) => o.label === editEntity?.groupName)?.value ??
+                                                "")
+                                        }
                                         onChange={(v: string) => {
                                             onEditField("groupId", v);
-                                            const match = (groupOptions || []).find(o => o.value === v);
+                                            const match = (groupOptions || []).find((o) => o.value === v);
                                             if (match) onEditField("groupName", match.label);
                                         }}
                                         options={groupOptions}
@@ -644,23 +1184,44 @@ export default function CreateForm() {
                                     />
                                     <SearchField
                                         label="Parent Module"
-                                        value={(editEntity?.moduleId) || ((modules.find(m => m.name === editEntity?.moduleName))?.id ?? "")}
+                                        value={
+                                            editEntity?.moduleId ||
+                                            (modules.find((m) => m.name === editEntity?.moduleName)?.id ?? "")
+                                        }
                                         onChange={(v: string) => {
                                             onEditField("moduleId", v);
-                                            const match = modules.find(m => m.id === v);
+                                            const match = modules.find((m) => m.id === v);
                                             if (match) onEditField("moduleName", match.name);
                                         }}
-                                        options={(modules || []).filter(m => !editEntity?.groupId || m.groupId === editEntity.groupId).map(m => ({ label: m.name, value: m.id }))}
+                                        options={(modules || [])
+                                            .filter((m) => !editEntity?.groupId || m.groupId === editEntity.groupId)
+                                            .map((m) => ({ label: m.name, value: m.id }))}
                                         placeholder={loadingModules ? "Loading modules…" : "Select module"}
                                     />
                                 </div>
                             )}
 
-                            <SearchField label="Created By" value={editEntity?.createdBy || ""} onChange={(v: string) => onEditField("createdBy", v)} options={userOptions} placeholder={loadingUsers ? "Loading users…" : "Select creator"} />
+                            <SearchField
+                                label="Created By"
+                                value={editEntity?.createdBy || ""}
+                                onChange={(v: string) => onEditField("createdBy", v)}
+                                options={userOptions}
+                                placeholder={loadingUsers ? "Loading users…" : "Select creator"}
+                            />
 
                             <div className="flex justify-end gap-2 pt-2">
-                                <button onClick={() => setIsEditOpen(false)} className="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300">Cancel</button>
-                                <button onClick={submitEdit} className="px-3 py-2 rounded bg-primary/80 text-white hover:bg-primary">Save</button>
+                                <button
+                                    onClick={() => setIsEditOpen(false)}
+                                    className="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={submitEdit}
+                                    className="px-3 py-2 rounded bg-primary/80 text-white hover:bg-primary"
+                                >
+                                    Save
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -669,3 +1230,5 @@ export default function CreateForm() {
         </DashboardHeader>
     );
 }
+
+export default CreateForm;

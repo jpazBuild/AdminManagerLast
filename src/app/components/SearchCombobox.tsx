@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown, X } from "lucide-react"
+import { Check, ChevronDown, ChevronsUpDown, X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -70,7 +70,7 @@ export function SearchCombobox({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className="w-full justify-between"
+          className="w-full justify-between !bg-primary/10 border-primary/20 hover:bg-primary/20"
         >
           {selectedOption ? selectedOption.label : `Select ${textOptionSelect}`}
           <div className="flex items-center gap-1">
@@ -83,7 +83,7 @@ export function SearchCombobox({
                 <X className="h-4 w-4 opacity-50 hover:opacity-100" />
               </button>
             )}
-            <ChevronsUpDown className="opacity-50" />
+            <ChevronDown className="opacity-50" />
           </div>
         </Button>
       </PopoverTrigger>
@@ -102,6 +102,7 @@ export function SearchCombobox({
                   key={option.value}
                   value={option.value}
                   onSelect={handleSelect}
+                  className="hover:bg-primary/10 cursor-pointer"
                 >
                   {option.label}
                   <Check

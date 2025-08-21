@@ -423,43 +423,48 @@ const DashboardPage = () => {
     return (
         <DashboardHeader onDarkModeChange={handleDarkModeChange}>
             <div className={`p-4 flex justify-center items-center w-full flex-col gap-4 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-primary"} transition-colors duration-300`}>
-                <div className="lg:w-2/3 flex flex-col gap-4 mb-4 mt-2 justify-center items-center">
+                <div className="w-full lg:w-2/3 flex flex-col gap-4 mb-4 mt-2 justify-center items-center">
                     <h2 className="font-medium tracking-wide text-center text-[20px] w-full">Find test cases</h2>
 
-                    <SearchCombobox
-                        textOptionSelect="Tags" textSearch="tag ..." options={tags?.map((tag: any) => ({
+                    <SearchField
+                        label="Search Test by tags"
+                        value={selectedTag}
+                        onChange={setSelectedTag}
+                        placeholder="Search by tags..."
+                        className="w-full"
+                        disabled={isLoadingSearch}
+                        options={tags?.map((tag: any) => ({
                             label: String(tag?.name),
                             value: String(tag?.name),
                         }))}
-                        defaultValue=""
-                        onChange={(value, option) => {
-                            setSelectedTag(value)
-                        }}
-                        disabled={isLoadingTags}
                     />
-                    <SearchCombobox
-                        textOptionSelect="Groups" textSearch="group ..." options={groups?.map((group: any) => ({
+
+                    <SearchField
+                        label="Search Test by groups"
+                        value={selectedGroup}
+                        onChange={setSelectedGroup}
+                        placeholder="Search by groups..."
+                        className="w-full"
+                        disabled={isLoadingGroups || errorGroups}
+                        options={groups?.map((group: any) => ({
                             label: String(group?.name),
                             value: String(group?.name),
                         }))}
-                        value={selectedGroup}
-                        onChange={(value, option) => {
-                            setSelectedGroup(value)
-                        }}
-                        disabled={isLoadingGroups || errorGroups}
                     />
 
-                    <SearchCombobox
-                        textOptionSelect="Module" textSearch="module ..." options={modules?.map((module: any) => ({
-                            label: String(module.name),
-                            value: String(module.name),
-                        }))}
+                    <SearchField
+                        label="Search Test by modules"
                         value={selectedModule}
-                        onChange={(value, option) => {
-                            setSelectedModule(value)
-                        }}
+                        onChange={setSelectedModule}
+                        placeholder="Search by modules..."
+                        className="w-full"
                         disabled={!selectedGroup || modules.length === 0 || isLoadingModules || errorModules}
+                        options={modules?.map((module: any) => ({
+                            label: String(module?.name),
+                            value: String(module?.name),
+                        }))}
                     />
+
 
                     {isLoadingSubmodules ? (
                         <div className="flex items-center gap-2">
@@ -467,16 +472,18 @@ const DashboardPage = () => {
                             <span className="text-primary/80">Loading submodules...</span>
                         </div>
                     ) : (
-                        <SearchCombobox
-                            textOptionSelect="Submodule" textSearch="submodule ..." options={submodules?.map((submodule: any) => ({
-                                label: String(submodule.name),
-                                value: String(submodule.name),
+
+                        <SearchField
+                            label="Search Test by submodules"
+                            value={selectedSubmodule}
+                            onChange={setSelectedSubmodule}
+                            placeholder="Search by submodules..."
+                            className="w-full"
+                            disabled={!selectedModule || submodules.length === 0 || isLoadingSubmodules}
+                            options={submodules?.map((submodule: any) => ({
+                                label: String(submodule?.name),
+                                value: String(submodule?.name),
                             }))}
-                            defaultValue=""
-                            onChange={(value, option) => {
-                                setSelectedSubmodule(value)
-                            }}
-                            disabled={!selectedModule || modules.length === 0 || isLoadingSubmodules}
                         />
                     )}
 
@@ -561,36 +568,43 @@ const DashboardPage = () => {
                         </div>
 
                         {availableCreators.length > 0 && (
-                            <SearchCombobox
-                                textOptionSelect="Created By" textSearch="created by ..."
-                                options={[
-                                    { label: "All", value: "All" },
-                                    ...availableCreators.map(creator => ({ label: creator, value: creator }))
-                                ]}
+                            <SearchField
+                                label="Search Test by created by"
                                 value={selectedCreatedBy}
                                 onChange={setSelectedCreatedBy}
+                                placeholder="Select creator..."
+                                className="w-full"
+                                options={[
+                                    { label: "All", value: "All" },
+                                    ...availableCreators.map(creator => ({
+                                        label: creator,
+                                        value: creator
+                                    }))
+                                ]}
                             />
                         )}
 
                         {dataTestCases?.length > 1 && (
 
-                            <SearchCombobox
-                                textOptionSelect="Test Case Name" textSearch="Test Case Name ..."
-                                options={dataTestCases
+                            <SearchField
+                                label="Search Test by name"
+                                value={searchTestCaseName}
+                                onChange={setSearchTestCaseName}
+                                placeholder="Search by test case name..."
+                                className="w-full"
+                                options={filteredTestCases
                                     .filter(tc => typeof tc.name === "string")
                                     .map((tc) => ({
                                         label: tc.name as string,
                                         value: tc.name as string,
                                     }))}
-                                value={searchTestCaseName}
-                                onChange={setSearchTestCaseName}
                             />
                         )}
                     </div>
                 </div>
 
                 {isLoadingSearch ? (
-                    <div className="w-full flex flex-col gap-4 justify-center items-center h-64">
+                    <div className="w-full lg:w-2/3 flex flex-col gap-4 justify-center items-center h-64">
                         <div className="h-16 bg-primary/20 rounded w-full mb-2 animate-pulse"></div>
                         <div className="h-16 bg-primary/20 rounded w-full mb-2 animate-pulse"></div>
                         <div className="h-16 bg-primary/20 rounded w-full mb-2 animate-pulse"></div>

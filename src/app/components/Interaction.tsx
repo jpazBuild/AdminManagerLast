@@ -6,6 +6,7 @@ import { Copy, Save, Trash2 } from "lucide-react";
 import { FaXmark } from "react-icons/fa6";
 import { useCallback, useMemo } from 'react';
 import CopyToClipboard from "./CopyToClipboard";
+import TextInputWithClearButton from './InputClear';
 
 interface InteractionItemData {
     id: string;
@@ -41,16 +42,6 @@ interface JSONBoxProps {
 interface PanelState {
     [key: string]: boolean;
 }
-
-const TextInputWithClearButton = ({ id, value, onChangeHandler, placeholder, className, isDarkMode }: any) => (
-    <input
-        id={id}
-        value={value}
-        onChange={onChangeHandler}
-        placeholder={placeholder}
-        className={className}
-    />
-);
 
 const DeleteButton = ({ onClick,isDarkMode=false }: { onClick: () => void,isDarkMode:boolean }) => (
     <button
@@ -286,7 +277,6 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
     }) => (
         <div className={getFieldEditorContainerClasses()}>
             <div className="flex items-center justify-between w-full">
-                <span className={getFieldEditorLabelClasses()}>{label}:</span>
                 <div className="flex items-center gap-2">
                     <CopyToClipboard
                         text={String(fieldValue)}
@@ -306,8 +296,7 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
                 value={String(fieldValue)}
                 onChangeHandler={(e: any) => onUpdate(e.target.value)}
                 placeholder={label}
-                className={getTextInputClasses()}
-                isDarkMode={isDarkMode}
+                label={`${label}`}
             />
         </div>
     ), [isDarkMode]);

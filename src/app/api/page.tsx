@@ -398,6 +398,7 @@ const ApiFlowBuilder = () => {
                                                             <TextInputWithClearButton
                                                                 id={`key-${env.key}`}
                                                                 value={env.key}
+                                                                label={`Enter key for ${env.key}`}
                                                                 placeholder={`Enter key for ${env.key}`}
                                                                 defaultValue={env.key}
                                                                 readOnly={true}
@@ -405,6 +406,7 @@ const ApiFlowBuilder = () => {
                                                             <TextInputWithClearButton
                                                                 id={`Value-${env.value}`}
                                                                 value={env.value}
+                                                                label={`Enter value for ${env.value}`}
                                                                 placeholder={`Enter key for ${env.value}`}
                                                                 defaultValue={env.value}
                                                                 readOnly={true}
@@ -489,10 +491,10 @@ const ApiFlowBuilder = () => {
                                                             <TextInputWithClearButton
                                                                 id={`url-${idx}`}
                                                                 value={api?.request?.url?.raw}
+                                                                label="Enter request URL"
                                                                 placeholder="Enter request URL"
                                                                 defaultValue={api.request.url.raw}
                                                                 onChangeHandler={(e) => updateFlowField(idx, "url", e.target.value)}
-                                                                className="text-[14px]"
                                                                 readOnly={false}
                                                             />
                                                             <Button variant="outline" className="cursor-pointer bg-primary/90 text-white font-semibold" size="icon" onClick={() => executeApi(api, idx)}>
@@ -518,13 +520,13 @@ const ApiFlowBuilder = () => {
                                                                                     id={`header-key-${idx}-${hIdx}`}
                                                                                     value={h.key}
                                                                                     placeholder="Header Key"
+                                                                                    label={`Enter key for ${h.key}`}
                                                                                     defaultValue={h.key}
                                                                                     onChangeHandler={(e) => {
                                                                                         const up = [...api.request.header];
                                                                                         up[hIdx].key = e.target.value;
                                                                                         updateFlowField(idx, "headers", up);
                                                                                     }}
-                                                                                    className="text-xs w-1/3 text-primary/90"
                                                                                     readOnly={false}
                                                                                 />
                                                                                 <TextInputWithClearButton
@@ -536,7 +538,7 @@ const ApiFlowBuilder = () => {
                                                                                         updateFlowField(idx, "headers", up);
                                                                                     }}
                                                                                     placeholder="Header Value"
-                                                                                    className="text-xs w-2/3 text-primary/90"
+                                                                                    label="Enter value for header"
                                                                                     readOnly={false}
                                                                                 />
 

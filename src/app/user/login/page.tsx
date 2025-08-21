@@ -34,6 +34,7 @@ const LoginPage = () => {
                     type="email"
                     inputMode="text"
                     placeholder="Email"
+                    label="Enter your email"
                     className="max-w-[400px]"
                     onChangeHandler={(e) => console.log(e.target.value)}
                     value={""}
@@ -44,6 +45,7 @@ const LoginPage = () => {
                     type="password"
                     inputMode="text"
                     placeholder="Password"
+                    label="Enter your password"
                     className="max-w-[400px]"
                     onChangeHandler={(e) => console.log(e.target.value)}
                     value={""}
