@@ -22,6 +22,7 @@ import { URL_API_ALB } from "@/config";
 import TestCaseActions from "./TestCaseActions";
 import ReportTestCaseList from "./ReportsHistoricTestCaseList";
 import UnifiedInput from "./Unified";
+import { updateTest } from "@/utils/DBBUtils";
 
 const useScrollPosition = (dependencies: any[]) => {
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -179,9 +180,6 @@ const SortableTestCaseItem: React.FC<Props> = ({
         responseTest?.stepsData,
         setTestCasesData
     ]);
-
-
-
 
     useEffect(() => {
         if (isOpen && !hasFetched) {
@@ -459,51 +457,70 @@ const SortableTestCaseItem: React.FC<Props> = ({
         return out;
     };
 
+
+
+    const buildUpdatePayload = useCallback((responseTest: any, updatedBy: string) => {
+        const seenIds = new Set<string>();
+
+        const transformedSteps = responseTest.stepsData.map((step: any) => {
+            if (!step) return step;
+
+            const { stepsId, ...cleanStep } = step;
+
+            if (cleanStep?.stepsData && Array.isArray(cleanStep.stepsData)) {
+                return cleanStep.id;
+            }
+
+            return cleanStep;
+        });
+
+        const uniqueSteps = transformedSteps.filter((step: any) => {
+            const stepId = typeof step === "string" ? step : step.id;
+
+            if (!stepId) return true;
+
+            if (seenIds.has(stepId)) return false;
+            seenIds.add(stepId);
+            return true;
+        });
+
+        return {
+            id: responseTest.id,
+            name: responseTest.name,
+            description: responseTest.description,
+            groupName: responseTest.groupName,
+            moduleName: responseTest.moduleName,
+            subModuleName: responseTest.subModuleName,
+            tagIds: responseTest.tagIds || [],
+            tagNames: responseTest.tagNames || [],
+            contextGeneral: responseTest.contextGeneral,
+            stepsData: uniqueSteps,
+            updatedBy,
+            deleteS3Images: true,
+            temp: false,
+        };
+    }, []);
+
     const handleUpdateConfirm = useCallback(async () => {
-        if (!responseTest?.id) {
+        if (!responseTest) {
             toast.error("No test data available to update");
             return;
         }
 
-        const updatedBy = responseTest?.updatedBy || responseTest?.createdBy || "unknown";
-        const apiBase = (URL_API_ALB ?? '');
+        const payload = buildUpdatePayload(responseTest, "jpaz");
+        console.log("Payload final para updateTest:", payload);
 
         try {
             setIsLoadingUpdate(true);
-
-            const metaPayload = buildMetaUpdatePayload(responseTest, updatedBy);
-            await axios.patch(`${apiBase}tests`, metaPayload);
-
-            const allSteps = normalizeStepsForAppend(responseTest?.stepsData || []);
-            const urlAppend = new URL("appendTestSteps", apiBase).toString();
-
-            const chunkSize = 1;
-            const batches = chunkArray(allSteps, chunkSize);
-
-            const stepBlockIds: Set<string> = new Set();
-
-            for (const batch of batches) {
-                const appendPayload = buildAppendPayload(responseTest.id, batch, updatedBy);
-                const r = await axios.patch(urlAppend, appendPayload);
-
-                const items = Array.isArray(r?.data) ? r.data : [];
-                for (const it of items) {
-                    if (typeof it?.type === "string" && it.type.startsWith("STEPS#")) {
-                        const blockId = it.type.split("#")[1];
-                        if (blockId) stepBlockIds.add(blockId);
-                    }
-                }
-            }
-
-            toast.success("Test updated successfully");
-        } catch (err) {
-            console.error("Update failed", err);
-            toast.error("Failed to update test case");
+            const apiUrl = (URL_API_ALB ?? '');
+            const res = await axios.patch(`${apiUrl}tests`, payload);
+            if (res.status === 200) toast.success("Test updated successfully");
+        } catch (error: any) {
+            toast.error("Failed to update test case", error);
         } finally {
             setIsLoadingUpdate(false);
         }
-    }, [responseTest, URL_API_ALB]);
-
+    }, [buildUpdatePayload, responseTest]);
 
     const uniqueFields = useMemo(() => Array.from(new Set(testFields)), [testFields]);
 
@@ -631,7 +648,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                         placeholder={`Enter ${field}`}
                                         label={`Enter ${field}`}
                                         isDarkMode={isDarkMode}
-                                        enableFaker= {true}
+                                        enableFaker={true}
                                         onChange={(val, originalExpression) => {
                                             const testId = (test.testCaseId || test.id) ?? '';
 
@@ -666,45 +683,6 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                             });
                                         }}
                                     />
-                                    {/* <FakerInputWithAutocomplete
-                                        id={`${field}-${test.testCaseId || test.id}`}
-                                        value={getFieldValue((test.testCaseId || test.id) ?? '', field)}
-                                        placeholder={`Enter ${field}`}
-                                        isDarkMode={isDarkMode}
-                                        onChange={(val, originalExpression) => {
-                                            const testId = (test.testCaseId || test.id) ?? '';
-
-                                            handleValueChange(field, val, testId, originalExpression);
-
-                                            setResponseTest((prev: any) => {
-                                                if (!prev) return prev;
-
-                                                const allFields = prev.testData || [];
-                                                const updatedTestDataObj: Record<string, string> = {};
-
-                                                allFields.forEach((f: string) => {
-                                                    const currentVal =
-                                                        f === field
-                                                            ? val
-                                                            : getFieldValue(testId, f) || "";
-                                                    updatedTestDataObj[f] = currentVal;
-                                                });
-
-                                                setTestCasesData(prevCases =>
-                                                    prevCases.map(tc =>
-                                                        tc.id === testId
-                                                            ? { ...tc, testData: updatedTestDataObj }
-                                                            : tc
-                                                    )
-                                                );
-
-                                                return {
-                                                    ...prev,
-                                                    testDataObj: updatedTestDataObj
-                                                };
-                                            });
-                                        }}
-                                    /> */}
                                 </div>
                             ))}
 
@@ -893,3 +871,54 @@ const SortableTestCaseItem: React.FC<Props> = ({
 };
 
 export default React.memo(SortableTestCaseItem);
+
+
+// const handleUpdateConfirm = useCallback(async () => {
+//     if (!responseTest?.id) {
+//         toast.error("No test data available to update");
+//         return;
+//     }
+
+//     const updatedBy = responseTest?.updatedBy || responseTest?.createdBy || "unknown";
+//     const apiBase = (URL_API_ALB ?? '');
+
+
+//     console.log("Updating test with ID:", responseTest);
+
+//     try {
+
+//         setIsLoadingUpdate(true);
+//         await updateTest(responseTest.id, responseTest.stepsData, updatedBy, true, false)
+//         toast.success("Test updated successfully");
+//         onRefreshAfterUpdateOrDelete();
+//         //     const metaPayload = buildMetaUpdatePayload(responseTest, updatedBy);
+//         //     await axios.patch(`${apiBase}tests`, metaPayload);
+
+//         //     const allSteps = normalizeStepsForAppend(responseTest?.stepsData || []);
+//         //     const urlAppend = new URL("appendTestSteps", apiBase).toString();
+
+//         //     const chunkSize = 1;
+//         //     const batches = chunkArray(allSteps, chunkSize);
+
+//         //     const stepBlockIds: Set<string> = new Set();
+
+//         //     for (const batch of batches) {
+//         //         const appendPayload = buildAppendPayload(responseTest.id, batch, updatedBy);
+//         //         const r = await axios.patch(urlAppend, appendPayload);
+
+//         //         const items = Array.isArray(r?.data) ? r.data : [];
+//         //         for (const it of items) {
+//         //             if (typeof it?.type === "string" && it.type.startsWith("STEPS#")) {
+//         //                 const blockId = it.type.split("#")[1];
+//         //                 if (blockId) stepBlockIds.add(blockId);
+//         //             }
+//         //         }
+//         //     }
+
+//     } catch (err) {
+//         console.error("Update failed", err);
+//         toast.error("Failed to update test case");
+//     } finally {
+//         setIsLoadingUpdate(false);
+//     }
+// }, [responseTest, URL_API_ALB]);

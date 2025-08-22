@@ -172,87 +172,6 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
         return result;
     }, [testCasesData, getDynamicFields]);
 
-    // const handleValueChange = useCallback((fieldName: string, value: string, id?: string) => {
-    //     console.log('📝 Cambiando valor:', { fieldName, value, id, editMode });
-
-    //     setDynamicValues(prev => {
-    //         const updated = [...prev];
-
-    //         if (editMode === 'global' && uniqueDynamicFields.includes(fieldName)) {
-    //             console.log('🌐 Modo global: aplicando a todos los test cases');
-
-    //             testCasesData.forEach((testCase, idx) => {
-    //                 const testCaseFields = getDynamicFields(testCase);
-
-    //                 if (testCaseFields.includes(fieldName)) {
-    //                     const existingIndex = updated.findIndex(entry => entry.id === testCase.id);
-
-    //                     if (existingIndex !== -1) {
-    //                         updated[existingIndex] = {
-    //                             ...updated[existingIndex],
-    //                             testCaseName: testCase.testCaseName,
-    //                             createdByName: testCase.createdByName,
-    //                             input: {
-    //                                 ...updated[existingIndex].input,
-    //                                 [fieldName]: value,
-    //                             },
-    //                             order: idx
-    //                         };
-    //                     } else {
-    //                         updated.push({
-    //                             id: testCase.id!,
-    //                             testCaseName: testCase.testCaseName,
-    //                             createdByName: testCase.createdByName,
-    //                             input: { [fieldName]: value },
-    //                             order: idx
-    //                         });
-    //                     }
-    //                 }
-    //             });
-
-    //             return updated;
-    //         }
-
-    //         if (!id) return prev;
-
-    //         const existingIndex = updated.findIndex(entry => entry.id === id);
-    //         const orderIndex = testCasesData.findIndex(tc => tc.id === id);
-    //         const testCase = testCasesData.find(tc => tc.id === id);
-
-    //         if (!testCase) return prev;
-
-    //         if (existingIndex !== -1) {
-    //             const current = updated[existingIndex];
-    //             if (current.input[fieldName] !== value ||
-    //                 current.testCaseName !== testCase.testCaseName ||
-    //                 current.createdByName !== testCase.createdByName ||
-    //                 current.order !== orderIndex) {
-
-    //                 updated[existingIndex] = {
-    //                     ...current,
-    //                     testCaseName: testCase.testCaseName,
-    //                     createdByName: testCase.createdByName,
-    //                     input: {
-    //                         ...current.input,
-    //                         [fieldName]: value,
-    //                     },
-    //                     order: orderIndex
-    //                 };
-    //             }
-    //         } else {
-    //             updated.push({
-    //                 id,
-    //                 testCaseName: testCase.testCaseName,
-    //                 createdByName: testCase.createdByName,
-    //                 input: { [fieldName]: value },
-    //                 order: orderIndex
-    //             });
-    //         }
-
-    //         return updated;
-    //     });
-    // }, [editMode, uniqueDynamicFields, testCasesData, getDynamicFields]);
-
     const handleValueChange = useCallback((fieldName: string, value: string, id?: string, originalExpression?: string) => {
         console.log('📝 Cambiando valor:', { fieldName, value, originalExpression, id, editMode });
 
@@ -574,7 +493,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
         }
     }, [allIds, selectedCases, toggleSelect]);
 
-    
+
     return (
         <div className="space-y-4">
             <div className={styleClasses.container}>

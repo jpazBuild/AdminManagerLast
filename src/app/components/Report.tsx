@@ -34,129 +34,103 @@ export const ImageModalWithZoom = ({ isOpen, imageUrl, onClose }: ImageModalProp
     const isDragging = useRef(false);
     const dragStart = useRef({ x: 0, y: 0 });
 
+    const getFinalSrc = (src?: string) => {
+        if (!src) return "";
+        const cleaned = src.trim().replace(/\s+/g, "");
+        const isHttp = /^https?:\/\//i.test(cleaned);
+        const isData = cleaned.startsWith("data:image");
+
+        if (isHttp || isData) return cleaned;
+
+        const guessMime = cleaned.startsWith("/9j/") ? "image/jpeg"
+            : cleaned.startsWith("iVBORw0KGgo") ? "image/png"
+                : cleaned.startsWith("UklGR") ? "image/webp"
+                    : cleaned.startsWith("R0lGOD") ? "image/gif"
+                        : "image/jpeg";
+
+        return `data:${guessMime};base64,${cleaned}`;
+    };
+
+    const finalSrc = getFinalSrc(imageUrl);
+    const isRemote = /^https?:\/\//i.test(finalSrc);
+    const isDataUri = finalSrc.startsWith("data:image");
+
     useEffect(() => {
-        if (isOpen && imageUrl) {
-            setIsImageLoaded(false);
-            setShowImage(false);
-            setZoom(1);
-            setPosition({ x: 0, y: 0 });
+        if (!isOpen || !finalSrc) return;
 
-            const simulateDelay = 1000;
+        setIsImageLoaded(false);
+        setShowImage(false);
+        setZoom(1);
+        setPosition({ x: 0, y: 0 });
 
-            const isBase64Raw = !imageUrl?.startsWith("http") && !imageUrl?.startsWith("data:image");
-            const finalSrc = isBase64Raw ? `data:image/jpeg;base64,${imageUrl}` : imageUrl;
+        const simulateDelay = 300;
+        const img = new window.Image();
+        img.src = finalSrc;
 
-            const img = new window.Image();
-            img.src = finalSrc;
+        img.onload = () => {
+            if (img.width > 1 && img.height > 1) {
+                setTimeout(() => setShowImage(true), simulateDelay);
+            }
+        };
+        img.onerror = () => setShowImage(false);
 
-            img.onload = () => {
-                if (img.width > 1 && img.height > 1) {
-                    setTimeout(() => {
-                        setShowImage(true);
-                    }, simulateDelay);
-                }
-            };
+        const scrollTimer = setTimeout(() => {
+            containerRef.current?.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+        }, simulateDelay);
 
-            img.onerror = () => {
-                setShowImage(false);
-            };
+        return () => clearTimeout(scrollTimer);
+    }, [isOpen, finalSrc]);
 
-            const scrollTimer = setTimeout(() => {
-                if (containerRef.current) {
-                    containerRef.current.scrollTo({
-                        top: 0,
-                        left: 0,
-                        behavior: "smooth",
-                    });
-                }
-            }, simulateDelay);
-
-            return () => {
-                clearTimeout(scrollTimer);
-            };
-        }
-    }, [isOpen, imageUrl]);
-
+    useEffect(() => {
+        document.body.style.overflow = isOpen ? "hidden" : "auto";
+        return () => { document.body.style.overflow = "auto"; };
+    }, [isOpen]);
 
     const handleWheel = (e: React.WheelEvent) => {
         e.preventDefault();
         const delta = e.deltaY < 0 ? 0.1 : -0.1;
-        setZoom((z) => Math.min(Math.max(z + delta, 1), 5));
+        setZoom(z => Math.min(Math.max(z + delta, 1), 5));
     };
-
     const handleMouseDown = (e: React.MouseEvent) => {
         isDragging.current = true;
         dragStart.current = { x: e.clientX - position.x, y: e.clientY - position.y };
     };
-
-    const handleMouseUp = () => {
-        isDragging.current = false;
-    };
-
+    const handleMouseUp = () => { isDragging.current = false; };
     const handleMouseMove = (e: React.MouseEvent) => {
         if (!isDragging.current) return;
-        setPosition({
-            x: e.clientX - dragStart.current.x,
-            y: e.clientY - dragStart.current.y,
-        });
+        setPosition({ x: e.clientX - dragStart.current.x, y: e.clientY - dragStart.current.y });
     };
-
-    useEffect(() => {
-        if (isOpen) {
-            document.body.style.overflow = "hidden";
-        } else {
-            document.body.style.overflow = "auto";
-        }
-
-        return () => {
-            document.body.style.overflow = "auto";
-        };
-    }, [isOpen]);
 
     if (!isOpen) return null;
 
     return (
-        <div
-            className="fixed inset-0 bg-white bg-opacity-75 flex justify-center items-center z-50 "
-            onClick={onClose}
-        >
+        <div className="fixed inset-0 bg-primary/50 flex justify-center items-center z-50" onClick={onClose}>
             <div
+                id="image-modal"
                 className="relative bg-white p-4 rounded-md overflow-hidden max-w-[1280px] max-h-[800px]"
                 onClick={(e) => e.stopPropagation()}
             >
-                <button
-                    onClick={onClose}
-                    className="absolute cursor-pointer top-2 right-2 text-primary text-3xl font-bold z-20"
-                >
+                <button onClick={onClose} className="absolute cursor-pointer top-2 right-2 text-primary text-3xl font-bold z-20">
                     <FaXmark />
                 </button>
 
                 {showImage && (
                     <div className="absolute bottom-4 right-4 z-20 flex gap-2 bg-white p-2 rounded-md shadow">
-                        <button className="cursor-pointer" onClick={() => setZoom((z) => Math.max(z - 0.1, 1))}>
-                            <FaSearchMinus />
-                        </button>
-                        <button className="cursor-pointer" onClick={() => setZoom((z) => Math.min(z + 0.1, 5))}>
-                            <FaSearchPlus />
-                        </button>
+                        <button className="cursor-pointer" onClick={() => setZoom(z => Math.max(z - 0.1, 1))}><FaSearchMinus /></button>
+                        <button className="cursor-pointer" onClick={() => setZoom(z => Math.min(z + 0.1, 5))}><FaSearchPlus /></button>
                     </div>
                 )}
 
                 {(!isImageLoaded || !showImage) && (
                     <div className="w-auto h-auto bg-gray-200 rounded-md flex items-center justify-center p-12 animate-pulse">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="w-32 h-32 text-gray-400"
-                            fill="currentColor"
-                            viewBox="0 0 24 24"
-                        >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-32 h-32 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14h18zM5 5h14v10l-4.5-6L9 17l-3-4z" />
                             <circle cx="15.5" cy="8.5" r="1.5" />
                         </svg>
                     </div>
                 )}
 
-                {(showImage) && (
+                {showImage && (
                     <div
                         ref={containerRef}
                         className="cursor-grab overflow-hidden w-auto h-auto relative"
@@ -166,9 +140,9 @@ export const ImageModalWithZoom = ({ isOpen, imageUrl, onClose }: ImageModalProp
                         onMouseMove={handleMouseMove}
                         onMouseLeave={handleMouseUp}
                     >
-                        {imageUrl?.startsWith("http") ? (
+                        {isRemote ? (
                             <Image
-                                src={imageUrl}
+                                src={finalSrc}
                                 alt="Zoomable screenshot"
                                 width={1280}
                                 height={720}
@@ -182,10 +156,9 @@ export const ImageModalWithZoom = ({ isOpen, imageUrl, onClose }: ImageModalProp
                                 }}
                                 draggable={false}
                             />
-
                         ) : (
                             <img
-                                src={`data:image/jpeg;base64,${imageUrl}`}
+                                src={finalSrc}
                                 alt="Zoomable screenshot"
                                 onLoad={() => setIsImageLoaded(true)}
                                 className="rounded-md select-none pointer-events-none object-contain w-auto h-auto max-w-full max-h-[90vh]"
@@ -201,10 +174,9 @@ export const ImageModalWithZoom = ({ isOpen, imageUrl, onClose }: ImageModalProp
                 )}
             </div>
         </div>
-
-
     );
 };
+
 const ReportUI = ({
     report,
     testcaseId,
@@ -256,7 +228,7 @@ const ReportUI = ({
             }
             return step
         });
-    
+
     return (
         <>
             <div
