@@ -93,7 +93,6 @@ const DashboardPage = () => {
         const fetchInitialData = async () => {
             try {
                 setIsLoadingTags(true);
-                // setErrorGroups(false);
 
                 await checkConnection()
                 const tagsRes = await axios.post(`${URL_API_ALB}tags`, {});
@@ -101,7 +100,6 @@ const DashboardPage = () => {
                 if (tagsRes.data.error) throw new Error(tagsRes.data.error);
 
                 setTags(Array.isArray(tagsRes.data) ? tagsRes.data : []);
-                // setErrorGroups(false);
 
             } catch (error) {
                 console.error("Error fetching initial data:", error);
@@ -115,7 +113,6 @@ const DashboardPage = () => {
                 setSubmodules([]);
                 setSelectedSubmodule("");
 
-                // setErrorGroups(true);
             } finally {
                 setIsLoadingTags(false);
             }
@@ -292,7 +289,7 @@ const DashboardPage = () => {
                     .filter(Boolean)
             ));
             console.log("Unique creators:", uniqueCreators);
-            
+
             setAvailableCreators(uniqueCreators);
         } else {
             setAvailableCreators([]);
@@ -415,7 +412,7 @@ const DashboardPage = () => {
             toast.error("Please select at least one test case");
             return;
         }
-        console.log("testData?.data ",await testData?.data);
+        console.log("testData?.data ", await testData?.data);
         const testdataIn = await testData?.data;
         await executeTests(selectedTests, testdataIn, maxBrowsers, isHeadless);
     }, [selectedCases, selectedTests, testData, maxBrowsers, isHeadless, executeTests]);
@@ -662,8 +659,6 @@ const DashboardPage = () => {
                                     />
                                 )}
                             </div>
-
-
                         ) : (
                             <NoData />
                         )}

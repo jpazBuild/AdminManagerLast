@@ -77,12 +77,17 @@ export const DashboardHeader = ({
             >
               Reusables
             </Link>
-
+            <Link
+              href="/reports"
+              className={getLinkClasses("/reports")}
+            >
+              Reports
+            </Link>
             <Link
               href="/create"
               className={getLinkClasses("/create")}
             >
-              Create Entities
+              Location Information
             </Link>
           </div>
 

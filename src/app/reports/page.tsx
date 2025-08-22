@@ -1,239 +1,600 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { Dialog, Disclosure } from "@headlessui/react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/react";
 import { URL_API_ALB } from "@/config";
 import { DashboardHeader } from "../Layouts/main";
-import { ChevronUpIcon } from "lucide-react";
-import { TimestampTabs } from "../components/TimestampTabs";
+import { ChevronDownIcon, ChevronUpIcon, FilterIcon, Loader, RefreshCwIcon, SearchIcon, XIcon, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
 import CopyToClipboard from "../components/CopyToClipboard";
-import { SummaryDonutChart } from "../components/SummaryDonutChart";
-import { useRef } from "react";
+import StepCard from "../components/StepCard";
+import { ImageModalWithZoom } from "../components/Report";
+import { StepData } from "@/types/types";
+import { SearchField } from "../components/SearchField";
+import TextInputWithClearButton from "../components/InputClear";
+import { useTestLocationInformation } from "../hooks/useTestLocationInformation";
 
-type Event = {
+type ReportEvent = {
+  data: StepData;
   indexStep: number;
   action: string;
   description: string;
   status: string;
-  screenshot: string;
-  metadata?: {
-    isHeadless?: boolean;
-  };
+  screenshot?: string;
+  metadata?: { isHeadless?: boolean };
   isConditional?: boolean;
-  time: string;
+  time?: string;
+  url?: string;
+  typeAssert?: string;
+  valueToAssert?: string;
+  selectorString?: string;
+  error?: string;
 };
+
+type ReportHeader = {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt?: number;
+  createdBy?: string;
+  updatedAt?: number;
+  route?: string;
+  groupName?: string;
+  moduleName?: string;
+  subModuleName?: string;
+  tagNames?: string[];
+  createdByName?: string;
+  updatedByName?: string;
+  contextGeneral?: any;
+  stepsIds?: string[];
+  tagIds?: string[];
+};
+
+type ReportManifest = {
+  urlReport: string;
+  key: string;
+  type: string;
+  id: string;
+  timestamp: string;
+  status: "passed" | "failed";
+  reportName: string;
+  header: ReportHeader[];
+};
+
+type ReportIndexApiResponse = Record<string, ReportManifest[]>;
 
 type ReportItem = {
   testCaseId: string;
   urlReport: string;
+  status: "passed" | "failed";
+  timestamp: string;
+  header?: ReportHeader;
 };
 
-type Reports = {
-  testCaseId: string;
-  reports: Event[];
+type ReportFile = {
+  events: ReportEvent[];
+  type: string;
+  id: string;
+  timestamp: string;
+  status: "passed" | "failed" | string;
+  reportName: string;
 };
 
+type ReportsByUrl = Record<string, ReportFile>;
+
+type FilterParams = {
+  type: string;
+  includeHeader: boolean;
+  groupId?: string;
+  moduleId?: string;
+  subModuleId?: string;
+  tagIds?: string[];
+  tagNames?: string[];
+  id?: string;
+  name?: string;
+  prefix?: string;
+  date?: string;
+  dateFilter?: "before" | "after" | "between" | "exact";
+  date2?: string;
+  reportStatus?: "passed" | "failed" | "all";
+  reportCustomName?: string;
+};
+
+const ensureIsoZ = (s?: string) => {
+  if (!s) return s as any;
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(s)) return s;
+
+  const [date, timeRaw = "00:00"] = s.split("T");
+  const timeParts = timeRaw.split(":");
+  const hh = (timeParts[0] || "00").padStart(2, "0");
+  const mm = (timeParts[1] || "00").padStart(2, "0");
+  const ss = (timeParts[2] || "00").padStart(2, "0");
+  return `${date}T${hh}:${mm}:${ss}.000Z`;
+};
+
+const STATUS_OPTIONS = [
+  { label: "All Status", value: "all" },
+  { label: "Passed", value: "passed" },
+  { label: "Failed", value: "failed" }
+];
+
+const DATE_FILTER_OPTIONS = [
+  { label: "Before", value: "before" },
+  { label: "After", value: "after" },
+  { label: "Between", value: "between" },
+  { label: "Exact Date", value: "exact" }
+];
 
 const Reports = () => {
   const [darkMode, setDarkMode] = useState(false);
-  const [reportItems, setReportItems] = useState<ReportItem[]>([]);
-  const [reportSummaries, setReportSummaries] = useState<{ [id: string]: any }>({});
-  const [allReports, setAllReports] = useState<{ [id: string]: Event[] }>({});
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
 
-  const REPORTS_PER_PAGE = 10;
-  const totalPages = Math.max(1, Math.ceil(reportItems.length / REPORTS_PER_PAGE));
-  const currentItems = reportItems.slice((currentPage - 1) * REPORTS_PER_PAGE, currentPage * REPORTS_PER_PAGE);
-
-
+  const [reportItems, setReportItems] = useState<ReportItem[]>([]);
+  const [allReports, setAllReports] = useState<ReportsByUrl>({});
   const loadedReportsRef = useRef<Set<string>>(new Set());
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string>("");
 
-  useEffect(() => {
-    const fetchReportList = async () => {
+  const [showFilters, setShowFilters] = useState(true);
+  const [filters, setFilters] = useState<FilterParams>({
+    type: "tests-reports",
+    includeHeader: true,
+    reportStatus: "all",
+    dateFilter: "between"
+  });
+
+  const {
+    tags,
+    groups,
+    modules,
+    submodules,
+    selectedTag,
+    setSelectedTag,
+    selectedGroup,
+    setSelectedGroup,
+    selectedModule,
+    setSelectedModule,
+    selectedSubmodule,
+    setSelectedSubmodule,
+    isLoadingTags,
+    isLoadingGroups,
+    isLoadingModules,
+    isLoadingSubmodules,
+    errorGroups,
+    errorModules,
+    getSelectedTagId,
+    getSelectedGroupId,
+    getSelectedModuleId,
+    getSelectedSubmoduleId
+  } = useTestLocationInformation();
+
+  const handleFilterChange = (key: keyof FilterParams, value: any) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const activeFiltersCount = Object.entries(filters).filter(([key, value]) => {
+    const ignore = key === "type" || key === "includeHeader" || key === "dateFilter";
+    const empty =
+      value === "" ||
+      value === null ||
+      value === undefined ||
+      value === "all" ||
+      (Array.isArray(value) && value.length === 0);
+    return !ignore && !empty;
+  }).length;
+
+  const fetchReportList = useCallback(
+    async (filtersToUse: FilterParams) => {
+      setLoading(true);
+      setError(null);
+
       try {
         const url = `${String(URL_API_ALB)}getReports`;
-        const res = await fetch(url);
-        const data: ReportItem[] = await res.json();
-        setReportItems(data);
+
+        const locationFilters: Partial<FilterParams> = {};
+        const tagId = getSelectedTagId();
+        const groupId = getSelectedGroupId();
+        const moduleId = getSelectedModuleId();
+        const subModuleId = getSelectedSubmoduleId();
+
+        if (tagId) locationFilters.tagIds = [tagId];
+        if (groupId) locationFilters.groupId = groupId;
+        if (moduleId) locationFilters.moduleId = moduleId;
+        if (subModuleId) locationFilters.subModuleId = subModuleId;
+
+        const cleanFilters = Object.entries({ ...filtersToUse, ...locationFilters }).reduce((acc, [k, v]) => {
+          if (v !== "" && v !== null && v !== undefined && !(Array.isArray(v) && v.length === 0) && v !== "all") {
+            (acc as any)[k] = v;
+          }
+          return acc;
+        }, {} as Partial<FilterParams>);
+
+        cleanFilters.includeHeader = true;
+
+        if (!cleanFilters.date) delete cleanFilters.dateFilter;
+        if (cleanFilters.date) cleanFilters.date = ensureIsoZ(cleanFilters.date);
+        if (cleanFilters.date2) cleanFilters.date2 = ensureIsoZ(cleanFilters.date2);
+
+        if (cleanFilters.tagIds) {
+          cleanFilters.tagIds = cleanFilters.tagIds.map((tag: string) => {
+            const tagId = tags.find((t) => t.name === tag)?.id;
+            return tagId || tag;
+          });
+        }
+
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(cleanFilters),
+        });
+
+        const data: ReportIndexApiResponse = await res.json();
+
+        const flat: ReportItem[] = Object.entries(data).flatMap(([testCaseId, manifests]) =>
+          manifests.map((m) => {
+            const headerVal = Array.isArray(m.header) ? m.header[0] : m.header;
+            return {
+              testCaseId,
+              urlReport: m.urlReport,
+              status: m.status,
+              timestamp: m.timestamp,
+              header: headerVal,
+            };
+          })
+        );
+
+        flat.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setReportItems(flat);
       } catch (err) {
         console.error(err);
-        setError("Failed to load report list.");
+        setError("Failed to load reports.");
       } finally {
         setLoading(false);
       }
-    };
-    fetchReportList();
-  }, []);
-
-  useEffect(() => {
-    const handleBeforeUnload = (event: BeforeUnloadEvent): void => {
-      event.preventDefault();
-      event.returnValue = "";
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return (): void => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, []);
-
-  useEffect(() => {
-    const fetchReportsForPage = async () => {
-      setLoading(true);
-
-      const summaries: typeof reportSummaries = {};
-      const reportsToAdd: { [id: string]: Event[] } = {};
-
-      for (const { testCaseId, urlReport } of currentItems) {
-        if (loadedReportsRef.current.has(testCaseId)) {
-          if (!reportSummaries[testCaseId]) {
-            const existingEvents = allReports[testCaseId] || [];
-            const totalCompleted = existingEvents.filter(e => e?.status === "completed").length;
-            const totalFailed = existingEvents.filter(e => e?.status === "failed").length;
-            summaries[testCaseId] = {
-              totalCompleted,
-              totalFailed,
-              totalReports: existingEvents.length,
-            };
-          }
-          continue;
-        }
-
-        try {
-          const res = await fetch(urlReport);
-          if (!res.ok) throw new Error(`Error ${res.status}`);
-          const json = await res.json();
-          const events: Event[] = json?.reports || [];
-
-          const latestSteps = events.map((r: any) => r?.events?.at(-1));
-
-          const totalCompleted = latestSteps.filter((s) => s?.status === "completed").length;
-          const totalFailed = latestSteps.filter((s) => s?.status === "failed").length;
+    },
+    [getSelectedTagId, getSelectedGroupId, getSelectedModuleId, getSelectedSubmoduleId, tags]
+  );
 
 
-          summaries[testCaseId] = {
-            totalCompleted,
-            totalFailed,
-            totalReports: events.length,
-          };
-
-          reportsToAdd[testCaseId] = events;
-          loadedReportsRef.current.add(testCaseId);
-        } catch (err) {
-          console.error(`Error loading report for ${testCaseId}:`, err);
-          summaries[testCaseId] = { totalCompleted: 0, totalFailed: 0, totalReports: 0 };
-          reportsToAdd[testCaseId] = [];
-          loadedReportsRef.current.add(testCaseId);
-        }
-      }
-
-      if (Object.keys(summaries).length > 0) {
-        setReportSummaries(prev => ({ ...prev, ...summaries }));
-      }
-
-      if (Object.keys(reportsToAdd).length > 0) {
-        setAllReports(prev => ({ ...prev, ...reportsToAdd }));
-      }
-
-      setLoading(false);
-    };
-
-    if (currentItems.length > 0) {
-      fetchReportsForPage();
+  const fetchReportByUrl = async (url: string): Promise<ReportFile | null> => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      const json = await res.json();
+      const file: ReportFile = {
+        events: Array.isArray(json?.events) ? json.events : [],
+        type: json?.type ?? "",
+        id: json?.id ?? "",
+        timestamp: json?.timestamp ?? "",
+        status: json?.status ?? "unknown",
+        reportName: json?.reportName ?? ""
+      };
+      return file;
+    } catch (err) {
+      console.error(`Error loading report from ${url}:`, err);
+      toast.error(`Failed to load report from ${url}`);
+      return null;
     }
-  }, [currentItems]);
+  };
+
+  const handleOpenReport = async (urlReport: string) => {
+    if (loadedReportsRef.current.has(urlReport)) return;
+    loadedReportsRef.current.add(urlReport);
+
+    const file = await fetchReportByUrl(urlReport);
+    if (!file) return;
+    setAllReports((prev) => ({ ...prev, [urlReport]: file }));
+  };
+
+  const handleImageClick = (image: string) => {
+    setSelectedImage(image);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedImage("");
+  };
+
+  const applyFilters = useCallback(() => {
+    setLoading(true);
+    setAllReports({});
+    loadedReportsRef.current = new Set();
+
+    fetchReportList(filters);
+    setLoading(false);
+  }, [filters, fetchReportList]);
+
+
+  const resetFilters = useCallback(() => {
+    setFilters({
+      type: "tests-reports",
+      includeHeader: true,
+      reportStatus: "all",
+      dateFilter: "between",
+    });
+
+    setSelectedTag("");
+    setSelectedGroup("");
+    setSelectedModule("");
+    setSelectedSubmodule("");
+
+    setAllReports({});
+    loadedReportsRef.current = new Set();
+  }, [setSelectedTag, setSelectedGroup, setSelectedModule, setSelectedSubmodule]);
 
   return (
     <DashboardHeader onDarkModeChange={setDarkMode}>
-      <div className="p-6 max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-primary/80">Historic Reports</h1>
+      <div className="p-6 w-full lg:w-2/3 mx-auto">
+        <h1 className="text-3xl font-bold mb-6 text-primary/80 text-center">Historic Reports</h1>
 
-        {loading && (
-          <div className="flex flex-col gap-4">
-            {[...Array(3)].map((_, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-4 rounded-lg border border-primary/10 shadow-sm p-4 bg-white animate-pulse"
-              >
-                <div className="flex-1">
-                  <div className="h-6 bg-primary/10 rounded w-2/3 mb-2"></div>
-                  <div className="h-4 bg-primary/10 rounded w-1/2"></div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2 text-gray-700 hover:text-gray-900 font-medium"
+            >
+              <FilterIcon className="h-5 w-5" />
+              Filters
+              {activeFiltersCount > 0 && (
+                <span className="bg-primary/90 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                  {activeFiltersCount}
+                </span>
+              )}
+              <ChevronDownIcon className={`h-4 w-4 transition-transform ${showFilters ? "rotate-180" : ""}`} />
+            </button>
+          </div>
+
+          {showFilters && (
+            <div className="p-6 space-y-6">
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Search by Name</label>
+                  <div className="relative">
+                    <TextInputWithClearButton
+                      id="search-name"
+                      label="Search by Name"
+                      placeholder="Enter report name..."
+                      value={filters.name || ""}
+                      onChangeHandler={(e) => handleFilterChange("name", e.target.value)}
+                    />
+                  </div>
                 </div>
-                <div className="w-7 h-7 rounded-full border-4 border-primary/10 border-t-primary/40 animate-spin"></div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <SearchField
+                    label="Status"
+                    value={filters.reportStatus ?? "all"}
+                    onChange={(val: string) => handleFilterChange("reportStatus", val)}
+                    placeholder="All / Passed / Failed"
+                    className="w-full"
+                    options={STATUS_OPTIONS}
+                  />
+                </div>
               </div>
-            ))}
+
+              <span className="text-primary/90 text-medium">Tags</span>
+              <SearchField
+                label="Search Test by tags"
+                value={selectedTag}
+                onChange={setSelectedTag}
+                placeholder="Search by tags..."
+                className="w-full"
+                disabled={isLoadingTags}
+                options={tags?.map((tag: any) => ({ label: String(tag?.name), value: String(tag?.name) }))}
+              />
+
+              <span className="text-primary/90 text-medium">Groups</span>
+              <SearchField
+                label="Search Test by groups"
+                value={selectedGroup}
+                onChange={setSelectedGroup}
+                placeholder="Search by groups..."
+                className="w-full"
+                disabled={isLoadingGroups || errorGroups}
+                options={groups?.map((group: any) => ({ label: String(group?.name), value: String(group?.name) }))}
+              />
+
+              <span className="text-primary/90 text-medium">Modules</span>
+              <SearchField
+                label="Search Test by modules"
+                value={selectedModule}
+                onChange={setSelectedModule}
+                placeholder="Search by modules..."
+                className="w-full"
+                disabled={!selectedGroup || modules.length === 0 || isLoadingModules || errorModules}
+                options={modules?.map((module: any) => ({ label: String(module?.name), value: String(module?.name) }))}
+              />
+
+              {isLoadingSubmodules ? (
+                <div className="flex items-center gap-2">
+                  <Loader className="h-5 w-5 text-primary/80 animate-spin" />
+                  <span className="text-primary/80">Loading submodules...</span>
+                </div>
+              ) : (
+                <>
+                  <span className="text-primary/90 text-medium">Submodules</span>
+                  <SearchField
+                    label="Search Test by submodules"
+                    value={selectedSubmodule}
+                    onChange={setSelectedSubmodule}
+                    placeholder="Search by submodules..."
+                    className="w-full"
+                    disabled={!selectedModule || submodules.length === 0 || isLoadingSubmodules}
+                    options={submodules?.map((sub: any) => ({ label: String(sub?.name), value: String(sub?.name) }))}
+                  />
+                </>
+              )}
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <CalendarIcon className="inline h-4 w-4 mr-1" />
+                    Date Filter
+                  </label>
+
+                  <SearchField
+                    label="Date Filter"
+                    value={filters.dateFilter ?? "between"}
+                    onChange={(val: string) => handleFilterChange("dateFilter", val)}
+                    options={DATE_FILTER_OPTIONS}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md">
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">
+                      {filters.dateFilter === "exact" ? "Date" : "From Date"}
+                    </label>
+                    <input
+                      type="datetime-local"
+                      className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+                      value={filters.date || ""}
+                      onChange={(e) => handleFilterChange("date", e.target.value)}
+                    />
+                  </div>
+
+                  {filters.dateFilter === "between" && (
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">To Date</label>
+                      <input
+                        type="datetime-local"
+                        className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+                        value={filters.date2 || ""}
+                        onChange={(e) => handleFilterChange("date2", e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={applyFilters}
+                  // disabled={loading}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary/90 text-white rounded-md hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? <RefreshCwIcon className="h-4 w-4 animate-spin" /> : <SearchIcon className="h-4 w-4" />}
+                  {loading ? "Applying..." : "Apply Filters"}
+                </button>
+
+                <button
+                  onClick={resetFilters}
+                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
+                >
+                  <XIcon className="h-4 w-4" />
+                  Reset
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+
+        {error && !loading && <div className="text-sm text-red-600 mb-4">{error}</div>}
+
+        {reportItems.length === 0 && !loading && !error && (
+          <div className="text-center text-gray-500">No reports found.</div>
+        )}
+
+        {reportItems.length > 0 && !loading && !error && (
+          <div className="text-sm text-gray-500 mb-4">
+            {reportItems.length} report{reportItems.length > 1 ? "s" : ""} found.
           </div>
         )}
 
-        {error && (
-          <div className="p-4 mb-4 bg-red-50 border border-red-200 text-red-700 rounded-md">
-            Error: {error}
-          </div>
-        )}
-        {currentItems?.map(({ testCaseId }) => {
-          const reports = allReports[testCaseId] || [];
-          const summary = reportSummaries[testCaseId];
+        {reportItems.map(({ testCaseId, header, urlReport, status, timestamp }) => {
+          const file = allReports[urlReport];
 
           return (
-            <Disclosure key={testCaseId}>
+            <Disclosure key={urlReport}>
               {({ open }) => (
-                <div className="border border-primary/30 rounded-md shadow-sm">
-                  <Disclosure.Button className="flex w-full justify-between items-center px-4 py-3 font-medium bg-primary/5">
-                    <div className="flex flex-col items-start gap-1">
-                      <div className="flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-primary/20">
-                        <span className="text-xs font-mono tracking-wide text-muted-foreground">
-                          Id: {testCaseId}
-                        </span>
-                        <CopyToClipboard text={testCaseId} isDarkMode={false}/>
-                      </div>
-                    </div>
+                <div
+                  className={`rounded-md shadow-sm mb-4 ${status === "passed" ? "border-l-4 border-green-500" : "border-l-4 border-red-500"
+                    }`}
+                >
+                  <DisclosureButton
+                    onClick={() => handleOpenReport(urlReport)}
+                    className="flex w-full justify-between items-center px-4 py-3 font-medium bg-primary/5"
+                  >
+                    <div className="w-full flex justify-between items-center gap-4">
+                      <div className="flex flex-col items-start gap-1">
+                        <div className="flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-primary/20">
+                          <span className="text-xs font-mono tracking-wide text-muted-foreground">Id: {testCaseId}</span>
+                          <CopyToClipboard text={testCaseId} isDarkMode={darkMode} />
+                        </div>
 
-                    {summary && (
-                      <div className="ml-auto mr-3">
-                        <SummaryDonutChart
-                          completed={summary?.totalCompleted}
-                          failed={summary?.totalFailed}
-                          total={summary?.totalReports}
+                        {header && <span className="text-sm text-gray-600">{header.name}</span>}
+
+                        <div className="flex flex-wrap gap-2">
+                          {header?.groupName && (
+                            <span className="text-xs bg-primary/70 text-white p-1 rounded-md">{header.groupName}</span>
+                          )}
+                          {header?.moduleName && (
+                            <span className="text-xs bg-primary/50 text-white p-1 rounded-md">{header.moduleName}</span>
+                          )}
+                          {header?.subModuleName && (
+                            <span className="text-xs bg-primary/20 text-primary p-1 rounded-md">{header.subModuleName}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 ">
+                        <div className="text-xs text-gray-500">{new Date(timestamp).toLocaleString()}</div>
+                        <ChevronUpIcon
+                          className={`h-5 w-5 transition-transform duration-300 text-primary ${open ? "rotate-180" : ""
+                            }`}
                         />
                       </div>
+                    </div>
+                  </DisclosureButton>
+
+                  <DisclosurePanel className="px-4 py-3 bg-white">
+                    {!file ? (
+                      <div className="w-full flex flex-col gap-4">
+                        {[...Array(3)].map((_, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center gap-4 rounded-lg border border-primary/10 shadow-sm p-4 bg-white animate-pulse"
+                          >
+                            <div className="flex-1">
+                              <div className="h-6 bg-primary/10 rounded w-2/3 mb-2"></div>
+                              <div className="h-4 bg-primary/10 rounded w-1/2"></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-4">
+                        {file.events.map((ev, idx) => {
+                          const step = {
+                            ...ev,
+                            time: ev.time !== undefined ? Number(ev.time) : undefined
+                          };
+                          return (
+                            <StepCard
+                              key={ev.indexStep}
+                              step={step}
+                              stepData={ev?.data}
+                              index={idx + 1}
+                              handleImageClick={handleImageClick}
+                            />
+                          );
+                        })}
+                      </div>
                     )}
-
-                    <ChevronUpIcon
-                      className={`h-5 w-5 transition-transform duration-300 text-primary ${open ? "rotate-180" : ""}`}
-                    />
-                  </Disclosure.Button>
-
-                  <Disclosure.Panel className="px-4 py-2 bg-white">
-                    <TimestampTabs reports={reports} />
-                  </Disclosure.Panel>
+                  </DisclosurePanel>
                 </div>
               )}
             </Disclosure>
           );
         })}
-
-
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-4 mt-6">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-4 py-2 bg-primary/20 cursor-pointer text-primary rounded hover:bg-primary/30 disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <span className="text-sm text-primary/80">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-4 py-2 cursor-pointer bg-primary/20 text-primary rounded hover:bg-primary/30 disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-        )}
       </div>
+
+      {isModalOpen && (
+        <ImageModalWithZoom isOpen={isModalOpen} imageUrl={selectedImage} onClose={handleCloseModal} />
+      )}
     </DashboardHeader>
   );
 };

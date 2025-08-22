@@ -1,4 +1,4 @@
-import { Eye, EyeClosed } from "lucide-react";
+import { Eye, EyeClosed, Search, SearchIcon } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { AiOutlineClose } from "react-icons/ai";
 
@@ -74,7 +74,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
   const clearInput = () => setLocalValue("");
   const togglePasswordVisibility = () => setShowPassword(prev => !prev);
 
-  const lineCount = localValue?.split("\n").length;
+  const lineCount = localValue?.split("\n")?.length;
   const isPassword = type === "password";
   const inputType = isPassword ? (showPassword ? "text" : "password") : type;
 
@@ -101,7 +101,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
             {...props}
           />
         ) : (
-          <input
+            <input
             ref={inputRef}
             inputMode={inputMode}
             id={id}
