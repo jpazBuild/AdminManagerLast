@@ -512,8 +512,8 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
         try {
             setIsLoadingUpdate(true);
-            const apiUrl = (URL_API_ALB ?? '');
-            const res = await axios.patch(`${apiUrl}tests`, payload);
+
+            const res = await updateTest(payload.id,payload.stepsData,payload.updatedBy);
             if (res.status === 200) toast.success("Test updated successfully");
         } catch (error: any) {
             toast.error("Failed to update test case", error);
