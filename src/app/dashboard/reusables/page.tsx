@@ -469,31 +469,30 @@ const Reusables = () => {
                         <h2 className="font-medium tracking-wide text-[20px]">Reusables</h2>
 
                         <div className="flex items-center gap-2">
-                            <div className="w-56">
-                                <SearchCombobox
-                                    textOptionSelect="Filter by tag"
-                                    textSearch="tag..."
-                                    options={[{ label: "All", value: "" }, ...tags.map((t: any) => ({ label: t.name, value: t.id }))]}
+                            <div className="w-56 flex items-center">
+
+                                <SearchField
+                                    options={tagOptions}
                                     value={selectedTag}
                                     onChange={(value) => {
                                         const v = value || "";
                                         setSelectedTag(v);
                                         fetchReusables(v || undefined);
                                     }}
+                                    placeholder="Filter by tag..."
                                     disabled={isLoadingTags}
                                 />
                             </div>
 
-                            <Button
-                                size="sm"
-                                className="text-white"
+                            <button
+                                className="text-white bg-primary/90 rounded-md px-4 py-2 flex items-center hover:bg-primary"
                                 onClick={() => {
                                     resetCreateForm();
                                     setCreateOpen(true);
                                 }}
                             >
                                 <Plus className="h-4 w-4 mr-1" /> Create reusable
-                            </Button>
+                            </button>
                         </div>
                     </div>
                     {isLoadingReusables ? (
@@ -504,7 +503,7 @@ const Reusables = () => {
                     ) : reusables.length === 0 ? (
                         <div className="text-center text-sm opacity-70 py-10">No reusables found.</div>
                     ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-3 min-h-screen">
                             {reusables.map((reusable) => {
                                 const isOpen = !!expanded[reusable.id];
                                 const isLoading = !!loadingById[reusable.id];
@@ -814,7 +813,6 @@ const Reusables = () => {
                                 value={createForm.createdBy}
                                 onChangeHandler={(e) => setCreateForm(p => ({ ...p, createdBy: e.target.value }))}
                                 placeholder="Author"
-                                className="border rounded px-2 py-1"
                                 isDarkMode={isDarkMode}
                             />
                         </div>
@@ -825,24 +823,24 @@ const Reusables = () => {
                                 value={createForm.description}
                                 onChangeHandler={(e) => setCreateForm(p => ({ ...p, description: e.target.value }))}
                                 placeholder="Description (optional)"
-                                className="border rounded px-2 py-1"
                                 isDarkMode={isDarkMode}
                             />
                         </div>
 
                         <div className="grid gap-1 md:col-span-2">
                             <label className="text-sm font-medium">Tag</label>
-                            <SearchCombobox
-                                textOptionSelect="Tag"
-                                textSearch="tag..."
+
+                            <SearchField
                                 options={tags.map((tag: any) => ({ label: tag.name, value: tag.id }))}
-                                value={createForm.selectedTagId ?? ""}
-                                onChange={(value, option) => {
+                                value={createForm.selectedTagId || ""}
+                                onChange={(value) => {
+                                    const option = tags.find((tag: any) => tag.id === value);
                                     setCreateForm(p => ({
                                         ...p,
                                         selectedTagId: value || undefined,
-                                        selectedTagName: option?.label || undefined,
+                                        selectedTagName: option?.name || undefined,
                                     }));
+                                    setSelectedTag(value || "");
                                 }}
                                 disabled={isLoadingTags}
                             />

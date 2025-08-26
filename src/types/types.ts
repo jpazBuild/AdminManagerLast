@@ -48,3 +48,12 @@ export interface StepData {
 export interface DataJsonStep extends StepData {
     indexStep: number;
 };
+
+export type User = {
+    passwordHash: string;
+    createdAt: number;
+    id: string;
+    name: string;
+    route: string;
+    type: string;
+};
