@@ -513,8 +513,8 @@ const SortableTestCaseItem: React.FC<Props> = ({
         try {
             setIsLoadingUpdate(true);
 
-            const res = await updateTest(payload.id,payload.stepsData,payload.updatedBy);
-            if (res.status === 200) toast.success("Test updated successfully");
+            const res = await updateTest(payload.id, payload.stepsData, payload.updatedBy);
+            toast.success("Test updated successfully");
         } catch (error: any) {
             toast.error("Failed to update test case", error);
         } finally {
@@ -558,7 +558,9 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                     {test.createdByName}
                                 </span>
                             </div>
-                            <h3 className={styleClasses.title}>{test.testCaseName || test.name}</h3>
+                            <div className="flex items-center">
+                                <h3 className={styleClasses.title}>{test.testCaseName || test.name}</h3> <CopyToClipboard text={test.testCaseName || test.name} isDarkMode={isDarkMode} />
+                            </div>
 
                             {testFields.length > 0 && (
                                 <div className="flex flex-wrap items-center gap-1 px-2 py-0.5 w-full">
