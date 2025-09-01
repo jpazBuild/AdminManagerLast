@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { fetchReportByUrl } from "@/utils/fetchReportByUrl";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import StepCard from "../components/StepCard";
-import { ImageModalWithZoom } from "../components/Report"; // mismo import que usas en Reports
+import { ImageModalWithZoom } from "../components/Report";
 import { ExecutionSummary } from "./ExecutionSummary";
 
 interface Props {
@@ -175,12 +175,12 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
         </div>
 
 
-        <Tabs value={activeUrl ?? undefined} onValueChange={setActiveUrl}>
+        <Tabs key={"Tabs list test"} value={activeUrl ?? undefined} onValueChange={setActiveUrl}>
           <TabsList className="w-full flex flex-wrap gap-2 pb-1 mb-16 px-4 py-3">
             {items.map((it) => {
               const label = `${new Date(it.timestamp).toLocaleString()}`;
               return (
-               <div className="flex flex-col gap-2 justify-center items-center">
+               <div key={it.urlReport} className="flex flex-col gap-2 justify-center items-center">
                  <TabsTrigger key={it.urlReport} value={it.urlReport} className={`whitespace-nowrap px-4 py-3 bg-white shadow-md
                 border-b-4 data-[state=active]:bg-primary/90 data-[state=active]:text-white max-w-md
                 `}>
