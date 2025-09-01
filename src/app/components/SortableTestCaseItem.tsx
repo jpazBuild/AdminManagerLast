@@ -499,7 +499,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
             setIsLoadingUpdate(true);
             console.log("updateTest payload:", payload);
 
-            const res = await updateTest(await payload.id, await responseTest?.stepsData, payload.updatedBy);
+            const res = await updateTest(await payload.id, payload.stepsData, payload.updatedBy);
             toast.success("Test updated successfully");
         } catch (error: any) {
             toast.error("Failed to update test case", error);
