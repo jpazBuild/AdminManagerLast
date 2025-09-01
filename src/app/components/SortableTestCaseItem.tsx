@@ -454,7 +454,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
             return cleanStep;
         });
 
-        console.log("updateTest []:", transformedSteps);
+        console.log("updateTest []:", await transformedSteps);
 
         // const uniqueSteps = await transformedSteps?.filter((step: any) => {
         //     const stepId = typeof step === "string" ? step : step?.id;
@@ -501,7 +501,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
             setIsLoadingUpdate(true);
             console.log("updateTest payload:", payload);
 
-            const res = await updateTest(await payload.id, payload.stepsData, payload.updatedBy);
+            const res = await updateTest(await payload.id, await payload.stepsData, payload.updatedBy);
             toast.success("Test updated successfully");
         } catch (error: any) {
             toast.error("Failed to update test case", error);
