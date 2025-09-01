@@ -57,3 +57,30 @@ export type User = {
     route: string;
     type: string;
 };
+
+
+export type ReportEvent = {
+  data: StepData;
+  indexStep: number;
+  action: string;
+  description: string;
+  status: string;
+  screenshot?: string;
+  metadata?: { isHeadless?: boolean };
+  isConditional?: boolean;
+  time?: string;
+  url?: string;
+  typeAssert?: string;
+  valueToAssert?: string;
+  selectorString?: string;
+  error?: string;
+};
+
+export type ReportFile = {
+  events: ReportEvent[];
+  type: string;
+  id: string;
+  timestamp: string;
+  status: "passed" | "failed" | string;
+  reportName: string;
+};

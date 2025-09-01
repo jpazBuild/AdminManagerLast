@@ -373,10 +373,10 @@ const CreateForm = () => {
     }, [activeTab, selectedGroupForSubmodule]);
 
     useEffect(() => {
-        if (isEditOpen && editEntityType === "submodule" && editEntity?.groupId) {
+        if (isEditOpen && editEntityType === "submodule") {
             fetchEditModules(editEntity.groupId);
         }
-    }, [isEditOpen, editEntityType, editEntity?.groupId]);
+    }, [isEditOpen, editEntityType]);
 
     const userOptions = useMemo(
         () => (users || []).map((u) => ({ label: u.name, value: u.id })),
@@ -647,6 +647,8 @@ const CreateForm = () => {
         return "";
     }, [editEntity?.groupId, editEntity?.groupName, groupOptions]);
 
+    console.log("modules for submodule:", editModules);
+    
     return (
         <DashboardHeader>
             <div className="w-2/3 flex flex-col items-center justify-start h-full gap-6 px-4 py-8">
@@ -1189,9 +1191,7 @@ const CreateForm = () => {
                                             const match = modules.find((m) => m.id === v);
                                             if (match) onEditField("moduleName", match.name);
                                         }}
-                                        options={(modules || [])
-                                            .filter((m) => !editEntity?.groupId || m.groupId === editEntity.groupId)
-                                            .map((m) => ({ label: m.name, value: m.id }))}
+                                        options={editModuleOptions}
                                         placeholder={loadingModules ? "Loading modules…" : "Select module"}
                                     />
                                 </div>
