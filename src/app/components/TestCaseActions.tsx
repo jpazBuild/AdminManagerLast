@@ -18,7 +18,7 @@ const TestCaseActions = ({ test, onDelete, onUpdate,isLoadingUpdate,isLoadingDel
 
     
     return (
-        <div className="flex gap-2 px-2 mt-2">
+        <div className="flex gap-2 px-2 bg-transparent w-full">
             <Dialog open={openDialog} onOpenChange={setOpenDialog}>
                 <DialogContent className="sm:max-w-md bg-white">
                     <DialogHeader>
@@ -34,7 +34,7 @@ const TestCaseActions = ({ test, onDelete, onUpdate,isLoadingUpdate,isLoadingDel
                     <DialogFooter className="mt-4 flex justify-end gap-2">
                         <button
                             onClick={() => setOpenDialog(false)}
-                            className="text-primary/80 cursor-pointer px-4 py-2 rounded hover:bg-gray-100"
+                            className="text-primary/80 border-1 border-primary/60 cursor-pointer px-4 py-2 rounded hover:bg-gray-100"
                         >
                             Cancel
                         </button>
@@ -55,7 +55,7 @@ const TestCaseActions = ({ test, onDelete, onUpdate,isLoadingUpdate,isLoadingDel
                 </DialogContent>
             </Dialog>
 
-            <div className="place-self-end flex gap-2 mb-2">
+            <div className="place-self-end flex gap-2 pt-1">
                 <button
                 className={`flex items-center shadow-md p-1 px-2 rounded-md border-1 cursor-pointer gap-1 ${isDarkMode ? "text-white hover:text-white/80" : "text-primary hover:text-primary/80"} text-sm`}
                 onClick={() => setOpenDialog(true)}

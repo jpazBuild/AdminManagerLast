@@ -7,15 +7,7 @@ import { SearchField } from "@/app/components/SearchField";
 import { URL_API_ALB } from "@/config";
 import { DashboardHeader } from "../Layouts/main";
 import NoData from "../components/NoData";
-
-type User = {
-    passwordHash: string;
-    createdAt: number;
-    id: string;
-    name: string;
-    route: string;
-    type: string;
-};
+import { User } from "@/types/types";
 
 type Group = { id: string; name: string; createdByName?: string; createdAt?: number };
 type Tag = { id: string; name: string; createdByName?: string; createdAt?: number };
@@ -724,6 +716,7 @@ const CreateForm = () => {
                                         setGrpPage(1);
                                     }}
                                     value={searchGroup}
+                                    isSearch={true}
                                 />
                             </div>
 
@@ -828,6 +821,7 @@ const CreateForm = () => {
                                         setTagPage(1);
                                     }}
                                     value={searchTag}
+                                    isSearch={true}
                                 />
                             </div>
 
@@ -939,6 +933,7 @@ const CreateForm = () => {
                                         setModPage(1);
                                     }}
                                     value={searchModule}
+                                    isSearch={true}
                                 />
                             </div>
 
@@ -1063,6 +1058,7 @@ const CreateForm = () => {
                                         setSubPage(1);
                                     }}
                                     value={searchSubmodule}
+                                    isSearch={true}
                                 />
                             </div>
 

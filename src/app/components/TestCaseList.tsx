@@ -496,17 +496,15 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
 
     return (
         <div className="space-y-4">
-            <div className={styleClasses.container}>
-                <div className="flex justify-center w-full">
-                    <JSONDropzone
-                        onJSONParsed={handleParsedJSON}
-                        onFileInfoChange={({ loaded, name }) => {
-                            if (loaded && setEditMode) setEditMode('individual');
-                        }}
-                        onClear={handleClearJSONData}
-                        isDarkMode={isDarkMode}
-                    />
-                </div>
+            <div className="flex justify-center w-full">
+                <JSONDropzone
+                    onJSONParsed={handleParsedJSON}
+                    onFileInfoChange={({ loaded, name }) => {
+                        if (loaded && setEditMode) setEditMode('individual');
+                    }}
+                    onClear={handleClearJSONData}
+                    isDarkMode={isDarkMode}
+                />
             </div>
 
             {editMode === 'global' && uniqueDynamicFields.length > 0 && (
@@ -550,71 +548,57 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                 </div>
             )}
 
-            {editMode === 'global' && uniqueDynamicFields.length === 0 && testCasesData.length > 0 && (
-                <div className={`p-4 rounded-lg border-l-4 border-yellow-400 ${isDarkMode ? "bg-yellow-900/20 text-yellow-200" : "bg-yellow-50 text-yellow-800"
-                    }`}>
-                    <h4 className="font-medium mb-2">ℹ️ No Global Fields Available</h4>
-                    <p className="text-sm">
-                        No dynamic fields are common across all {testCasesData.length} test cases.
-                        Switch to <strong>Individual Edit Mode</strong> to edit each test case separately.
-                    </p>
+            {allIds.length > 0 && (
+                <div className="flex justify-between items-center px-2">
+                    <p className="font-medium text-lg">Test cases</p>
+                    <div className="flex items-center gap-2">
+                        <Checkbox
+                            id="select-all-tests"
+                            checked={selectAllChecked}
+                            onCheckedChange={handleSelectAllChange}
+                            className={isDarkMode ? "border-gray-500 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500" : ""}
+                        />
+                        <Label htmlFor="select-all-tests">
+                            {allIds.length} {allIds.length === 1 ? "Result" : "Results"}
+                        </Label>
+                    </div>
+                </div>
+            )}
+            {allIds.length > 0 && (
+                <div className="flex justify-between items-center">
+                    <div className="flex justify-start gap-2 px-2">
+                        {allIds.length > 1 && (
+                            <>
+                                <Button
+                                    onClick={handleExpandAll}
+                                    variant="outline"
+                                    size="sm"
+                                    className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-primary/90 hover:bg-primary/20"}
+                                >
+                                    Expand All
+                                </Button>
+                                <Button
+                                    onClick={handleCollapseAll}
+                                    variant="outline"
+                                    size="sm"
+                                    className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-primary/90 hover:bg-primary/20"}
+                                >
+                                    Collapse All
+                                </Button>
+                            </>
+                        )}
+                    </div>
+
+                    <Button
+                        onClick={handleExportAsDataObject}
+                        variant="outline"
+                        className={styleClasses.exportButton}
+                    >
+                        <Download /> Export Dynamic Values
+                    </Button>
                 </div>
             )}
 
-            <div className="flex flex-col sm:flex-row md:flex-col justify-between items-center px-2">
-                <div className={styleClasses.legend}>
-                    <div className="flex items-center gap-1">
-                        <span className={getLegendItemClasses('85')} />
-                        <span>Tag</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <span className={getLegendItemClasses('65')} />
-                        <span>Module</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <span className={getLegendItemClasses('50')} />
-                        <span>Submodule</span>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <Checkbox
-                        id="select-all-tests"
-                        checked={selectAllChecked}
-                        onCheckedChange={handleSelectAllChange}
-                        className={isDarkMode ? "border-gray-500 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500" : ""}
-                    />
-                    <Label htmlFor="select-all-tests">
-                        Select all ({allIds.length})
-                    </Label>
-                </div>
-                <Button
-                    onClick={handleExportAsDataObject}
-                    variant="outline"
-                    className={styleClasses.exportButton}
-                >
-                    <Download /> Export Dynamic Values
-                </Button>
-            </div>
-
-            <div className="flex justify-start gap-2 px-2">
-                <Button
-                    onClick={handleExpandAll}
-                    variant="outline"
-                    size="sm"
-                    className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-primary/90 hover:bg-primary/20"}
-                >
-                    Expand All
-                </Button>
-                <Button
-                    onClick={handleCollapseAll}
-                    variant="outline"
-                    size="sm"
-                    className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-primary/90 hover:bg-primary/20"}
-                >
-                    Collapse All
-                </Button>
-            </div>
 
             <SortableTestCasesAccordion
                 testCases={testCasesData}

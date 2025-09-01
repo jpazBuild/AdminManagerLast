@@ -31,19 +31,21 @@ interface InteractionItemProps {
     setTestCasesData?: React.Dispatch<React.SetStateAction<any[]>>;
     setResponseTest?: React.Dispatch<React.SetStateAction<any>>;
     showDelete?: boolean;
+    isEditing?: boolean;
 }
 
 interface JSONBoxProps {
     value: any;
     onChange?: (value: any) => void;
     isDarkMode?: boolean;
+    editable?: boolean;
 }
 
 interface PanelState {
     [key: string]: boolean;
 }
 
-const DeleteButton = ({ onClick,isDarkMode=false }: { onClick: () => void,isDarkMode:boolean }) => (
+const DeleteButton = ({ onClick, isDarkMode = false }: { onClick: () => void, isDarkMode: boolean }) => (
     <button
         onClick={onClick}
         className={`p-1 rounded ${isDarkMode ? 'text-slate-300 hover:text-white' : 'text-gray-600 hover:text-gray-800'}`}
@@ -70,13 +72,13 @@ function DisplayImageWithFetch({
     }, [src]);
 
     if (!src || isError) {
-        const containerClasses = isDarkMode 
+        const containerClasses = isDarkMode
             ? "flex flex-col items-center justify-center bg-slate-700/50 border border-slate-600 px-3 py-4 rounded-md max-h-32 min-h-[6rem] min-w-[8rem]"
             : "flex flex-col items-center justify-center bg-gray-100 px-3 py-4 rounded-md max-h-32 min-h-[6rem] min-w-[8rem]";
-        
+
         const iconColor = isDarkMode ? "text-slate-400" : "text-gray-400";
         const textColor = isDarkMode ? "text-slate-300" : "text-gray-400";
-        
+
         return (
             <div className={containerClasses}>
                 <svg
@@ -86,7 +88,7 @@ function DisplayImageWithFetch({
                     strokeWidth={1.5}
                     viewBox="0 0 24 24"
                 >
-                    <rect x="3" y="3" width="18" height="18" rx="2" fill={isDarkMode ? "#475569" : "#e5e7eb"}/>
+                    <rect x="3" y="3" width="18" height="18" rx="2" fill={isDarkMode ? "#475569" : "#e5e7eb"} />
                     <circle cx="8.5" cy="8.5" r="1.5" fill={isDarkMode ? "#64748b" : "#cbd5e1"} />
                     <path d="M21 17l-5-5-7 7" stroke={isDarkMode ? "#94a3b8" : "#94a3b8"} strokeWidth={2} />
                 </svg>
@@ -108,7 +110,7 @@ function DisplayImageWithFetch({
     );
 }
 
-const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }) => {
+const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false, editable = true }) => {
     const [openPanels, setOpenPanels] = useState<PanelState>({});
     const [editingJson, setEditingJson] = useState(false);
     const [jsonValue, setJsonValue] = useState(JSON.stringify(value, null, 2));
@@ -118,7 +120,9 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
         if (!editingJson) setJsonValue(JSON.stringify(value, null, 2));
     }, [value, editingJson]);
 
-    function handleSave() {
+
+    const handleSave = () => {
+        if (!editable) return;
         try {
             const parsed = JSON.parse(jsonValue);
             setJsonError(null);
@@ -152,14 +156,14 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
     };
 
     const getPanelContainerClasses = () => {
-        return isDarkMode 
-            ? "bg-slate-800/50 border border-slate-600 rounded-lg overflow-hidden" 
+        return isDarkMode
+            ? "bg-slate-800/50 border border-slate-600 rounded-lg overflow-hidden"
             : "border border-gray-200 rounded-lg overflow-hidden";
     };
 
     const getFieldEditorContainerClasses = () => {
-        return isDarkMode 
-            ? "flex flex-col gap-2 mb-3 p-2 bg-slate-700/50 text-white/90 rounded-md border border-slate-600/50" 
+        return isDarkMode
+            ? "flex flex-col gap-2 mb-3 p-2 bg-slate-700/50 text-white/90 rounded-md border border-slate-600/50"
             : "flex flex-col gap-2 mb-3 p-2 bg-gray-50 rounded-md";
     };
 
@@ -168,8 +172,8 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
     };
 
     const getFieldEditorButtonClasses = () => {
-        return isDarkMode 
-            ? "text-xs cursor-pointer text-slate-400 px-2 py-1 rounded bg-slate-600/50 hover:bg-slate-500/50 hover:text-slate-200 transition-colors duration-200" 
+        return isDarkMode
+            ? "text-xs cursor-pointer text-slate-400 px-2 py-1 rounded bg-slate-600/50 hover:bg-slate-500/50 hover:text-slate-200 transition-colors duration-200"
             : "text-xs cursor-pointer text-primary/70 px-2 py-1 rounded transition-colors";
     };
 
@@ -268,12 +272,14 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
         label,
         fieldValue,
         onUpdate,
-        onDelete
+        onDelete,
+        editable = false
     }: {
         label: string;
         fieldValue: any;
         onUpdate: (newValue: string) => void;
         onDelete: () => void;
+        editable?: boolean;
     }) => (
         <div className={getFieldEditorContainerClasses()}>
             <div className="flex items-center justify-between w-full">
@@ -282,34 +288,34 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
                         text={String(fieldValue)}
                         isDarkMode={isDarkMode}
                     />
-                    <button
-                        onClick={onDelete}
-                        className={getFieldEditorButtonClasses()}
-                    >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
+                    {editable && (
+                        <button onClick={onDelete} className={getFieldEditorButtonClasses()}>
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
             </div>
 
             <TextInputWithClearButton
                 id={label}
                 value={String(fieldValue)}
-                onChangeHandler={(e: any) => onUpdate(e.target.value)}
+                onChangeHandler={(e: any) => editable && onUpdate(e.target.value)}
                 placeholder={label}
                 label={`${label}`}
+                readOnly={!editable}
             />
         </div>
     ), [isDarkMode]);
 
     const processedData = useMemo(() => {
-        if (!value) return null;        
+        if (!value) return null;
         return {
             hasNavigation: value.action === "navigate" || value.stepData?.action === "navigate",
             hasContext: value.context || value.stepData?.context,
             hasSelectors: value?.data?.selectors?.length > 0 || value?.stepData?.data?.selectors?.length > 0,
             hasAttributes: Object.keys(value?.data?.attributes || value?.stepData?.data?.attributes || {}).length > 0,
-            hasCoordinates: (value?.data?.coordinates && Object.keys(value.data.coordinates).length > 0) || 
-                          (value?.stepData?.data?.coordinates && Object.keys(value.stepData.data.coordinates).length > 0),
+            hasCoordinates: (value?.data?.coordinates && Object.keys(value.data.coordinates).length > 0) ||
+                (value?.stepData?.data?.coordinates && Object.keys(value.stepData.data.coordinates).length > 0),
             hasImage: value?.data?.image || value?.stepData?.data?.image,
             hasText: value?.data?.text || value?.text || value?.stepData?.data?.text || value?.stepData?.text,
             hasTimeStamp: value?.data?.timeStamp || value?.stepData?.data?.timeStamp,
@@ -321,14 +327,14 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
     }, [value]);
 
     if (!value || !processedData) {
-        const noDataClasses = isDarkMode 
-            ? "text-slate-300 text-center p-4 bg-slate-800/50 border border-slate-600 rounded-lg" 
+        const noDataClasses = isDarkMode
+            ? "text-slate-300 text-center p-4 bg-slate-800/50 border border-slate-600 rounded-lg"
             : "text-gray-500 text-center p-4";
         return <div className={noDataClasses}>No data available</div>;
     };
 
-    const containerClasses = isDarkMode 
-        ? "rounded-lg shadow-lg bg-slate-800/90 border border-slate-600 overflow-hidden px-2" 
+    const containerClasses = isDarkMode
+        ? "rounded-lg shadow-lg bg-slate-800/90 border border-slate-600 overflow-hidden px-2"
         : "rounded-lg shadow-lg bg-white overflow-hidden px-2";
 
     const actualData = value.stepData || value;
@@ -353,6 +359,7 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
                                                 fieldValue={val}
                                                 onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'data', key] : ['data', key], newValue)}
                                                 onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'data', key] : ['data', key])}
+                                                editable={editable}
                                             />
                                         ))}
 
@@ -363,6 +370,7 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
                                             fieldValue={val}
                                             onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'data', 'pageSize', key] : ['data', 'pageSize', key], newValue)}
                                             onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'data', 'pageSize', key] : ['data', 'pageSize', key])}
+                                            editable={editable}
                                         />
                                     ))}
                                 </div>
@@ -384,6 +392,7 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
                                                 fieldValue={val}
                                                 onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'context', 'data', key] : ['context', 'data', key], newValue)}
                                                 onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'context', 'data', key] : ['context', 'data', key])}
+                                                editable={editable}
                                             />
                                         ))}
 
@@ -394,6 +403,7 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
                                             fieldValue={val}
                                             onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'context', 'data', 'window', key] : ['context', 'data', 'window', key], newValue)}
                                             onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'context', 'data', 'window', key] : ['context', 'data', 'window', key])}
+                                            editable={editable}
                                         />
                                     ))}
                                 </div>
@@ -422,13 +432,14 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
                                                 const updatedSelectors = actualData.data.selectors.filter((_: any, index: number) => index !== idx);
                                                 updateNestedData(path, updatedSelectors);
                                             }}
+                                            editable={editable}
                                         />
                                     ))}
                                 </div>
                             )}
                         </div>
                     )}
-                    
+
                     {processedData.hasAttributes && (
                         <div className={getPanelContainerClasses()}>
                             <DropdownHeader label="Attributes" panelKey="attributes" />
@@ -441,6 +452,7 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
                                             fieldValue={val}
                                             onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'data', 'attributes', key] : ['data', 'attributes', key], newValue)}
                                             onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'data', 'attributes', key] : ['data', 'attributes', key])}
+                                            editable={editable}
                                         />
                                     ))}
                                 </div>
@@ -460,6 +472,7 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
                                             fieldValue={val}
                                             onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'data', 'coordinates', key] : ['data', 'coordinates', key], newValue)}
                                             onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'data', 'coordinates', key] : ['data', 'coordinates', key])}
+                                            editable={editable}
                                         />
                                     ))}
                                 </div>
@@ -471,9 +484,9 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
                         <div className={getPanelContainerClasses()}>
                             <DropdownHeader label="Image" panelKey="image" />
                             {openPanels.image && (
-                                <DisplayImageWithFetch 
-                                    src={actualData.data.image} 
-                                    alt="Interaction Image" 
+                                <DisplayImageWithFetch
+                                    src={actualData.data.image}
+                                    alt="Interaction Image"
                                     isDarkMode={isDarkMode}
                                 />
                             )}
@@ -487,6 +500,7 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
                                 fieldValue={actualData?.typeAssert}
                                 onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'typeAssert'] : ['typeAssert'], newValue)}
                                 onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'typeAssert'] : ['typeAssert'])}
+                                editable={editable}
                             />
                         </div>
                     )}
@@ -498,6 +512,7 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
                                 fieldValue={actualData?.valueToAssert}
                                 onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'valueToAssert'] : ['valueToAssert'], newValue)}
                                 onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'valueToAssert'] : ['valueToAssert'])}
+                                editable={editable}
                             />
                         </div>
                     )}
@@ -521,6 +536,7 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
                                         deleteNestedProperty(value.stepData ? ['stepData', 'text'] : ['text']);
                                     }
                                 }}
+                                editable={editable}
                             />
                         </div>
                     )}
@@ -532,6 +548,7 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
                                 fieldValue={actualData?.data?.timeStamp}
                                 onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'data', 'timeStamp'] : ['data', 'timeStamp'], newValue)}
                                 onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'data', 'timeStamp'] : ['data', 'timeStamp'])}
+                                editable={editable}
                             />
                         </div>
                     )}
@@ -543,6 +560,7 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
                                 fieldValue={actualData?.pageIndex}
                                 onUpdate={(newValue) => updateNestedData(value.stepData ? ['stepData', 'pageIndex'] : ['pageIndex'], newValue)}
                                 onDelete={() => deleteNestedProperty(value.stepData ? ['stepData', 'pageIndex'] : ['pageIndex'])}
+                                editable={editable}
                             />
                         </div>
                     )}
@@ -556,12 +574,15 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
                                         <pre className={getJSONPreviewClasses()}>
                                             <code>{jsonValue}</code>
                                         </pre>
-                                        <button
-                                            className={getEditButtonClasses()}
-                                            onClick={() => setEditingJson(true)}
-                                        >
-                                            <FaEdit className="w-4 h-4"/> Edit JSON
-                                        </button>
+                                        {editable && (
+
+                                            <button
+                                                className={getEditButtonClasses()}
+                                                onClick={() => setEditingJson(true)}
+                                            >
+                                                <FaEdit className="w-4 h-4" /> Edit JSON
+                                            </button>
+                                        )}
                                     </>
                                 ) : (
                                     <>
@@ -571,17 +592,21 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
                                             onChange={e => setJsonValue(e.target.value)}
                                             autoFocus
                                             spellCheck={false}
+                                            readOnly={!editable}
                                         />
                                         {jsonError && (
                                             <div className={getErrorTextClasses()}>{jsonError}</div>
                                         )}
                                         <div className="flex gap-2 mt-2">
-                                            <button
-                                                className={getSaveButtonClasses()}
-                                                onClick={handleSave}
-                                            >
-                                                <Save className="w-4 h-4"/> Save
-                                            </button>
+                                            {editable && (
+                                                <button
+                                                    className={getSaveButtonClasses()}
+                                                    onClick={handleSave}
+                                                >
+                                                    <Save className="w-4 h-4" /> Save
+                                                </button>
+                                            )}
+
                                             <button
                                                 className={getCancelButtonClasses()}
                                                 onClick={() => {
@@ -590,7 +615,7 @@ const JSONBox: React.FC<JSONBoxProps> = ({ value, onChange, isDarkMode = false }
                                                     setJsonError(null);
                                                 }}
                                             >
-                                               <FaXmark className="w-4 h-4"/> Cancel
+                                                <FaXmark className="w-4 h-4" /> Cancel
                                             </button>
                                         </div>
                                     </>
@@ -636,8 +661,8 @@ const ReusableStepsBlock = ({
 
     const updateReusableStepsData = (newStepsData: any[]) => {
         if (onUpdate) {
-            const updatedData = { 
-                ...data, 
+            const updatedData = {
+                ...data,
                 stepsData: newStepsData.map((step, index) => ({
                     ...step,
                     indexStep: index + 1
@@ -655,12 +680,12 @@ const ReusableStepsBlock = ({
             id: `${Date.now()}-${Math.random()}`,
             indexStep: insertIndex + 2
         });
-        
+
         const reindexedSteps = newStepsData.map((step, index) => ({
             ...step,
             indexStep: index + 1
         }));
-        
+
         updateReusableStepsData(reindexedSteps);
     };
 
@@ -670,9 +695,9 @@ const ReusableStepsBlock = ({
                 ...test,
                 stepsData: data.stepsData || []
             }];
-            
+
             const updatedArray = updateFunction(mockTestCasesArray);
-            
+
             if (updatedArray && updatedArray[0] && updatedArray[0].stepsData) {
                 updateReusableStepsData(updatedArray[0].stepsData);
             }
@@ -688,9 +713,9 @@ const ReusableStepsBlock = ({
             const mockResponse = {
                 stepsData: data.stepsData || []
             };
-            
+
             const updatedResponse = updateFunction(mockResponse);
-            
+
             if (updatedResponse && updatedResponse.stepsData) {
                 updateReusableStepsData(updatedResponse.stepsData);
             }
@@ -699,11 +724,11 @@ const ReusableStepsBlock = ({
 
     return (
         <div className={getReusableContainerClasses()}>
-            
-            
+
+
             <div className={getReusableHeaderClasses()}>🔄 REUSABLE: {data.name || 'Unnamed Step'}</div>
-            
-            
+
+
 
             <div className="mt-6">
                 <div className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-gray-600'} mb-3`}>
@@ -742,14 +767,14 @@ const ReusableStepsBlock = ({
 
                 <div className={`absolute top-2 right-2 flex gap-2 items-center ${isDarkMode ? 'text-slate-300' : 'text-gray-700'}`}>
                     {onDelete && <DeleteButton onClick={onDelete} isDarkMode={isDarkMode} />}
-                    <CopyToClipboard text={JSON.stringify(data)} isDarkMode={isDarkMode}/>
+                    <CopyToClipboard text={JSON.stringify(data)} isDarkMode={isDarkMode} />
                 </div>
             </div>
         </div>
     );
 };
 
-const InteractionItem = ({ data, index, onDelete, onUpdate,showDelete=true, isDarkMode = false, ...rest}: InteractionItemProps) => {
+const InteractionItem = ({ data, index, onDelete, onUpdate, showDelete = true, isEditing = true, isDarkMode = false, ...rest }: InteractionItemProps) => {
     const isReusableStep = data.type?.startsWith('STEPS') && Array.isArray(data.stepsData);
 
     if (isReusableStep) {
@@ -757,8 +782,9 @@ const InteractionItem = ({ data, index, onDelete, onUpdate,showDelete=true, isDa
             <ReusableStepsBlock
                 data={data}
                 isDarkMode={isDarkMode}
-                // onUpdate={(updatedData) => onUpdate?.(index, updatedData)}
-                onDelete={() => onDelete?.(index)}
+                // Pasa callbacks solo si isEditing
+                {...(isEditing && { onUpdate: (updatedData) => onUpdate?.(index, updatedData) })}
+                {...(isEditing && { onDelete: () => onDelete?.(index) })}
                 {...rest}
             />
         );
@@ -777,6 +803,7 @@ const InteractionItem = ({ data, index, onDelete, onUpdate,showDelete=true, isDa
     const getPageIndexClasses = () => isDarkMode ? "text-xs text-white/60" : "text-xs text-primary/80";
 
     console.log("InteractionItem data:", data.pageIndex);
+    console.log("isEditing value:", isEditing);
     
     return (
         <div key={actualStepData.id || data.id} data-index={index} className="flex flex-col gap-4">
@@ -785,18 +812,18 @@ const InteractionItem = ({ data, index, onDelete, onUpdate,showDelete=true, isDa
                     <div className={`flex flex-col ${isDarkMode ? 'text-slate-300' : 'text-gray-700'} gap-1`}>
                         <p className="font-semibold text-center">{actualStepData.action}</p>
                         <p className="font-normal text-center">
-                            {actualStepData?.data?.text || 
-                             actualStepData?.data?.attributes?.name || 
-                             actualStepData?.data?.attributes?.placeholder || 
-                             actualStepData?.data?.attributes?.["aria-label"] ||
-                             data.name}
+                            {actualStepData?.data?.text ||
+                                actualStepData?.data?.attributes?.name ||
+                                actualStepData?.data?.attributes?.placeholder ||
+                                actualStepData?.data?.attributes?.["aria-label"] ||
+                                data.name}
                         </p>
                     </div>
                     <div className={getStepNumberClasses()}>{actualStepData.indexStep || data.indexStep}</div>
 
                     <div className={`absolute top-0 right-0 flex gap-2 items-center ${isDarkMode ? 'text-slate-300' : 'text-gray-700'}`}>
-                        {onDelete && showDelete && <DeleteButton onClick={() => onDelete(index)} isDarkMode={isDarkMode}/>}
-                        <CopyToClipboard text={JSON.stringify(data)} isDarkMode={isDarkMode}/>
+                        {isEditing && onDelete && showDelete && <DeleteButton onClick={() => onDelete(index)} isDarkMode={isDarkMode} />}
+                        <CopyToClipboard text={JSON.stringify(data)} isDarkMode={isDarkMode} />
                     </div>
                 </div>
 
@@ -806,6 +833,7 @@ const InteractionItem = ({ data, index, onDelete, onUpdate,showDelete=true, isDa
                         const updatedData = JSON.parse(JSON.stringify(newData));
                         onUpdate?.(index, updatedData);
                     }}
+                    editable={isEditing}
                     isDarkMode={isDarkMode}
                 />
                 {(actualStepData?.hasOwnProperty('pageIndex') || data?.hasOwnProperty('pageIndex')) && (

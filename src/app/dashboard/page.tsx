@@ -17,6 +17,8 @@ import { FaXmark } from "react-icons/fa6";
 import { URL_API_ALB } from "@/config";
 import { checkConnection } from "@/utils/DBBUtils";
 import { SearchCombobox } from "../components/SearchCombobox";
+import TextInputWithClearButton from "../components/InputClear";
+import { User } from "@/types/types";
 
 interface TestCase {
     id: string;
@@ -59,6 +61,8 @@ const DashboardPage = () => {
     const [errorModules, setErrorModules] = useState<any>(false)
     const [errorGroups, setErrorGroups] = useState<any>(false)
     const [isLoadingTags, setIsLoadingTags] = useState<boolean>(false);
+    const [loadingUsers, setLoadingUsers] = useState<boolean>(false);
+    const [users, setUsers] = useState<any[]>([]);
 
     const {
         reports,
@@ -81,6 +85,22 @@ const DashboardPage = () => {
         setIsDropdownOpenTC(!isDropdownOpenTC);
     };
 
+    const fetchUsers = async () => {
+        try {
+            setLoadingUsers(true);
+            const res = await axios.post(`${URL_API_ALB}users`, {});
+            setUsers(Array.isArray(res.data) ? (res.data as User[]) : []);
+        } catch (err) {
+            console.error("Error fetching users:", err);
+            toast.error("Error fetching users");
+        } finally {
+            setLoadingUsers(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchUsers();
+    }, [])
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
         checkMobile();
@@ -281,21 +301,6 @@ const DashboardPage = () => {
         fetchSubmodules();
     }, [selectedGroup, selectedModule, getSelectedGroupId, getSelectedModuleId]);
 
-    useEffect(() => {
-        if (Array.isArray(dataTestCases) && dataTestCases.length > 0) {
-            const uniqueCreators = Array.from(new Set(
-                dataTestCases
-                    .map((tc: any) => tc?.createdByName)
-                    .filter(Boolean)
-            ));
-            console.log("Unique creators:", uniqueCreators);
-
-            setAvailableCreators(uniqueCreators);
-        } else {
-            setAvailableCreators([]);
-        }
-    }, [dataTestCases]);
-
     const handleSearch = useCallback(async () => {
         try {
             await checkConnection()
@@ -309,11 +314,13 @@ const DashboardPage = () => {
 
             if (tagId) searchParams.tagIds = [tagId];
             if (groupId) searchParams.groupId = groupId;
-            // if (selectedTag) searchParams.tagNames = [selectedTag];
             if (moduleId) searchParams.moduleId = moduleId;
             if (submoduleId) searchParams.subModuleId = submoduleId;
+            if (searchTestCaseName) searchParams.name = searchTestCaseName;
+            if (selectedCreatedBy && selectedCreatedBy !== "All") searchParams.createdBy = selectedCreatedBy;
 
             const response = await axios.post(`${URL_API_ALB}getTestHeaders`, searchParams);
+
             setDataTestCases(response.data || []);
 
         } catch (error) {
@@ -323,25 +330,8 @@ const DashboardPage = () => {
         } finally {
             setIsLoadingSearch(false);
         }
-    }, [selectedGroup, selectedTag, selectedModule, selectedSubmodule, getSelectedGroupId, getSelectedModuleId, getSelectedSubmoduleId]);
+    }, [selectedGroup, selectedTag, selectedModule, selectedSubmodule, selectedCreatedBy, searchTestCaseName, getSelectedGroupId, getSelectedModuleId, getSelectedSubmoduleId]);
 
-    const filteredTestCases = useMemo(() => {
-        return dataTestCases.filter((tc: TestCase) => {
-            const matchesCreator =
-                !selectedCreatedBy || selectedCreatedBy === "All" ||
-                tc?.createdByName?.toLowerCase() === selectedCreatedBy?.toLowerCase();
-
-            const matchesName =
-                !searchTestCaseName ||
-                tc?.name?.toLowerCase().includes(searchTestCaseName.toLowerCase());
-
-            return matchesCreator && matchesName;
-        });
-    }, [dataTestCases, selectedCreatedBy, searchTestCaseName]);
-
-    const toggleSelectAll = useCallback((checked: boolean) => {
-        setSelectedCases(checked ? filteredTestCases.map((tc: TestCase) => tc.id) : []);
-    }, [filteredTestCases]);
 
     const toggleSelect = useCallback((testCaseId: string) => {
         setSelectedCases(prev =>
@@ -367,14 +357,10 @@ const DashboardPage = () => {
         setTestCasesUpdated(data);
     }, []);
 
-    const selectAllChecked = useMemo(() =>
-        filteredTestCases?.length > 0 && selectedCases?.length === filteredTestCases?.length,
-        [filteredTestCases, selectedCases]
-    );
 
     const isSearchButtonDisabled = useMemo(() =>
-        !(selectedGroup || selectedTag || selectedModule),
-        [selectedGroup, selectedTag, selectedModule]
+        !(selectedGroup || selectedTag || selectedModule || searchTestCaseName || selectedCreatedBy),
+        [selectedGroup, selectedTag, selectedModule, searchTestCaseName, selectedCreatedBy]
     );
 
     const selectedTests = useMemo(() =>
@@ -404,6 +390,8 @@ const DashboardPage = () => {
         setSelectedTag("");
         setSelectedModule("");
         setSelectedSubmodule("");
+        setSearchTestCaseName("");
+        setSelectedCreatedBy("All");
     }, []);
 
     const handleRunTests = useCallback(async () => {
@@ -416,6 +404,11 @@ const DashboardPage = () => {
         const testdataIn = await testData?.data;
         await executeTests(selectedTests, testdataIn, maxBrowsers, isHeadless);
     }, [selectedCases, selectedTests, testData, maxBrowsers, isHeadless, executeTests]);
+
+    const userOptions = useMemo(
+        () => (users || []).map((u) => ({ label: u.name, value: u.name })),
+        [users]
+    );
 
     return (
         <DashboardHeader onDarkModeChange={handleDarkModeChange}>
@@ -484,6 +477,24 @@ const DashboardPage = () => {
                         />
                     )}
 
+                    <SearchField
+                        label="Search Test by created by"
+                        value={selectedCreatedBy}
+                        onChange={(value) => setSelectedCreatedBy(value)}
+                        placeholder="Select creator..."
+                        className="w-full"
+                        options={userOptions}
+                    />
+
+                    <TextInputWithClearButton
+                        id="search-test-case-name"
+                        label="Search Test by name"
+                        value={searchTestCaseName}
+                        onChangeHandler={(e) => setSearchTestCaseName(e.target.value)}
+                        placeholder="Search by test case name..."
+                        className="w-full"
+                        isSearch={true}
+                    />
 
                     <div className="flex items-center gap-2 flex-col w-full">
                         <div className={`flex ${isMobile ? "flex-col" : ""} md:justify-center lg:justify-center items-center gap-2 pb-2 w-full`}>
@@ -502,12 +513,12 @@ const DashboardPage = () => {
                                 ) : (
                                     <>
                                         <FaSearch />
-                                        Search
+                                        Search {isSearchButtonDisabled}
                                     </>
                                 )}
                             </button>
 
-                            {(selectedGroup || selectedTag || selectedModule || selectedSubmodule) && (
+                            {(selectedGroup || selectedTag || selectedModule || selectedSubmodule || searchTestCaseName || selectedCreatedBy) && (
                                 <button
                                     onClick={clearFilters}
                                     className="w-full px-4 border text-md border-primary/60 py-2 justify-center text-primary/70 flex md:w-50 lg:w-50 items-center gap-2 shadow-md cursor-pointer font-semibold tracking-wide rounded-xl"
@@ -517,7 +528,7 @@ const DashboardPage = () => {
                             )}
                         </div>
 
-                        <div className="flex items-center gap-2 w-full flex-wrap">
+                        {/* <div className="flex items-center gap-2 w-full flex-wrap">
                             {selectedGroup && (
                                 <div className="bg-primary/85 shadow-md text-white/90 px-2 py-1 rounded-full text-sm flex items-center gap-2">
                                     <span>{selectedGroup}</span>
@@ -562,41 +573,7 @@ const DashboardPage = () => {
                                     </button>
                                 </div>
                             )}
-                        </div>
-
-                        {availableCreators.length > 0 && (
-                            <SearchField
-                                label="Search Test by created by"
-                                value={selectedCreatedBy}
-                                onChange={setSelectedCreatedBy}
-                                placeholder="Select creator..."
-                                className="w-full"
-                                options={[
-                                    { label: "All", value: "All" },
-                                    ...availableCreators.map(creator => ({
-                                        label: creator,
-                                        value: creator
-                                    }))
-                                ]}
-                            />
-                        )}
-
-                        {dataTestCases?.length > 1 && (
-
-                            <SearchField
-                                label="Search Test by name"
-                                value={searchTestCaseName}
-                                onChange={setSearchTestCaseName}
-                                placeholder="Search by test case name..."
-                                className="w-full"
-                                options={filteredTestCases
-                                    .filter(tc => typeof tc.name === "string")
-                                    .map((tc) => ({
-                                        label: tc.name as string,
-                                        value: tc.name as string,
-                                    }))}
-                            />
-                        )}
+                        </div> */}
                     </div>
                 </div>
 
@@ -608,10 +585,10 @@ const DashboardPage = () => {
                     </div>
                 ) : (
                     <div className="w-full flex flex-col gap-4 justify-center items-center">
-                        {filteredTestCases.length > 0 ? (
+                        {dataTestCases.length > 0 ? (
                             <div className="lg:w-2/3">
                                 <TestCaseList
-                                    testCases={filteredTestCases}
+                                    testCases={dataTestCases}
                                     selectedCases={selectedCases}
                                     toggleSelect={toggleSelect}
                                     onDataChange={onDataChangeRead}
