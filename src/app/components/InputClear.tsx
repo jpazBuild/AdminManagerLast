@@ -21,6 +21,7 @@ interface TextInputWithClearButtonProps {
   inputMode?: "text" | "search" | "none"
   isDarkMode?: boolean;
   defaultValue?: string;
+  isSearch?: boolean;
 }
 
 const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
@@ -35,6 +36,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
   isDarkMode = false,
   defaultValue = "",
   readOnly = false,
+  isSearch = false,
   ...props
 }) => {
   const spanRef = useRef<HTMLSpanElement>(null);
@@ -85,7 +87,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
   const ringFocus = isDarkMode ? "focus:ring-white/90" : "focus:ring-primary/90";
 
   return (
-    <div className={`relative w-full ${baseSurface} rounded-lg`}>
+    <div className={`relative w-full text-[14px] ${baseSurface} rounded-lg`}>
       <div className="relative w-full">
         {useTextarea ? (
           <textarea
@@ -101,7 +103,8 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
             {...props}
           />
         ) : (
-            <input
+
+          <input
             ref={inputRef}
             inputMode={inputMode}
             id={id}
@@ -110,11 +113,12 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
             placeholder={" "}
             value={localValue}
             onChange={e => setLocalValue(e.target.value)}
-            className={`peer w-full ml-3 pr-10 pt-5 pb-2 rounded-md ${textColor} ${ringFocus} bg-transparent focus:outline-none ${className}`}
+            className={`peer w-full ml-3 pr-10 pt-5 pb-2 placeholder:text-[16px] rounded-md ${textColor} ${ringFocus} bg-transparent focus:outline-none ${className}`}
             defaultValue={defaultValue}
             readOnly={readOnly}
             {...props}
           />
+
         )}
 
         {label && (
@@ -124,7 +128,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
               absolute left-3 tracking-wider 
               top-1/2 -translate-y-1/2 
               ${labelColor} ${labelColorFocused}
-              pointer-events-none 
+              pointer-events-none
               transition-all duration-150 ease-out 
               tracking-wide font-medium
               /* Estados: enfocado o con contenido => pequeño y arriba */
@@ -132,7 +136,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
               peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:-translate-y-0 peer-[:not(:placeholder-shown)]:text-xs
             `}
           >
-            {label}
+             {isSearch && <SearchIcon className="w-4 h-4 inline mb-1 mr-1" />} {label} 
           </label>
         )}
 

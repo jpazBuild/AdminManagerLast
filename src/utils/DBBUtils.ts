@@ -97,6 +97,9 @@ export async function getTest(id: string, flatReusableSteps = true): Promise<any
 
 export async function updateTest(id: string, stepsData: any[] = [], updatedBy: string = "Default User", deleteS3Images: boolean = false, temp: boolean = false): Promise<any> {
     await checkConnection();
+
+    console.log("updateTest", { id, stepsData, updatedBy, deleteS3Images, temp });
+    
     const stepBlocks: { update: {} | string; stepsData: any[]; }[] = [];
     stepsData.forEach(
         (stepData: any): void => {

@@ -6,13 +6,10 @@ import {
 } from "@/components/ui/accordion";
 import { Eye, File, FileChartColumn, Locate, Plus, Settings } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import CopyToClipboard from "./CopyToClipboard";
 import StepActions from "./StepActions";
 import InteractionItem from "./Interaction";
-import { FakerInputWithAutocomplete } from "./FakerInput";
 import { toast } from "sonner";
 import { handleAxiosRequest } from "@/utils/handleAxiosRequest";
 import axios from "axios";
@@ -208,9 +205,11 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
     const handleDelete = useCallback(async () => {
         const apiUrl = (URL_API_ALB ?? '');
+        console.log("responseTest?.id para deleteTest:", await test?.id);
+        const id = await test?.id;
         const res = await handleAxiosRequest(() =>
             axios.delete(`${apiUrl}tests`, {
-                data: { id: test.id },
+                data: { id },
             }),
             "Test case deleted successfully"
         );
@@ -220,7 +219,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
             setDynamicValues(prev => prev.filter(val => val.id !== test.id));
             onRefreshAfterUpdateOrDelete();
         }
-    }, [test.id, setTestCasesData, setDynamicValues, onRefreshAfterUpdateOrDelete]);
+    }, [test?.id, setTestCasesData, setDynamicValues, onRefreshAfterUpdateOrDelete]);
 
     const handleToggleSelect = useCallback(() => {
         toggleSelect(testId);
@@ -303,7 +302,6 @@ const SortableTestCaseItem: React.FC<Props> = ({
     }, [responseTest, selectedStepsForReusable, test.id, setTestCasesData]);
 
     const handleResponseCreateReusedStep = useCallback(async (data: {}) => {
-        console.log("Data reusable create:", data);
         setDataResponseReusable(data);
     }, []);
 
@@ -338,23 +336,23 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
     const styleClasses = useMemo(() => ({
         mainContainer: isDarkMode
-            ? "w-full shadow-xl p-2 rounded-md border-l-4 border-2 border-slate-400 pt-1 bg-gray-800 text-white"
-            : "w-full shadow-xl rounded-md border-l-4 border-2 border-primary/90 pt-1 bg-white",
+            ? "w-full shadow-xl p-2 rounded-md border-l-4 border-2 border-slate-400 bg-gray-800 text-white"
+            : "w-full shadow-xl rounded-md border-1 border-primary/60 bg-gray-50",
         header: isDarkMode
             ? "flex items-center w-full bg-gray-700/50 p-0.5 rounded"
-            : "flex items-center w-full bg-primary/5 p-0.5",
+            : "flex items-center w-full bg-transparent p-0.5",
         idContainer: isDarkMode
             ? "flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-gray-500"
             : "flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-primary/20",
         idText: isDarkMode
             ? "text-xs font-mono text-gray-400"
-            : "text-xs font-mono text-muted-foreground",
+            : "text-xs tracking-wider",
         createdBy: isDarkMode
             ? "text-xs text-white/70 px-2 py-1 rounded-md shadow-md bg-gray-700"
-            : "text-xs text-primary/80 px-2 py-1 rounded-md shadow-md",
+            : "text-xs text-primary/80",
         title: isDarkMode
             ? "font-medium mt-2 px-2 break-words text-white"
-            : "font-medium mt-2 px-2 break-words",
+            : "font-medium mt-2 px-2 break-words text-[##64748B] text-[14px]",
         dynamicFieldsLabel: isDarkMode
             ? "text-xs text-gray-400"
             : "text-xs text-primary/70",
@@ -439,28 +437,10 @@ const SortableTestCaseItem: React.FC<Props> = ({
         updatedBy,
     });
 
-    const normalizeStepsForAppend = (steps: any[]) => {
-        return (steps || [])
-            .filter(Boolean)
-            .map((s) => {
-                if (typeof s === "string" || (typeof s?.type === "string" && s.type.startsWith("STEPS#"))) {
-                    return s;
-                }
-                const { stepsId, ...clean } = s || {};
-                return clean;
-            });
-    };
-    const chunkArray = <T,>(arr: T[], size = 1): T[][] => {
-        if (size <= 1) return arr.map((x) => [x]);
-        const out: T[][] = [];
-        for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-        return out;
-    };
-
-
-
     const buildUpdatePayload = useCallback((responseTest: any, updatedBy: string) => {
         const seenIds = new Set<string>();
+
+        console.log("responseTest para updateTest:", responseTest);
 
         const transformedSteps = responseTest.stepsData.map((step: any) => {
             if (!step) return step;
@@ -473,6 +453,8 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
             return cleanStep;
         });
+
+        console.log("updateTest []:", transformedSteps);
 
         const uniqueSteps = transformedSteps.filter((step: any) => {
             const stepId = typeof step === "string" ? step : step.id;
@@ -506,14 +488,18 @@ const SortableTestCaseItem: React.FC<Props> = ({
             toast.error("No test data available to update");
             return;
         }
+        console.log("updateTest testCasesData:", testCasesData);
 
-        const payload = buildUpdatePayload(responseTest, "jpaz");
+        console.log("handleUpdateConfirm responseTest:", await responseTest);
+
+        const payload = buildUpdatePayload(await responseTest, "jpaz");
         console.log("Payload final para updateTest:", payload);
 
         try {
             setIsLoadingUpdate(true);
+            console.log("updateTest payload:", payload);
 
-            const res = await updateTest(payload.id, payload.stepsData, payload.updatedBy);
+            const res = await updateTest(await payload.id, await responseTest?.stepsData, payload.updatedBy);
             toast.success("Test updated successfully");
         } catch (error: any) {
             toast.error("Failed to update test case", error);
@@ -534,7 +520,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                 isDarkMode={isDarkMode}
             />
 
-            <AccordionItem value={(test.testCaseId || test.id) ?? ''} className="rounded-lg">
+            <AccordionItem value={(test.testCaseId || test.id) ?? ''} className="rounded-lg px-2 ">
                 <div className={styleClasses.header}>
                     <Checkbox
                         id={(test.testCaseId || test.id) ?? ''}
@@ -547,49 +533,48 @@ const SortableTestCaseItem: React.FC<Props> = ({
                         onClick={handleAccordionToggle}
                     >
                         <div className="flex flex-col w-full break-words">
-                            <div className="flex justify-between gap-2 p-1 text-[10px]">
-                                <div className={styleClasses.idContainer}>
+
+                            <div className="flex items-center">
+
+                            </div>
+                            <div className="flex justify-between gap-2">
+
+
+                                <div className="flex justify-between items-center w-full">
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="break-words pl-2 line-clamp-6 font-medium">{test.testCaseName || test.name}</h3>
+                                    </div>
+                                    <span className={styleClasses.createdBy}>
+                                        {test.createdByName}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-between pl-2 gap-2">
+                                <div className="flex items-center gap-2">
                                     <span className={styleClasses.idText}>
                                         Id: {test.testCaseId || test.id}
                                     </span>
                                     {(test.testCaseId || test.id) && <CopyToClipboard text={String(test.testCaseId || test.id)} isDarkMode={isDarkMode} />}
                                 </div>
-                                <span className={styleClasses.createdBy}>
-                                    {test.createdByName}
-                                </span>
-                            </div>
-                            <div className="flex items-center">
-                                <h3 className={styleClasses.title}>{test.testCaseName || test.name}</h3> <CopyToClipboard text={test.testCaseName || test.name} isDarkMode={isDarkMode} />
-                            </div>
-
-                            {testFields.length > 0 && (
-                                <div className="flex flex-wrap items-center gap-1 px-2 py-0.5 w-full">
-                                    <span className={styleClasses.dynamicFieldsLabel}>Dynamic fields:</span>
-                                    {uniqueFields?.map((field) => (
-                                        <span
-                                            key={`field-${field}-${test.testCaseId || test.id}-${index}`}
-                                            className={styleClasses.dynamicField}
-                                            title={field}
-                                        >
-                                            {field}
-                                        </span>
-                                    ))}
+                                <div className="flex justify-between">
+                                    <span className="text-[14px]">
+                                        {test.createdAt
+                                            ? new Intl.DateTimeFormat('es-ES', {
+                                                day: '2-digit',
+                                                month: '2-digit',
+                                                year: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit'
+                                            }).format(Number(test.createdAt))
+                                            : ""}
+                                    </span>
                                 </div>
-                            )}
+                            </div>
 
                             <div className={styleClasses.stepsInfo}>
                                 <span></span>
-                                <span className="text-[11px]">
-                                    {test.createdAt
-                                        ? new Intl.DateTimeFormat('es-ES', {
-                                            day: '2-digit',
-                                            month: '2-digit',
-                                            year: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                        }).format(Number(test.createdAt))
-                                        : ""}
-                                </span>
+
                             </div>
                             <div className="flex flex-wrap gap-1 mt-1 px-2">
                                 {test.tagNames && test.tagNames.length > 0 && (
@@ -621,7 +606,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                     </AccordionTrigger>
                 </div>
 
-                <AccordionContent className="p-2 w-full">
+                <AccordionContent className="w-full">
                     <div className="flex gap-2 overflow-x-auto">
                         {['data', 'steps', 'Historic reports'].map(mode => (
                             <button
@@ -702,8 +687,8 @@ const SortableTestCaseItem: React.FC<Props> = ({
                             className={styleClasses.stepsScrollContainer}
                         >
                             <div className={styleClasses.stepsStickyHeader}>
-                                <div className="flex flex-wrap items-center gap-4">
-                                    <div className="flex items-center space-x-2 space-y-2">
+                                <div className="flex flex-wrap items-center gap-4 justify-between">
+                                    {/* <div className="flex items-center space-x-2 space-y-2">
                                         <Switch
                                             id="flat-reusable"
                                             checked={flatReusableSteps}
@@ -712,7 +697,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                         <Label htmlFor="flat-reusable" className="text-sm">
                                             Flat View (Show all steps directly)
                                         </Label>
-                                    </div>
+                                    </div> */}
 
                                     <div className="flex items-center gap-2">
                                         <Button
@@ -742,15 +727,17 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                             </Button>
                                         )}
                                     </div>
+
+                                    <div className="rounded-md flex items-center gap-2 border-dashed border p-1">
+                                        <span>Copy All steps</span>
+                                        <CopyToClipboard
+                                            text={JSON.stringify(responseTest?.stepsData)}
+                                            isDarkMode={isDarkMode}
+                                        />
+                                    </div>
                                 </div>
 
-                                <div className={styleClasses.copyAllSteps}>
-                                    <span>Copy All steps</span>
-                                    <CopyToClipboard
-                                        text={JSON.stringify(responseTest?.stepsData)}
-                                        isDarkMode={isDarkMode}
-                                    />
-                                </div>
+
                             </div>
 
                             <StepActions

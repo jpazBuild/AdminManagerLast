@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Clock, Wand2, Layers, Edit, Save } from "lucide-react";
+import { Clock, Wand2, Layers, Edit, Save, ChevronLeft, StepBackIcon, ArrowLeft } from "lucide-react";
 import { FaXmark } from "react-icons/fa6";
 import { Check } from "lucide-react";
 import TextInputWithClearButton from "./InputClear";
@@ -11,6 +11,9 @@ import { toast } from "sonner";
 import InteractionItem from "./Interaction";
 import { URL_API_ALB } from "@/config";
 import { checkConnection } from "@/utils/DBBUtils";
+import { FaBackward } from "react-icons/fa";
+import { AiFillBackward } from "react-icons/ai";
+import { Arrow } from "@radix-ui/react-popover";
 
 interface StepActionsProps {
     index: number;
@@ -176,17 +179,17 @@ const StepActions: React.FC<StepActionsProps> = ({
         return (
             <div className="flex flex-col gap-2 mb-2">
                 <div className="flex gap-2">
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-xs w-fit cursor-pointer shadow-md"
+
+                    <button
                         onClick={() => {
                             setShowWait(!showWait);
                             setShowCustom(false);
                         }}
+                        className="flex bg-primary/5 items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded text-primary hover:bg-primary/10"
                     >
                         <Clock className="mr-1 h-3 w-3" /> Add Wait
-                    </Button>
+
+                    </button>
                     <Button
                         size="sm"
                         variant="outline"
@@ -209,7 +212,7 @@ const StepActions: React.FC<StepActionsProps> = ({
                             label="Enter wait time in ms"
                             onChangeHandler={(e) => setLocalWait(e.target.value)}
                             placeholder="Wait (ms)"
-                            
+
                         />
                         <button
                             className="text-xs cursor-pointer text-gray-400 hover:text-primary/70 p-1"
@@ -356,26 +359,23 @@ const StepActions: React.FC<StepActionsProps> = ({
             )}
 
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden bg-white flex flex-col">
-                    <div className="sticky top-0 z-30 flex justify-between items-center px-4 py-3 border-b bg-white">
+                <DialogContent size="2xl" className="w-full max-h-[85vh] overflow-hidden bg-white flex flex-col">
+                    <div className="relative">
                         {selectedReusable && (
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setSelectedReusable(null)}
-                            >
-                                ← Back
-                            </Button>
+
+                            <button className="absolute -top-2.5 flex gap-2 text-primary/80 items-center" onClick={() => setSelectedReusable(null)}>
+                                <ArrowLeft className="h-5 w-5 text-primary/80 hover:text-primary/90 cursor-pointer" /> Back
+                            </button>
+
                         )}
-                        <h2 className="text-lg font-semibold text-primary/80 flex-1 text-center">
-                            {selectedReusable
-                                ? `Reusable: ${selectedReusable.name}`
-                                : "Select a Reusable Step"}
-                        </h2>
-                        <Button size="sm" variant="ghost" onClick={() => setIsModalOpen(false)}>
-                            <FaXmark className="h-4 w-4" />
-                        </Button>
+
                     </div>
+
+                    <h2 className="text-lg font-semibold text-primary/80 flex-1 text-center">
+                        {selectedReusable
+                            ? `${selectedReusable.name}`
+                            : "Select a Reusable Step"}
+                    </h2>
 
                     <div className="flex-1 overflow-y-auto p-4 space-y-4">
                         {!selectedReusable ? (
@@ -406,46 +406,52 @@ const StepActions: React.FC<StepActionsProps> = ({
                                 )}
 
                                 <div className="flex gap-2 mb-2">
-                                    <Button
-                                        size="sm"
-                                        variant={isEditingReusable ? "destructive" : "outline"}
+
+                                    <button
+                                        className="flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded text-primary hover:bg-primary/10"
                                         onClick={() => setIsEditingReusable(!isEditingReusable)}
                                     >
                                         <Edit className="mr-1 h-3 w-3" />{" "}
                                         {isEditingReusable ? "Cancel Edit" : "Edit Reusable"}
-                                    </Button>
+                                    </button>
+
                                     {isEditingReusable && (
-                                        <Button
-                                            size="sm"
-                                            variant="default"
+                                        <button
+                                            className="flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded text-white bg-primary/90 hover:bg-primary/85"
                                             onClick={saveReusableChanges}
-                                            className="text-xs text-white font-semibold w-fit cursor-pointer shadow-md"
                                         >
                                             <Save className="mr-1 h-3 w-3" /> Save Changes
-                                        </Button>
+
+                                        </button>
+
+
                                     )}
                                 </div>
 
                                 {selectedReusableSteps.map((step, idx) => (
                                     <div key={idx} className="flex flex-col gap-2 border rounded p-2">
                                         <ReusableStepActions idx={idx - 1} />
+
                                         <InteractionItem
                                             data={{ id: `reusable-${selectedReusable.id}-step-${idx}`, ...step }}
                                             index={idx}
-                                            onDelete={(indexToDelete) => {
-                                                const newSteps = selectedReusableSteps
-                                                    .filter((_, i) => i !== indexToDelete)
-                                                    .map((s, k) => ({ ...s, indexStep: k + 1 }));
-                                                insertReusableStep(newSteps);
-                                            }}
-                                            onUpdate={(indexToUpdate, updatedStep) => {
-                                                const newSteps = [...selectedReusableSteps];
-                                                newSteps[indexToUpdate] = {
-                                                    ...newSteps[indexToUpdate],
-                                                    ...updatedStep,
-                                                };
-                                                insertReusableStep(newSteps);
-                                            }}
+                                            isEditing={isEditingReusable}
+                                            {...(isEditingReusable && {
+                                                onDelete: (indexToDelete) => {
+                                                    const newSteps = selectedReusableSteps
+                                                        .filter((_, i) => i !== indexToDelete)
+                                                        .map((s, k) => ({ ...s, indexStep: k + 1 }));
+                                                    insertReusableStep(newSteps);
+                                                },
+                                                onUpdate: (indexToUpdate, updatedStep) => {
+                                                    const newSteps = [...selectedReusableSteps];
+                                                    newSteps[indexToUpdate] = {
+                                                        ...newSteps[indexToUpdate],
+                                                        ...updatedStep,
+                                                    };
+                                                    insertReusableStep(newSteps);
+                                                }
+                                            })}
                                             isDarkMode={false}
                                             test={test}
                                         />

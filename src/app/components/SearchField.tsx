@@ -98,15 +98,10 @@ export const SearchField = ({
   return (
     <>
       <div className="flex flex-col gap-2 w-full relative" ref={wrapperRef}>
-        {/* {label && (
-          <label className={`font-medium text-sm ${darkMode ? "text-white/90" : "text-primary"} ${textColorLabel}`}>
-            {label}
-          </label>
-        )} */}
         <div
           onClick={() => !disabled && setOpen(true)}
           className={`
-            flex items-center justify-between w-full px-4 py-3 
+            flex items-center justify-between w-full ${selectedOption ? "py-2" : "py-3"} px-3
             border rounded-xl text-sm cursor-pointer 
              transition-all duration-200 z-20 font-normal
             ${!value ? "text-primary/50" : "text-white"}
@@ -118,9 +113,21 @@ export const SearchField = ({
             ${className}
           `}
         >
-          <span className={`truncate ${darkMode ? "text-white" : "text-primary/90"}`}>
-            {selectedOption ? selectedOption.label : placeholder}
-          </span>
+
+          <div className={`truncate ${darkMode ? "text-white" : "text-primary/90"}`}>
+            {selectedOption ? (
+              <div className="flex flex-col gap-0.5">
+                {label && <span className={`text-xs font-medium ${textColorLabel}`}>{label}</span>}
+                <span className="font-medium">{selectedOption.label}</span>
+
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <span className="font-medium">{placeholder}</span>
+              </div>
+            )}
+
+          </div>
           {value ? (
             <X
               className="ml-2 h-4 w-4 text-primary/40 hover:text-primary/50 flex-shrink-0"

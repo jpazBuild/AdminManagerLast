@@ -348,33 +348,26 @@ const Reports = () => {
           {showFilters && (
             <div className="p-6 space-y-6">
               <div className="flex flex-col gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Search by Name</label>
-                  <div className="relative">
-                    <TextInputWithClearButton
-                      id="search-name"
-                      label="Search by Name"
-                      placeholder="Enter report name..."
-                      value={filters.name || ""}
-                      onChangeHandler={(e) => handleFilterChange("name", e.target.value)}
-                    />
-                  </div>
-                </div>
+                <TextInputWithClearButton
+                  id="search-name"
+                  label="Search by Name"
+                  placeholder="Enter report name..."
+                  value={filters.name || ""}
+                  onChangeHandler={(e) => handleFilterChange("name", e.target.value)}
+                  isSearch={true}
+                />
 
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <SearchField
-                    label="Status"
-                    value={filters.reportStatus ?? "all"}
-                    onChange={(val: string) => handleFilterChange("reportStatus", val)}
-                    placeholder="All / Passed / Failed"
-                    className="w-full"
-                    options={STATUS_OPTIONS}
-                  />
-                </div>
+
+                <SearchField
+                  label="Status"
+                  value={filters.reportStatus ?? "all"}
+                  onChange={(val: string) => handleFilterChange("reportStatus", val)}
+                  placeholder="Status"
+                  className="w-full"
+                  options={STATUS_OPTIONS}
+                />
               </div>
 
-              <span className="text-primary/90 text-medium">Tags</span>
               <SearchField
                 label="Search Test by tags"
                 value={selectedTag}
@@ -385,7 +378,6 @@ const Reports = () => {
                 options={tags?.map((tag: any) => ({ label: String(tag?.name), value: String(tag?.name) }))}
               />
 
-              <span className="text-primary/90 text-medium">Groups</span>
               <SearchField
                 label="Search Test by groups"
                 value={selectedGroup}
@@ -396,7 +388,6 @@ const Reports = () => {
                 options={groups?.map((group: any) => ({ label: String(group?.name), value: String(group?.name) }))}
               />
 
-              <span className="text-primary/90 text-medium">Modules</span>
               <SearchField
                 label="Search Test by modules"
                 value={selectedModule}
@@ -414,7 +405,6 @@ const Reports = () => {
                 </div>
               ) : (
                 <>
-                  <span className="text-primary/90 text-medium">Submodules</span>
                   <SearchField
                     label="Search Test by submodules"
                     value={selectedSubmodule}
