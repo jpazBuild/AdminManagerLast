@@ -437,12 +437,12 @@ const SortableTestCaseItem: React.FC<Props> = ({
         updatedBy,
     });
 
-    const buildUpdatePayload = useCallback((responseTest: any, updatedBy: string) => {
+    const buildUpdatePayload = useCallback(async (responseTest: any, updatedBy: string) => {
         const seenIds = new Set<string>();
 
-        console.log("responseTest para updateTest:", responseTest);
+        console.log("responseTest para updateTest:", await responseTest);
 
-        const transformedSteps = responseTest.stepsData.map((step: any) => {
+        const transformedSteps = await responseTest?.stepsData.map((step: any) => {
             if (!step) return step;
 
             const { stepsId, ...cleanStep } = step;
@@ -456,16 +456,18 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
         console.log("updateTest []:", transformedSteps);
 
-        const uniqueSteps = transformedSteps.filter((step: any) => {
-            const stepId = typeof step === "string" ? step : step.id;
+        // const uniqueSteps = await transformedSteps?.filter((step: any) => {
+        //     const stepId = typeof step === "string" ? step : step?.id;
 
-            if (!stepId) return true;
+        //     if (!stepId) return true;
 
-            if (seenIds.has(stepId)) return false;
-            seenIds.add(stepId);
-            return true;
-        });
+        //     if (seenIds.has(stepId)) return false;
+        //     seenIds.add(stepId);
+        //     return true;
+        // });
 
+        // console.log("uniqueSteps para updateTest:", uniqueSteps);
+        
         return {
             id: responseTest.id,
             name: responseTest.name,
@@ -476,7 +478,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
             tagIds: responseTest.tagIds || [],
             tagNames: responseTest.tagNames || [],
             contextGeneral: responseTest.contextGeneral,
-            stepsData: uniqueSteps,
+            stepsData: await transformedSteps,
             updatedBy,
             deleteS3Images: true,
             temp: false,
@@ -492,7 +494,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
         console.log("handleUpdateConfirm responseTest:", await responseTest);
 
-        const payload = buildUpdatePayload(await responseTest, "jpaz");
+        const payload = await buildUpdatePayload(await responseTest, "jpaz");
         console.log("Payload final para updateTest:", payload);
 
         try {
