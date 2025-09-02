@@ -20,6 +20,9 @@ import TestCaseActions from "./TestCaseActions";
 import ReportTestCaseList from "./ReportsHistoricTestCaseList";
 import UnifiedInput from "./Unified";
 import { updateTest } from "@/utils/DBBUtils";
+import { useTestLocationInformation } from "../hooks/useTestLocationInformation";
+import { SearchField } from "./SearchField";
+import EditLocationPanel from "./EditLocationPanel";
 
 const useScrollPosition = (dependencies: any[]) => {
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -116,6 +119,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
     const isOpen = useMemo(() => openItems.includes(test.id ?? ''), [openItems, test.id]);
     const testId = useMemo(() => test.id ?? '', [test.id]);
+
 
     const fetchTestData = useCallback(async (flatReusable: boolean) => {
         if (!testId) return;
@@ -467,7 +471,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
         // });
 
         // console.log("uniqueSteps para updateTest:", uniqueSteps);
-        
+
         return {
             id: responseTest.id,
             name: responseTest.name,
@@ -511,6 +515,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
     }, [buildUpdatePayload, responseTest]);
 
     const uniqueFields = useMemo(() => Array.from(new Set(testFields)), [testFields]);
+
 
     return (
         <div className={styleClasses.mainContainer}>
@@ -610,7 +615,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
                 <AccordionContent className="w-full">
                     <div className="flex gap-2 overflow-x-auto">
-                        {['data', 'steps', 'Historic reports'].map(mode => (
+                        {['data', 'steps', 'Historic reports', 'editLocation'].map(mode => (
                             <button
                                 key={mode}
                                 className={getViewModeButtonClasses(mode)}
@@ -690,17 +695,6 @@ const SortableTestCaseItem: React.FC<Props> = ({
                         >
                             <div className={styleClasses.stepsStickyHeader}>
                                 <div className="flex flex-wrap items-center gap-4 justify-between">
-                                    {/* <div className="flex items-center space-x-2 space-y-2">
-                                        <Switch
-                                            id="flat-reusable"
-                                            checked={flatReusableSteps}
-                                            onCheckedChange={setFlatReusableSteps}
-                                        />
-                                        <Label htmlFor="flat-reusable" className="text-sm">
-                                            Flat View (Show all steps directly)
-                                        </Label>
-                                    </div> */}
-
                                     <div className="flex items-center gap-2">
                                         <Button
                                             variant={selectionMode ? "destructive" : "outline"}
@@ -854,6 +848,21 @@ const SortableTestCaseItem: React.FC<Props> = ({
                             visible={true}
                             viewMode={viewMode}
                         />
+                    )}
+                    {viewMode === 'editLocation' && (
+                        <div className="w-full p-1 pt-2 min-h-[480px] flex flex-col gap-2">
+                            <h3 className="text-center text-lg text-primary/90">Edit test case Information</h3>
+
+                            <EditLocationPanel
+                                test={test}
+                                responseTest={responseTest}
+                                setResponseTest={setResponseTest}
+                                setTestCasesData={setTestCasesData}
+                                isDarkMode={isDarkMode}
+                                isLoadingUpdate={isLoadingUpdate}
+                                setIsLoadingUpdate={setIsLoadingUpdate}
+                            />
+                        </div>
                     )}
                 </AccordionContent>
             </AccordionItem>

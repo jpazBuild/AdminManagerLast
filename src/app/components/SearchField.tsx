@@ -116,7 +116,7 @@ export const SearchField = ({
 
           <div className={`truncate ${darkMode ? "text-white" : "text-primary/90"}`}>
             {selectedOption ? (
-              <div className="flex flex-col gap-0.5">
+              <div id={`value ${value}`} className="flex flex-col gap-0.5">
                 {label && <span className={`text-xs font-medium ${textColorLabel}`}>{label}</span>}
                 <span className="font-medium">{selectedOption.label}</span>
 
@@ -188,6 +188,7 @@ export const SearchField = ({
                     return (
                       <button
                         key={`${opt.value}-${opt.label}-${index}`}
+                        id={`option-${opt.value}`}
                         onClick={() => handleSelect(opt.value)}
                         className={`
                   w-full flex items-center justify-between px-4 py-3 rounded-lg text-left text-sm
