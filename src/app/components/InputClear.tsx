@@ -115,7 +115,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
             autoComplete="on"
             onChange={e => setLocalValue(e.target.value)}
             className={`peer w-full ml-3 pr-10 pt-5 pb-2 placeholder:text-[16px] rounded-md ${textColor} ${ringFocus} bg-transparent focus:outline-none ${className}`}
-            defaultValue={defaultValue}
+            // defaultValue={defaultValue || ""}
             readOnly={readOnly}
             {...props}
           />

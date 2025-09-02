@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/react";
 import { URL_API_ALB } from "@/config";
 import { DashboardHeader } from "../Layouts/main";
-import { ChevronDownIcon, ChevronUpIcon, FilterIcon, Loader, RefreshCwIcon, SearchIcon, XIcon, CalendarIcon } from "lucide-react";
+import { ChevronDownIcon, ChevronUpIcon, FilterIcon, Loader, RefreshCwIcon, SearchIcon, XIcon, CalendarIcon, DownloadIcon } from "lucide-react";
 import { toast } from "sonner";
 import CopyToClipboard from "../components/CopyToClipboard";
 import StepCard from "../components/StepCard";
@@ -12,6 +12,7 @@ import { StepData } from "@/types/types";
 import { SearchField } from "../components/SearchField";
 import TextInputWithClearButton from "../components/InputClear";
 import { useTestLocationInformation } from "../hooks/useTestLocationInformation";
+import { buildStandaloneHtml } from "@/utils/buildHtmlreport";
 
 type ReportEvent = {
   data: StepData;
@@ -124,6 +125,89 @@ const DATE_FILTER_OPTIONS = [
   { label: "Exact Date", value: "exact" }
 ];
 
+function downloadStringAsHtml(html: string, filename: string) {
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename.endsWith(".html") ? filename : `${filename}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function inlineImages(root: HTMLElement) {
+  const imgs = Array.from(root.querySelectorAll("img"));
+  await Promise.all(
+    imgs.map(async (img) => {
+      const src = img.getAttribute("src");
+      if (!src || src.startsWith("data:")) return;
+      try {
+        const resp = await fetch(src);
+        const blob = await resp.blob();
+        const reader = new FileReader();
+        const dataUrl: string = await new Promise((resolve, reject) => {
+          reader.onloadend = () => resolve(String(reader.result));
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+        img.setAttribute("src", dataUrl);
+      } catch {
+      }
+    })
+  );
+}
+
+function preprocessStepCardHtml(html: string): string {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
+
+  const stepCards = doc.querySelectorAll('[class*="border-2"], [class*="border-green"], [class*="border-red"]');
+
+  stepCards.forEach((card) => {
+    card.classList.add('step-card');
+
+    if (card.classList.toString().includes('border-green-500')) {
+      card.classList.add('completed');
+    } else if (card.classList.toString().includes('border-red-500')) {
+      card.classList.add('failed');
+    }
+
+    const stepBadge = card.querySelector('[class*="absolute"][class*="bg-primary"]');
+    if (stepBadge) {
+      stepBadge.classList.add('step-number-badge');
+    }
+
+    const timeElement = card.querySelector('[class*="absolute"][class*="top-2"][class*="right-2"]:not([class*="bg-primary"])');
+    if (timeElement) {
+      timeElement.classList.add('step-time');
+    }
+
+    const mainContent = card.querySelector('p[class*="text-md"][class*="mt-6"]');
+    if (mainContent) {
+      mainContent.classList.add('step-description');
+    }
+
+    const imageContainer = card.querySelector('[class*="flex"][class*="justify-center"][class*="mt-4"]');
+    if (imageContainer) {
+      imageContainer.classList.add('step-image-container');
+
+      const imageWrapper = imageContainer.querySelector('[class*="relative"][class*="cursor-pointer"]');
+      if (imageWrapper) {
+        imageWrapper.classList.add('step-image-wrapper');
+
+        const image = imageWrapper.querySelector('img');
+        if (image) {
+          image.classList.add('step-image');
+        }
+      }
+    }
+  });
+
+  return doc.body.innerHTML;
+}
+
 const Reports = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -134,6 +218,8 @@ const Reports = () => {
   const loadedReportsRef = useRef<Set<string>>(new Set());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string>("");
+
+  const containerRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const [showFilters, setShowFilters] = useState(true);
   const [filters, setFilters] = useState<FilterParams>({
@@ -167,6 +253,7 @@ const Reports = () => {
     getSelectedModuleId,
     getSelectedSubmoduleId
   } = useTestLocationInformation();
+
 
   const handleFilterChange = (key: keyof FilterParams, value: any) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -255,7 +342,6 @@ const Reports = () => {
     [getSelectedTagId, getSelectedGroupId, getSelectedModuleId, getSelectedSubmoduleId, tags]
   );
 
-
   const fetchReportByUrl = async (url: string): Promise<ReportFile | null> => {
     try {
       const res = await fetch(url);
@@ -296,15 +382,48 @@ const Reports = () => {
     setSelectedImage("");
   };
 
-  const applyFilters = useCallback(() => {
+  const downloadRenderedHtml = useCallback(
+    async (reportName: string, file: ReportFile, urlReport: string, header?: any) => {
+      console.log("header to download", header);
+
+      const hostEl = containerRefs.current[urlReport];
+      if (!hostEl) {
+        toast.error("Nothing to export for this report");
+        return;
+      }
+      console.log("header to export", header);
+
+      const clone = hostEl.cloneNode(true) as HTMLElement;
+
+      await inlineImages(clone).catch(() => { });
+
+      const preprocessedHtml = preprocessStepCardHtml(clone.outerHTML);
+
+      const html = buildStandaloneHtml({
+        file,
+        bodyInnerHtml: preprocessedHtml,
+        extraHeadHtml: `
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        `, header
+      });
+
+      const niceName = `${(reportName || "report").replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}`;
+      downloadStringAsHtml(html, `${niceName}.html`);
+      toast.success("HTML report downloaded");
+    },
+    []
+  );
+
+  const applyFilters = async () => {
     setLoading(true);
     setAllReports({});
     loadedReportsRef.current = new Set();
 
-    fetchReportList(filters);
+    await fetchReportList(filters);
     setLoading(false);
-  }, [filters, fetchReportList]);
-
+  };
 
   const resetFilters = useCallback(() => {
     setFilters({
@@ -357,7 +476,6 @@ const Reports = () => {
                   isSearch={true}
                 />
 
-
                 <SearchField
                   label="Status"
                   value={filters.reportStatus ?? "all"}
@@ -368,17 +486,19 @@ const Reports = () => {
                 />
               </div>
 
+
               <SearchField
                 label="Search Test by tags"
                 value={selectedTag}
                 onChange={setSelectedTag}
                 placeholder="Search by tags..."
                 className="w-full"
-                disabled={isLoadingTags}
                 options={tags?.map((tag: any) => ({ label: String(tag?.name), value: String(tag?.name) }))}
               />
 
+
               <SearchField
+                key={`groups-${groups?.length ?? 0}`}
                 label="Search Test by groups"
                 value={selectedGroup}
                 onChange={setSelectedGroup}
@@ -462,8 +582,7 @@ const Reports = () => {
               <div className="flex gap-3 pt-4 border-t border-gray-200">
                 <button
                   onClick={applyFilters}
-                  // disabled={loading}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary/90 text-white rounded-md hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex cursor-pointer items-center gap-2 px-4 py-2 bg-primary/90 text-white rounded-md hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? <RefreshCwIcon className="h-4 w-4 animate-spin" /> : <SearchIcon className="h-4 w-4" />}
                   {loading ? "Applying..." : "Apply Filters"}
@@ -481,7 +600,6 @@ const Reports = () => {
           )}
         </div>
 
-
         {error && !loading && <div className="text-sm text-red-600 mb-4">{error}</div>}
 
         {reportItems.length === 0 && !loading && !error && (
@@ -496,6 +614,7 @@ const Reports = () => {
 
         {reportItems.map(({ testCaseId, header, urlReport, status, timestamp }) => {
           const file = allReports[urlReport];
+          console.log("header to show", header);
 
           return (
             <Disclosure key={urlReport}>
@@ -557,21 +676,39 @@ const Reports = () => {
                       </div>
                     ) : (
                       <div className="flex flex-col gap-4">
-                        {file.events.map((ev, idx) => {
-                          const step = {
-                            ...ev,
-                            time: ev.time !== undefined ? Number(ev.time) : undefined
-                          };
-                          return (
-                            <StepCard
-                              key={ev.indexStep}
-                              step={step}
-                              stepData={ev?.data}
-                              index={idx + 1}
-                              handleImageClick={handleImageClick}
-                            />
-                          );
-                        })}
+                        {file?.events && file?.events?.length > 0 && (
+                          <div className="flex justify-end px-4">
+                            <button
+                              onClick={() => downloadRenderedHtml(file.reportName || testCaseId, file, urlReport, header)}
+                              className="mb-4 flex cursor-pointer items-center gap-2 text-xs border-primary/60 border-2 text-primary/60 font-semibold px-3 py-1 rounded hover:shadow-md"
+                            >
+                              <DownloadIcon size={16} /> HTML Report (Rendered)
+                            </button>
+                          </div>
+                        )}
+
+                        <div
+                          ref={(el) => {
+                            containerRefs.current[urlReport] = el;
+                          }}
+                          className="flex flex-col gap-2 max-h-[680px] overflow-y-auto"
+                        >
+                          {file.events.map((ev, idx) => {
+                            const step = {
+                              ...ev,
+                              time: ev.time !== undefined ? Number(ev.time) : undefined
+                            };
+                            return (
+                              <StepCard
+                                key={ev.indexStep}
+                                step={step}
+                                stepData={ev?.data}
+                                index={idx + 1}
+                                handleImageClick={handleImageClick}
+                              />
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </DisclosurePanel>
