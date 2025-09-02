@@ -400,7 +400,6 @@ const ApiFlowBuilder = () => {
                                                                 value={env.key}
                                                                 label={`Enter key for ${env.key}`}
                                                                 placeholder={`Enter key for ${env.key}`}
-                                                                defaultValue={env.key}
                                                                 readOnly={true}
                                                             />
                                                             <TextInputWithClearButton
@@ -408,7 +407,6 @@ const ApiFlowBuilder = () => {
                                                                 value={env.value}
                                                                 label={`Enter value for ${env.value}`}
                                                                 placeholder={`Enter key for ${env.value}`}
-                                                                defaultValue={env.value}
                                                                 readOnly={true}
                                                             />
 
@@ -493,7 +491,7 @@ const ApiFlowBuilder = () => {
                                                                 value={api?.request?.url?.raw}
                                                                 label="Enter request URL"
                                                                 placeholder="Enter request URL"
-                                                                defaultValue={api.request.url.raw}
+                                                                // defaultValue={api.request.url.raw}
                                                                 onChangeHandler={(e) => updateFlowField(idx, "url", e.target.value)}
                                                                 readOnly={false}
                                                             />
@@ -521,7 +519,7 @@ const ApiFlowBuilder = () => {
                                                                                     value={h.key}
                                                                                     placeholder="Header Key"
                                                                                     label={`Enter key for ${h.key}`}
-                                                                                    defaultValue={h.key}
+                                                                                    // defaultValue={h.key}
                                                                                     onChangeHandler={(e) => {
                                                                                         const up = [...api.request.header];
                                                                                         up[hIdx].key = e.target.value;
