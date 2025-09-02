@@ -313,10 +313,10 @@ const DashboardPage = () => {
             const submoduleId = getSelectedSubmoduleId();
 
             if (tagId) searchParams.tagIds = [tagId];
-            if (groupId) searchParams.groupId = groupId;
-            if (moduleId) searchParams.moduleId = moduleId;
-            if (submoduleId) searchParams.subModuleId = submoduleId;
-            if (searchTestCaseName) searchParams.name = searchTestCaseName;
+            if (groupId) searchParams.groupId = await groupId;
+            if (moduleId) searchParams.moduleId = await moduleId;
+            if (submoduleId) searchParams.subModuleId = await submoduleId;
+            if (searchTestCaseName) searchParams.name = await searchTestCaseName;
             if (selectedCreatedBy && selectedCreatedBy !== "All") searchParams.createdBy = selectedCreatedBy;
 
             const response = await axios.post(`${URL_API_ALB}getTestHeaders`, searchParams);
@@ -410,6 +410,9 @@ const DashboardPage = () => {
         [users]
     );
 
+    console.log("groups in test cases ", groups);
+    
+
     return (
         <DashboardHeader onDarkModeChange={handleDarkModeChange}>
             <div className={`p-4 flex justify-center items-center w-full flex-col gap-4 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-primary"} transition-colors duration-300`}>
@@ -472,7 +475,7 @@ const DashboardPage = () => {
                             disabled={!selectedModule || submodules.length === 0 || isLoadingSubmodules}
                             options={submodules?.map((submodule: any) => ({
                                 label: String(submodule?.name),
-                                value: String(submodule?.name),
+                                value: String(submodule?.id),
                             }))}
                         />
                     )}
@@ -577,70 +580,63 @@ const DashboardPage = () => {
                     </div>
                 </div>
 
-                {isLoadingSearch ? (
-                    <div className="w-full lg:w-2/3 flex flex-col gap-4 justify-center items-center h-64">
-                        <div className="h-16 bg-primary/20 rounded w-full mb-2 animate-pulse"></div>
-                        <div className="h-16 bg-primary/20 rounded w-full mb-2 animate-pulse"></div>
-                        <div className="h-16 bg-primary/20 rounded w-full mb-2 animate-pulse"></div>
-                    </div>
-                ) : (
-                    <div className="w-full flex flex-col gap-4 justify-center items-center">
-                        {dataTestCases.length > 0 ? (
-                            <div className="lg:w-2/3">
-                                <TestCaseList
-                                    testCases={dataTestCases}
-                                    selectedCases={selectedCases}
-                                    toggleSelect={toggleSelect}
-                                    onDataChange={onDataChangeRead}
-                                    onTestCasesDataChange={onTestCasesDataChange}
-                                    onRefreshAfterUpdateOrDelete={fetchInitialData}
-                                    editMode={editMode}
-                                    setEditMode={setEditMode}
-                                    isDarkMode={isDarkMode}
-                                />
 
-                                <TestSettings
-                                    onBrowserLimitChange={handleBrowserLimitChange}
-                                    onHeadlessChange={handleHeadlessChange}
-                                    isDarkMode={isDarkMode}
-                                />
+                <div className="w-full flex flex-col gap-4 justify-center items-center">
+                    {dataTestCases.length > 0 ? (
+                        <div className="lg:w-2/3">
+                            <TestCaseList
+                                testCases={dataTestCases}
+                                selectedCases={selectedCases}
+                                toggleSelect={toggleSelect}
+                                onDataChange={onDataChangeRead}
+                                onTestCasesDataChange={onTestCasesDataChange}
+                                onRefreshAfterUpdateOrDelete={fetchInitialData}
+                                editMode={editMode}
+                                setEditMode={setEditMode}
+                                isDarkMode={isDarkMode}
+                            />
 
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={handleRunTests}
-                                        disabled={selectedCases.length === 0 || isLoadingSearch || anyLoading}
-                                        className={`cursor-pointer px-4 py-2 font-semibold tracking-wide mt-4 rounded-lg transition-all duration-300 ${isDarkMode
-                                            ? "bg-white text-[#021d3d] hover:bg-gray-200"
-                                            : "bg-[#021d3d] text-white hover:bg-[rgb(2,29,61)]"}
+                            <TestSettings
+                                onBrowserLimitChange={handleBrowserLimitChange}
+                                onHeadlessChange={handleHeadlessChange}
+                                isDarkMode={isDarkMode}
+                            />
+
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleRunTests}
+                                    disabled={selectedCases.length === 0 || isLoadingSearch || anyLoading}
+                                    className={`cursor-pointer px-4 py-2 font-semibold tracking-wide mt-4 rounded-lg transition-all duration-300 ${isDarkMode
+                                        ? "bg-white text-[#021d3d] hover:bg-gray-200"
+                                        : "bg-[#021d3d] text-white hover:bg-[rgb(2,29,61)]"}
                                         ${isSearchButtonDisabled ? "!bg-primary/10 !cursor-not-allowed" : ""}
                                         ${(isLoadingSearch || anyLoading) || selectedCases.length === 0 ? "opacity-50 !cursor-not-allowed" : ""}`}
-                                    >
-                                        {(isLoadingSearch || anyLoading) ? "Executing..." : (
-                                            <span className="flex items-center gap-2"><FiPlay /> Run Tests</span>
-                                        )}
-                                    </button>
-                                </div>
-
-                                {executeRun && (
-                                    <TestReports
-                                        stopped={stopped}
-                                        setStopped={setStopped}
-                                        setLoading={setLoading}
-                                        testData={testData}
-                                        reports={reports}
-                                        idReports={idReports}
-                                        progress={progress}
-                                        selectedCases={selectedCases}
-                                        selectedTest={selectedTests}
-                                        darkMode={isDarkMode}
-                                    />
-                                )}
+                                >
+                                    {(isLoadingSearch || anyLoading) ? "Executing..." : (
+                                        <span className="flex items-center gap-2"><FiPlay /> Run Tests</span>
+                                    )}
+                                </button>
                             </div>
-                        ) : (
-                            <NoData />
-                        )}
-                    </div>
-                )}
+
+                            {executeRun && (
+                                <TestReports
+                                    stopped={stopped}
+                                    setStopped={setStopped}
+                                    setLoading={setLoading}
+                                    testData={testData}
+                                    reports={reports}
+                                    idReports={idReports}
+                                    progress={progress}
+                                    selectedCases={selectedCases}
+                                    selectedTest={selectedTests}
+                                    darkMode={isDarkMode}
+                                />
+                            )}
+                        </div>
+                    ) : (
+                        <NoData />
+                    )}
+                </div>
             </div>
         </DashboardHeader>
     );

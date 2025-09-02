@@ -137,7 +137,9 @@ export const useTestExecution = () => {
                 testData: sanitizedTestData,
                 temp: false,
             };
-
+            
+            console.log("payload test",);
+            
             const payloadStr = JSON.stringify(payload);
             if (payloadStr.length > 1_000_000) {
                 logger(`🚫 Payload demasiado grande para test ${testId}, cancelando:`, payloadStr.length);

@@ -24,6 +24,7 @@ export interface TestCase {
             url?: string;
         };
     };
+    tagIds?: string[];
     name: string;
     createdBy?: string;
     createdByName?: string;
