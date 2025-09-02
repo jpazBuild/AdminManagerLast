@@ -190,19 +190,19 @@ function preprocessStepCardHtml(html: string): string {
     }
 
     const imageContainer = card.querySelector('[class*="flex"][class*="justify-center"][class*="mt-4"]');
-    if (imageContainer) {
-      imageContainer.classList.add('step-image-container');
+    // if (imageContainer) {
+    //   imageContainer.classList.add('step-image-container');
 
-      const imageWrapper = imageContainer.querySelector('[class*="relative"][class*="cursor-pointer"]');
-      if (imageWrapper) {
-        imageWrapper.classList.add('step-image-wrapper');
+    //   const imageWrapper = imageContainer.querySelector('[class*="relative"][class*="cursor-pointer"]');
+    //   if (imageWrapper) {
+    //     imageWrapper.classList.add('step-image-wrapper');
 
-        const image = imageWrapper.querySelector('img');
-        if (image) {
-          image.classList.add('step-image');
-        }
-      }
-    }
+    //     const image = imageWrapper.querySelector('img');
+    //     if (image) {
+    //       image.classList.add('step-image');
+    //     }
+    //   }
+    // }
   });
 
   return doc.body.innerHTML;
