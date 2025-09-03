@@ -382,6 +382,7 @@ const Reports = () => {
     setSelectedImage("");
   };
 
+  
   const downloadRenderedHtml = useCallback(
     async (reportName: string, file: ReportFile, urlReport: string, header?: any) => {
       console.log("header to download", header);
@@ -442,6 +443,7 @@ const Reports = () => {
     loadedReportsRef.current = new Set();
   }, [setSelectedTag, setSelectedGroup, setSelectedModule, setSelectedSubmodule]);
 
+  
   return (
     <DashboardHeader onDarkModeChange={setDarkMode}>
       <div className="p-6 w-full lg:w-2/3 mx-auto">
