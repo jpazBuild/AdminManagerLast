@@ -73,6 +73,93 @@ body {
 }
 
 
+export async function downloadRenderedPdf(
+  urlKey: string,
+  file: ReportFile | undefined,
+  containerRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>,
+  header?: any
+) {
+  const hostEl = containerRefs.current[urlKey];
+  if (!hostEl) {
+    toast.error("Nothing to export for this tab");
+    return;
+  }
+
+  const clone = hostEl.cloneNode(true) as HTMLElement;
+  await inlineImages(clone).catch(() => { });
+
+  const preprocessedHtml = preprocessStepCardHtml(clone.outerHTML);
+
+  const html = buildStandaloneHtml({
+    file,
+    bodyInnerHtml: preprocessedHtml,
+    extraHeadHtml: `
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style> body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; } </style>
+    `,
+    header
+  });
+
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0"; iframe.style.bottom = "0";
+  iframe.style.width = "0"; iframe.style.height = "0";
+  iframe.style.border = "0";
+  iframe.src = url;
+
+  const cleanup = () => {
+    setTimeout(() => {
+      try { document.body.removeChild(iframe); } catch { }
+      URL.revokeObjectURL(url);
+    }, 1000);
+  };
+
+  iframe.onload = async () => {
+    try {
+      const doc = iframe.contentDocument!;
+      const win = iframe.contentWindow!;
+
+      const niceName = `report-${file?.id || urlKey}.pdf`;
+      doc.title = niceName;
+
+      if ((doc as any).fonts?.ready) {
+        try { await (doc as any).fonts.ready; } catch { }
+      }
+
+      const imgs = Array.from(doc.images || []);
+      await Promise.all(
+        imgs.map(img =>
+          img.complete
+            ? Promise.resolve()
+            : new Promise(res => {
+              img.onload = img.onerror = () => res(null);
+            })
+        )
+      );
+
+      await new Promise(r => setTimeout(r, 50));
+
+      win.focus();
+      win.print();
+      toast.success(`Opening print dialog… choose “Save as PDF” (suggested: ${niceName}).`);
+    } catch (e) {
+      console.error("Failed to print:", e);
+      toast.error("Could not open print dialog");
+    } finally {
+      cleanup();
+    }
+  };
+
+
+  document.body.appendChild(iframe);
+}
+
+
 function downloadStringAsHtml(html: string, filename: string) {
   const blob = new Blob([html], { type: "text/html" });
   const url = URL.createObjectURL(blob);
@@ -137,11 +224,6 @@ const preprocessStepCardHtml = (html: string): string => {
     if (mainContent) {
       mainContent.classList.add('step-description');
     }
-
-    // const imageContainer = card.querySelector('[class*="flex"][class*="justify-center"][class*="mt-4"]');
-    // if (imageContainer) {
-    //   imageContainer.classList.add('step-image-container');
-    // }
   });
 
   return doc.body.innerHTML;
