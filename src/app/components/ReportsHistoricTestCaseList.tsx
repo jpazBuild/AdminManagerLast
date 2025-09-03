@@ -38,7 +38,7 @@ export async function downloadRenderedHtml(
   containerRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>
   , header?: any
 ) {
-  const hostEl = containerRefs.current[urlKey];
+  const hostEl = await containerRefs.current[urlKey];
   if (!hostEl) {
     toast.error("Nothing to export for this tab");
     return;
