@@ -138,7 +138,7 @@ const preprocessStepCardHtml = (html: string): string => {
       mainContent.classList.add('step-description');
     }
 
-    const imageContainer = card.querySelector('[class*="flex"][class*="justify-center"][class*="mt-4"]');
+    // const imageContainer = card.querySelector('[class*="flex"][class*="justify-center"][class*="mt-4"]');
     // if (imageContainer) {
     //   imageContainer.classList.add('step-image-container');
     // }

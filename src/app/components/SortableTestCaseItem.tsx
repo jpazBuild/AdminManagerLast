@@ -552,7 +552,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                         <h3 className="break-words pl-2 line-clamp-6 font-medium">{test.testCaseName || test.name}</h3>
                                     </div>
                                     <span className={styleClasses.createdBy}>
-                                        {test.createdByName}
+                                        {test.createdByName || test.createdBy || 'Unknown User'}
                                     </span>
                                 </div>
                             </div>
