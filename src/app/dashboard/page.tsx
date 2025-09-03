@@ -48,6 +48,7 @@ const DashboardPage = () => {
     const [availableCreators, setAvailableCreators] = useState<string[]>([]);
     const [selectedCreatedBy, setSelectedCreatedBy] = useState<string>("All");
     const [searchTestCaseName, setSearchTestCaseName] = useState<string>("");
+    const [searchTestCaseId, setSearchTestCaseId] = useState<string>("");
     const [selectedCases, setSelectedCases] = useState<string[]>([]);
     const [maxBrowsers, setMaxBrowsers] = useState<number>(1);
     const [isHeadless, setIsHeadless] = useState<boolean>(true);
@@ -307,21 +308,21 @@ const DashboardPage = () => {
             setIsLoadingSearch(true);
             const searchParams: Record<string, any> = {};
 
-            const tagId = getSelectedTagId();
-            const groupId = getSelectedGroupId();
-            const moduleId = getSelectedModuleId();
-            const submoduleId = getSelectedSubmoduleId();
+            const tagId = await getSelectedTagId();
+            const groupId = await getSelectedGroupId();
+            const moduleId = await getSelectedModuleId();
+            const submoduleId = await getSelectedSubmoduleId();
+            if (searchTestCaseId) searchParams.id = await searchTestCaseId;
 
             if (tagId) searchParams.tagIds = [tagId];
             if (groupId) searchParams.groupId = await groupId;
             if (moduleId) searchParams.moduleId = await moduleId;
             if (submoduleId) searchParams.subModuleId = await submoduleId;
             if (searchTestCaseName) searchParams.name = await searchTestCaseName;
-            if (selectedCreatedBy && selectedCreatedBy !== "All") searchParams.createdBy = selectedCreatedBy;
+            if (selectedCreatedBy && selectedCreatedBy !== "All") searchParams.createdBy = await selectedCreatedBy;
+            const response = await axios.post(`${URL_API_ALB}getTestHeaders`, await searchParams);
 
-            const response = await axios.post(`${URL_API_ALB}getTestHeaders`, searchParams);
-
-            setDataTestCases(response.data || []);
+            await setDataTestCases(response.data || []);
 
         } catch (error) {
             console.error("Error fetching test cases:", error);
@@ -330,7 +331,7 @@ const DashboardPage = () => {
         } finally {
             setIsLoadingSearch(false);
         }
-    }, [selectedGroup, selectedTag, selectedModule, selectedSubmodule, selectedCreatedBy, searchTestCaseName, getSelectedGroupId, getSelectedModuleId, getSelectedSubmoduleId]);
+    }, [selectedGroup, selectedTag, selectedModule, selectedSubmodule, selectedCreatedBy, searchTestCaseName,searchTestCaseId, getSelectedGroupId, getSelectedModuleId, getSelectedSubmoduleId]);
 
 
     const toggleSelect = useCallback((testCaseId: string) => {
@@ -495,6 +496,16 @@ const DashboardPage = () => {
                         value={searchTestCaseName}
                         onChangeHandler={(e) => setSearchTestCaseName(e.target.value)}
                         placeholder="Search by test case name..."
+                        className="w-full"
+                        isSearch={true}
+                    />
+
+                    <TextInputWithClearButton
+                        id="search-test-case-id"
+                        label="Search Test by id"
+                        value={searchTestCaseId}
+                        onChangeHandler={(e) => setSearchTestCaseId(e.target.value)}
+                        placeholder="Search by test case id..."
                         className="w-full"
                         isSearch={true}
                     />

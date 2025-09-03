@@ -78,7 +78,6 @@ export const buildStandaloneHtml = (options: {
       background: #f8fafc;
     }
     
-    /* Step Card Styles - Matching the original design exactly */
     .step-card, 
     [class*="border-green-500"],
     [class*="border-red-500"],
@@ -93,7 +92,6 @@ export const buildStandaloneHtml = (options: {
       padding: 0;
     }
     
-    /* Border colors for different states */
     .step-card.failed,
     [class*="border-red-500"] {
       border-color: #ef4444 !important;
@@ -104,7 +102,6 @@ export const buildStandaloneHtml = (options: {
       border-color: #10b981 !important;
     }
     
-    /* Step number badge - positioned absolutely */
     .step-number-badge,
     [class*="bg-primary"][class*="absolute"],
     .step-card > div:first-child[class*="absolute"] {
@@ -122,7 +119,6 @@ export const buildStandaloneHtml = (options: {
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
     }
     
-    /* Step content area */
     .step-body,
     .step-card > div:not(:first-child),
     [class*="p-4"] {
@@ -131,7 +127,6 @@ export const buildStandaloneHtml = (options: {
       min-height: 60px;
     }
     
-    /* Step description */
     .step-description,
     .step-card p:first-of-type,
     [class*="text-md"][class*="mt-6"] {
@@ -144,7 +139,6 @@ export const buildStandaloneHtml = (options: {
       line-height: 1.4;
     }
     
-    /* Time indicator - positioned absolutely */
     .step-time,
     [class*="absolute"][class*="top-2"][class*="right-2"] {
       position: absolute !important;
@@ -162,14 +156,12 @@ export const buildStandaloneHtml = (options: {
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
     }
     
-    /* Clock icon */
     .step-time svg,
     [class*="w-4"][class*="h-4"] {
       width: 14px !important;
       height: 14px !important;
     }
     
-    /* Result and error text */
     .step-detail,
     .step-card p:not(:first-of-type) {
       font-size: 0.875rem;
@@ -188,7 +180,6 @@ export const buildStandaloneHtml = (options: {
       color: #ef4444 !important;
     }
     
-    /* Image container */
     .step-image-container,
     [class*="flex"][class*="justify-center"][class*="mt-4"] {
       margin-top: 1.5rem !important;
@@ -310,6 +301,12 @@ export const buildStandaloneHtml = (options: {
       }
     }
     
+    [class*="relative"][class*="cursor-pointer"]::before,
+    [class*="relative"][class*="cursor-pointer"] svg {
+      display: none !important;
+      content: none !important;
+    }
+
     /* Print styles */
     @media print {
       body {
