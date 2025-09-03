@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -9,11 +9,13 @@ import { StopCircle, Download as DownloadIcon } from "lucide-react";
 import { handleDownloadHTMLReport, handleDownloadHTMLReportSingle } from "../hooks/HTMLReport";
 import { handleDownloadPDFReport } from "@/lib/PDFReport";
 import { ExecutionSummary } from "./ExecutionSummary";
+import { downloadRenderedHtml, downloadRenderedPdf } from "./ReportsHistoricTestCaseList";
 
 const TestReports = ({ reports, setLoading, progress, selectedTest, testData, stopped, setStopped }: any) => {
     const [expandedReports, setExpandedReports] = useState<Record<string, boolean>>({});
-    const { stopTest } = useTestExecution();    
+    const { stopTest } = useTestExecution();
     const stepMap: Record<string, { connectionId: string; steps: Record<number, any> }> = {};
+    const containerRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
 
     reports.forEach((report: any) => {
@@ -118,6 +120,22 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
         setStopped((prev: any) => ({ ...prev, [reportId]: true }));
     };
 
+    const buildReportFile = (reportId: string, test: any): any => {
+        const stepsObj = stepMap[reportId]?.steps || {};
+        const events = Object.keys(stepsObj)
+            .map((k) => Number(k))
+            .sort((a, b) => a - b)
+            .map((idx) => stepsObj[idx]);
+
+        return {
+            id: reportId,
+            reportName: test?.name || test?.testCaseName || "Test",
+            timestamp: new Date().toISOString(),
+            status: (events.at(-1)?.status || events.at(-1)?.finalStatus || "processing"),
+            events,
+        };
+    };
+
     console.log("steps report again", steps);
     const handleStopAllTests = () => {
         const newStopped: Record<string, boolean> = { ...stopped };
@@ -191,30 +209,45 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
                     const progressValue = progress.find((p: any) => p.testCaseId === reportId)?.percent || 0;
                     const isExpanded = expandedReports[reportId] ?? false;
                     const testSteps = steps.filter((s) => s?.reportId === reportId);
-                    
+
                     const latestStep = testSteps.at(-1);
                     const finalStatus = latestStep?.ev?.status || latestStep?.ev?.finalStatus || "processing";
                     const isFailed = finalStatus === "failed";
                     const dataSteps = test?.stepsData || test?.stepsIds;
                     const connectionId = stepMap[reportId]?.connectionId;
-                    
+
                     return (
                         <div key={reportId} id={reportId} className="p-1 flex flex-col gap-2">
                             <div className="flex justify-start gap-2 pr-1">
                                 {progressValue === 100 && (
-                                    <button
-                                        onClick={() =>
-                                            handleDownloadHTMLReportSingle(
-                                                reportId,
-                                                reports,
-                                                testData,
-                                                selectedTest
-                                            )
-                                        }
-                                        className="flex cursor-pointer items-center gap-2 text-xs border-primary/60 border-2 text-primary/60 font-semibold px-3 py-1 rounded hover:shadow-md"
-                                    >
-                                        <DownloadIcon size={16} /> HTML Report (Test)
-                                    </button>
+                                    <div className="flex gap-2 items-center">
+                                        <button
+                                            onClick={() => {
+                                                const file = buildReportFile(reportId, test);
+                                                const header = {
+                                                    name: test?.name || test?.testCaseName || reportId,
+                                                    createdBy: test?.createdBy || test?.testerName,
+                                                };
+                                                downloadRenderedHtml(reportId, file, containerRefs, header);
+                                            }}
+                                            className="flex cursor-pointer items-center gap-2 text-xs border-primary/60 border-2 text-primary/60 font-semibold px-3 py-1 rounded hover:shadow-md"
+                                        >
+                                            <DownloadIcon size={16} /> HTML Report (Test)
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                const file = buildReportFile(reportId, test);
+                                                const header = {
+                                                    name: test?.name || test?.testCaseName || reportId,
+                                                    createdBy: test?.createdBy || test?.testerName,
+                                                };
+                                                downloadRenderedPdf(reportId, file, containerRefs, header);
+                                            }}
+                                            className="flex cursor-pointer items-center gap-2 text-xs border-primary/60 border-2 text-primary/60 font-semibold px-3 py-1 rounded hover:shadow-md"
+                                        >
+                                            <DownloadIcon size={16} /> PDF Report (Test)
+                                        </button>
+                                    </div>
                                 )}
 
                                 {progressValue < 100 && !stopped[reportId] && (
@@ -294,7 +327,9 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
                             </Card>
 
                             {isExpanded && dataSteps && (
-                                <div className="p-1 max-h-[60vh] overflow-y-auto">
+                                <div className="p-1 max-h-[60vh] overflow-y-auto"
+                                    ref={(el) => { containerRefs.current[reportId] = el; }}
+                                >
                                     <ReportUI
                                         testcaseId={reportId}
                                         data={test}
