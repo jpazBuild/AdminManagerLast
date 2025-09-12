@@ -120,6 +120,8 @@ const SortableTestCaseItem: React.FC<Props> = ({
     const isOpen = useMemo(() => openItems.includes(test.id ?? ''), [openItems, test.id]);
     const testId = useMemo(() => test.id ?? '', [test.id]);
 
+    const [openDialogDelete, setOpenDialogDelete] = useState(true);
+    const [openDialogUpdate, setOpenDialogUpdate] = useState(true);
 
     const fetchTestData = useCallback(async (flatReusable: boolean) => {
         if (!testId) return;
@@ -208,6 +210,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
     }, [test]);
 
     const handleDelete = useCallback(async () => {
+        
         const apiUrl = (URL_API_ALB ?? '');
         console.log("responseTest?.id para deleteTest:", await test?.id);
         const id = await test?.id;
@@ -223,6 +226,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
             setDynamicValues(prev => prev.filter(val => val.id !== test.id));
             onRefreshAfterUpdateOrDelete();
         }
+        await setOpenDialogDelete(false);
     }, [test?.id, setTestCasesData, setDynamicValues, onRefreshAfterUpdateOrDelete]);
 
     const handleToggleSelect = useCallback(() => {
@@ -368,7 +372,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
             : "flex justify-between px-2 text-[11px] text-primary/80",
         scrollContainer: isDarkMode
             ? "flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 mt-4 p-2 bg-gray-800"
-            : "flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 mt-4 p-2",
+            : "flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 mt-4 p-2 overflow-x-hidden",
         stepsScrollContainer: isDarkMode
             ? "flex flex-col gap-4 max-h-[100vh] overflow-y-auto px-1 bg-gray-800"
             : "flex flex-col gap-4 max-h-[100vh] overflow-y-auto px-1 py-2",
@@ -389,11 +393,11 @@ const SortableTestCaseItem: React.FC<Props> = ({
     const getTagClasses = useCallback((opacity: string) => {
         if (isDarkMode) {
             return `text-xs text-white px-2 py-1 rounded-full ${opacity === '85' ? 'bg-slate-500' :
-                opacity === '65' ? 'bg-slate-500' :
+                opacity === '65' ? 'bg-primary/60' :
                     'bg-slate-600'
                 }`;
         } else {
-            return `text-xs bg-primary/${opacity} text-white px-2 py-1 rounded-full`;
+            return `text-xs bg-[#021d3d]/${opacity} text-white px-2 py-1 rounded-full`;
         }
     }, [isDarkMode]);
 
@@ -404,7 +408,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                 ? 'bg-slate-400 text-white border-b-4 border-slate-400'
                 : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
             }`
-            : `rounded-md flex gap-2 p-2 border cursor-pointer items-center bg-white shadow-md text-primary/70 ${isActive ? 'border-b-4 border-primary' : 'hover:bg-gray-50'
+            : `rounded-md flex gap-2 p-2 cursor-pointer bg-primary/5 items-center text-primary/70 ${isActive ? 'border-b-4 border-primary' : 'hover:bg-gray-50'
             }`;
     }, [viewMode, isDarkMode]);
 
@@ -441,6 +445,19 @@ const SortableTestCaseItem: React.FC<Props> = ({
         updatedBy,
     });
 
+    const transformedStepsToCopy = (stepsData: any[]) => {
+        return stepsData.map((step: any) => {
+            if (!step) return step;
+
+            const { stepsId, ...cleanStep } = step;
+
+            if (cleanStep?.stepsData && Array.isArray(cleanStep.stepsData)) {
+                return cleanStep.id;
+            }
+
+            return cleanStep;
+        });
+    }
     const buildUpdatePayload = useCallback(async (responseTest: any, updatedBy: string) => {
         const seenIds = new Set<string>();
 
@@ -459,18 +476,6 @@ const SortableTestCaseItem: React.FC<Props> = ({
         });
 
         console.log("updateTest []:", await transformedSteps);
-
-        // const uniqueSteps = await transformedSteps?.filter((step: any) => {
-        //     const stepId = typeof step === "string" ? step : step?.id;
-
-        //     if (!stepId) return true;
-
-        //     if (seenIds.has(stepId)) return false;
-        //     seenIds.add(stepId);
-        //     return true;
-        // });
-
-        // console.log("uniqueSteps para updateTest:", uniqueSteps);
 
         return {
             id: responseTest.id,
@@ -507,27 +512,35 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
             const res = await updateTest(await payload.id, await payload.stepsData, payload.updatedBy);
             toast.success("Test updated successfully");
+            await fetchTestData(flatReusableSteps);
         } catch (error: any) {
             toast.error("Failed to update test case", error);
         } finally {
             setIsLoadingUpdate(false);
         }
+        setOpenDialogUpdate(false);
     }, [buildUpdatePayload, responseTest]);
 
     const uniqueFields = useMemo(() => Array.from(new Set(testFields)), [testFields]);
 
 
+    console.log("Rendering SortableTestCaseItem for test:", test);
+    
+    const allStepsWithReusableIds = useMemo(() => {
+        if (!responseTest?.stepsData) return '';
+
+        const stepsTextArray = responseTest.stepsData.map((step: any) => {
+            
+        });
+
+        return stepsTextArray.join('\n');
+    }, [responseTest?.stepsData]);
+    
     return (
         <div className={styleClasses.mainContainer}>
-            <TestCaseActions
-                test={currentTestCase}
-                onDelete={handleDelete}
-                onUpdate={handleUpdateConfirm}
-                isLoadingUpdate={isLoadingUpdate}
-                isDarkMode={isDarkMode}
-            />
 
-            <AccordionItem value={(test.testCaseId || test.id) ?? ''} className="rounded-lg px-2 ">
+
+            <AccordionItem value={(test?.testCaseId || test?.id) ?? ''} className="rounded-lg px-2 ">
                 <div className={styleClasses.header}>
                     <Checkbox
                         id={(test.testCaseId || test.id) ?? ''}
@@ -584,27 +597,27 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
                             </div>
                             <div className="flex flex-wrap gap-1 mt-1 px-2">
-                                {test.tagNames && test.tagNames.length > 0 && (
+                                {test?.tagNames && test.tagNames.length > 0 && (
                                     (Array.isArray(test.tagNames) ? test.tagNames : [test.tagNames]).map((tag, idx) => (
                                         tag && (
-                                            <span key={idx} className={getTagClasses('85')}>
+                                            <span key={idx} className={`bg-primary/85 text-xs text-white px-2 py-1 rounded-full`}>
                                                 {tag.trim()}
                                             </span>
                                         )
                                     ))
                                 )}
-                                {test.groupName && (
-                                    <span className={getTagClasses('85')}>
-                                        {test.groupName}
+                                {test?.groupName && (
+                                    <span className={`bg-primary/70 text-xs text-white px-2 py-1 rounded-full`}>
+                                        {test?.groupName}
                                     </span>
                                 )}
-                                {test.moduleName && (
-                                    <span className={getTagClasses('65')}>
-                                        {test.moduleName}
+                                {test?.moduleName && (
+                                    <span className={`bg-primary/50 text-xs text-white px-2 py-1 rounded-full`}>
+                                        {test?.moduleName}
                                     </span>
                                 )}
-                                {test.subModuleName && (
-                                    <span className={getTagClasses('50')}>
+                                {test?.subModuleName && (
+                                    <span className={`bg-primary/30 text-xs text-white px-2 py-1 rounded-full`}>
                                         {test.subModuleName}
                                     </span>
                                 )}
@@ -613,8 +626,8 @@ const SortableTestCaseItem: React.FC<Props> = ({
                     </AccordionTrigger>
                 </div>
 
-                <AccordionContent className="w-full">
-                    <div className="flex gap-2 overflow-x-auto">
+                <AccordionContent className="w-full border-t mt-2 pt-2 border-primary/30">
+                    <div className="flex gap-2 mb-2">
                         {['data', 'steps', 'Historic reports', 'editLocation'].map(mode => (
                             <button
                                 key={mode}
@@ -624,7 +637,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                 {mode === 'editLocation' ? <Locate className="ml-1 h-6 w-6" /> :
                                     mode === 'data' ? <File className="ml-1" /> : mode === 'Historic reports' ? <FileChartColumn className="h-6 w-6" /> : <Eye className="ml-1" />}
                                 {mode === 'editLocation' ? 'Edit Location' :
-                                    mode === 'data' ? 'See Data' : mode === 'Historic reports' ? 'Historic reports' : 'See Steps'}
+                                    mode === 'data' ? 'Data' : mode === 'Historic reports' ? 'Historic reports' : 'Steps'}
                             </button>
                         ))}
                     </div>
@@ -689,7 +702,8 @@ const SortableTestCaseItem: React.FC<Props> = ({
                     )}
 
                     {viewMode === 'steps' && (
-                        <div
+                       <div className="flex flex-col">
+                                                <div
                             ref={scrollRef}
                             className={styleClasses.stepsScrollContainer}
                         >
@@ -724,13 +738,16 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                         )}
                                     </div>
 
-                                    <div className="rounded-md flex items-center gap-2 border-dashed border p-1">
-                                        <span>Copy All steps</span>
-                                        <CopyToClipboard
-                                            text={JSON.stringify(responseTest?.stepsData)}
-                                            isDarkMode={isDarkMode}
-                                        />
+                                    <div className="flex items-center gap-2">
+                                        <div className="rounded-md flex items-center gap-2 border-dashed border p-1">
+                                            <span>Copy All steps</span>
+                                            <CopyToClipboard
+                                                text={JSON.stringify(transformedStepsToCopy(responseTest?.stepsData || []), null, 2)}
+                                                isDarkMode={isDarkMode}
+                                            />
+                                        </div>
                                     </div>
+
                                 </div>
 
 
@@ -839,7 +856,17 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                 responseTest={responseTest}
                                 onSetResponseData={handleResponseCreateReusedStep}
                             />
+                           
                         </div>
+
+                         <TestCaseActions
+                                test={currentTestCase}
+                                onDelete={handleDelete}
+                                onUpdate={handleUpdateConfirm}
+                                isLoadingUpdate={isLoadingUpdate}
+                                isDarkMode={isDarkMode}
+                            />
+                       </div> 
                     )}
 
                     {viewMode === 'Historic reports' && test.id && (
@@ -864,6 +891,8 @@ const SortableTestCaseItem: React.FC<Props> = ({
                             />
                         </div>
                     )}
+
+                    
                 </AccordionContent>
             </AccordionItem>
         </div>

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Clock, Wand2, Layers, Edit, Save, ChevronLeft, StepBackIcon, ArrowLeft } from "lucide-react";
+import { Clock, Wand2, Layers, Edit, Save, ArrowLeft } from "lucide-react";
 import { FaXmark } from "react-icons/fa6";
 import { Check } from "lucide-react";
 import TextInputWithClearButton from "./InputClear";
@@ -11,9 +11,6 @@ import { toast } from "sonner";
 import InteractionItem from "./Interaction";
 import { URL_API_ALB } from "@/config";
 import { checkConnection } from "@/utils/DBBUtils";
-import { FaBackward } from "react-icons/fa";
-import { AiFillBackward } from "react-icons/ai";
-import { Arrow } from "@radix-ui/react-popover";
 
 interface StepActionsProps {
     index: number;
@@ -435,7 +432,6 @@ const StepActions: React.FC<StepActionsProps> = ({
                                         <InteractionItem
                                             data={{ id: `reusable-${selectedReusable.id}-step-${idx}`, ...step }}
                                             index={idx}
-                                            isEditing={isEditingReusable}
                                             {...(isEditingReusable && {
                                                 onDelete: (indexToDelete) => {
                                                     const newSteps = selectedReusableSteps

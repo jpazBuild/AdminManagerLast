@@ -11,6 +11,7 @@ import { TestCase } from "@/types/TestCase";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FakerInputWithAutocomplete } from "./FakerInput";
 import UnifiedInput from "./Unified";
+import ExpandToggle from "../dashboard/components/ExpandToggle";
 
 interface TestStep {
     action: string;
@@ -387,8 +388,8 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
             ? "w-full flex gap-3 items-center text-xs text-gray-400 mb-1"
             : "w-full flex gap-3 items-center text-xs text-muted-foreground mb-1",
         exportButton: isDarkMode
-            ? "self-end mt-2 cursor-pointer text-xs flex items-center gap-2 bg-gray-700 text-white border-gray-600 hover:bg-gray-600"
-            : "self-end mt-2 cursor-pointer text-xs flex items-center gap-2 bg-white text-primary/90 border-primary/80 hover:bg-primary/20",
+            ? "self-end cursor-pointer text-xs flex items-center gap-2 bg-gray-700 text-white border-gray-600 hover:bg-gray-600"
+            : "self-end cursor-pointer text-xs flex items-center gap-2 bg-white text-primary/90 border-primary/80 hover:bg-primary/20",
         label: isDarkMode
             ? "w-32 text-gray-300 font-medium"
             : "w-32 text-primary/80 font-medium",
@@ -493,9 +494,14 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
         }
     }, [allIds, selectedCases, toggleSelect]);
 
+    //calculate if all are expanded
+    const allExpanded = useMemo(() => {
+        if (allIds.length === 0) return false;
+        return openItems.length === allIds.length;
+    }, [allIds, openItems]);
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 mb-2">
             <div className="flex justify-center w-full">
                 <JSONDropzone
                     onJSONParsed={handleParsedJSON}
@@ -566,26 +572,14 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
             )}
             {allIds.length > 0 && (
                 <div className="flex justify-between items-center">
-                    <div className="flex justify-start gap-2 px-2">
+                    <div className="flex justify-between items-center gap-4">
                         {allIds.length > 1 && (
-                            <>
-                                <Button
-                                    onClick={handleExpandAll}
-                                    variant="outline"
-                                    size="sm"
-                                    className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-primary/90 hover:bg-primary/20"}
-                                >
-                                    Expand All
-                                </Button>
-                                <Button
-                                    onClick={handleCollapseAll}
-                                    variant="outline"
-                                    size="sm"
-                                    className={isDarkMode ? "bg-gray-700 text-white" : "bg-white text-primary/90 hover:bg-primary/20"}
-                                >
-                                    Collapse All
-                                </Button>
-                            </>
+                            <ExpandToggle
+                                isDarkMode={isDarkMode}
+                                allExpanded={allExpanded}
+                                onExpandAll={handleExpandAll}
+                                onCollapseAll={handleCollapseAll}
+                            />
                         )}
                     </div>
 
