@@ -64,7 +64,7 @@ export const DashboardHeader = ({
           <Image
             src={Logo}
             alt="Blossom Logo"
-            className="h-10 w-auto rounded-md p-2"
+            className="h-12 w-auto rounded-md p-2"
           />
 
           <div>

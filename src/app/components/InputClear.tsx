@@ -1,4 +1,4 @@
-import { Eye, EyeClosed, Search, SearchIcon } from "lucide-react";
+import { Eye, EyeClosed, SearchIcon } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { AiOutlineClose } from "react-icons/ai";
 
@@ -18,10 +18,11 @@ interface TextInputWithClearButtonProps {
   autoFocus?: boolean;
   readOnly?: boolean;
   required?: boolean;
-  inputMode?: "text" | "search" | "none"
+  inputMode?: "text" | "search" | "none" | "numeric" | "decimal" | "tel" | "url" | "email";
   isDarkMode?: boolean;
   defaultValue?: string;
   isSearch?: boolean;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
 }
 
 const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
@@ -29,6 +30,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
   id,
   value,
   onChangeHandler,
+  onBlur,
   placeholder,
   inputMode = "text",
   type = "text",
@@ -80,11 +82,11 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
   const isPassword = type === "password";
   const inputType = isPassword ? (showPassword ? "text" : "password") : type;
 
-  const baseSurface = isDarkMode ? "bg-primary/10" : "bg-primary/10";
-  const textColor = isDarkMode ? "text-white/90" : "text-primary/80";
-  const labelColor = isDarkMode ? "text-white/70" : "text-primary/70";
-  const labelColorFocused = isDarkMode ? "peer-focus:text-white/90" : "peer-focus:text-primary/90";
-  const ringFocus = isDarkMode ? "focus:ring-white/90" : "focus:ring-primary/90";
+  const baseSurface = isDarkMode ? "bg-[#033a5c]/10" : "bg-[#033a5c]/10";
+  const textColor = isDarkMode ? "text-white/90" : "text-[#033a5c]/80";
+  const labelColor = isDarkMode ? "text-white/70" : "text-[#033a5c]/70";
+  const labelColorFocused = isDarkMode ? "peer-focus:text-white/90" : "peer-focus:text-[#033a5c]/90";
+  const ringFocus = isDarkMode ? "focus:ring-white/90" : "focus:ring-[#033a5c]/90";
 
   return (
     <div className={`relative w-full text-[14px] ${baseSurface} rounded-lg`}>
@@ -100,6 +102,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
             className={`peer w-full ml-3 pr-10 pt-5 pb-2 rounded-md resize-none ${textColor} ${ringFocus} bg-transparent focus:outline-none ${className}`}
             defaultValue={defaultValue}
             readOnly={readOnly}
+            onBlur={onBlur}
             {...props}
           />
         ) : (
@@ -115,8 +118,8 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
             autoComplete="on"
             onChange={e => setLocalValue(e.target.value)}
             className={`peer w-full ml-3 pr-10 pt-5 pb-2 placeholder:text-[16px] rounded-md ${textColor} ${ringFocus} bg-transparent focus:outline-none ${className}`}
-            // defaultValue={defaultValue || ""}
             readOnly={readOnly}
+            onBlur={onBlur}
             {...props}
           />
 
@@ -132,7 +135,6 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
               pointer-events-none
               transition-all duration-150 ease-out 
               tracking-wide font-medium
-              /* Estados: enfocado o con contenido => pequeño y arriba */
               peer-focus:top-2 peer-focus:-translate-y-0 peer-focus:text-xs
               peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:-translate-y-0 peer-[:not(:placeholder-shown)]:text-xs
             `}

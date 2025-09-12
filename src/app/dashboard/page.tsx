@@ -74,7 +74,8 @@ const DashboardPage = () => {
         stopTest,
         stopped,
         setLoading,
-        setStopped
+        setStopped,
+        runSingleTest
     } = useTestExecution();
 
     const handleDarkModeChange = (isDark: boolean) => {
@@ -331,7 +332,7 @@ const DashboardPage = () => {
         } finally {
             setIsLoadingSearch(false);
         }
-    }, [selectedGroup, selectedTag, selectedModule, selectedSubmodule, selectedCreatedBy, searchTestCaseName,searchTestCaseId, getSelectedGroupId, getSelectedModuleId, getSelectedSubmoduleId]);
+    }, [selectedGroup, selectedTag, selectedModule, selectedSubmodule, selectedCreatedBy, searchTestCaseName, searchTestCaseId, getSelectedGroupId, getSelectedModuleId, getSelectedSubmoduleId]);
 
 
     const toggleSelect = useCallback((testCaseId: string) => {
@@ -411,8 +412,17 @@ const DashboardPage = () => {
         [users]
     );
 
-    console.log("groups in test cases ", groups);
-    
+    // debajo de tus otros useCallback:
+    const handlePlaySingle = useCallback((test: any) => {
+        // Opcional: si tu testData tiene forma { data: { [testId]: {...} } }
+        const perTestData = testData?.data?.[test.id] ?? undefined;
+
+        // Activa el panel de reportes si aún no está visible
+        setExecuteRun(true);
+
+        // Lanza el single sin limpiar nada
+        runSingleTest(test, perTestData, isHeadless);
+    }, [runSingleTest, testData, isHeadless]);
 
     return (
         <DashboardHeader onDarkModeChange={handleDarkModeChange}>
@@ -541,53 +551,6 @@ const DashboardPage = () => {
                                 </button>
                             )}
                         </div>
-
-                        {/* <div className="flex items-center gap-2 w-full flex-wrap">
-                            {selectedGroup && (
-                                <div className="bg-primary/85 shadow-md text-white/90 px-2 py-1 rounded-full text-sm flex items-center gap-2">
-                                    <span>{selectedGroup}</span>
-                                    <button
-                                        onClick={() => setSelectedGroup("")}
-                                        className="cursor-pointer text-white/90 hover:text-white"
-                                    >
-                                        <FaXmark />
-                                    </button>
-                                </div>
-                            )}
-                            {selectedTag && (
-                                <div className="bg-primary/65 shadow-md text-white px-2 py-1 rounded-full text-sm flex items-center gap-1">
-                                    <span>{selectedTag}</span>
-                                    <button
-                                        onClick={() => setSelectedTag("")}
-                                        className="cursor-pointer text-white/90 hover:text-white"
-                                    >
-                                        <FaXmark />
-                                    </button>
-                                </div>
-                            )}
-                            {selectedModule && (
-                                <div className="bg-primary/50 shadow-md text-white px-2 py-1 rounded-full text-sm flex items-center gap-1">
-                                    <span>{selectedModule}</span>
-                                    <button
-                                        onClick={() => setSelectedModule("")}
-                                        className="cursor-pointer text-white/90 hover:text-white"
-                                    >
-                                        <FaXmark />
-                                    </button>
-                                </div>
-                            )}
-                            {selectedSubmodule && (
-                                <div className="bg-primary/30 shadow-md text-white px-2 py-1 rounded-full text-sm flex items-center gap-1">
-                                    <span>{selectedSubmodule}</span>
-                                    <button
-                                        onClick={() => setSelectedSubmodule("")}
-                                        className="cursor-pointer text-white/90 hover:text-white"
-                                    >
-                                        <FaXmark />
-                                    </button>
-                                </div>
-                            )}
-                        </div> */}
                     </div>
                 </div>
 
@@ -629,11 +592,12 @@ const DashboardPage = () => {
                                 </button>
                             </div>
 
-                            {executeRun && (
+                            {(executeRun || anyLoading || reports.length > 0) && (
                                 <TestReports
                                     stopped={stopped}
                                     setStopped={setStopped}
                                     setLoading={setLoading}
+                                    loading={loading}
                                     testData={testData}
                                     reports={reports}
                                     idReports={idReports}
@@ -641,6 +605,7 @@ const DashboardPage = () => {
                                     selectedCases={selectedCases}
                                     selectedTest={selectedTests}
                                     darkMode={isDarkMode}
+                                    onPlayTest={handlePlaySingle} 
                                 />
                             )}
                         </div>

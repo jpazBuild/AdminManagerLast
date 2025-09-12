@@ -356,7 +356,7 @@ const UnifiedInput: React.FC<UnifiedInputProps> = ({
                         className={`z-50 absolute ${isDarkMode
                                 ? "bg-primary/90 border-primary/80"
                                 : "bg-white border border-gray-300"
-                            } rounded-md shadow-lg max-h-60 overflow-auto text-sm w-[300px]`}
+                            } rounded-md shadow-lg max-h-60 text-sm w-[300px]`}
                         style={{
                             position: "absolute",
                             top: inputRef.current.getBoundingClientRect().bottom + window.scrollY,

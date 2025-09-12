@@ -5,14 +5,14 @@ import { Progress } from "@/components/ui/progress";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 import ReportUI from "./Report";
 import { useTestExecution } from "../hooks/useTestExecution";
-import { StopCircle, Download as DownloadIcon } from "lucide-react";
+import { StopCircle, Download as DownloadIcon, Play } from "lucide-react";
 import { handleDownloadHTMLReport, handleDownloadHTMLReportSingle } from "../hooks/HTMLReport";
 import { handleDownloadPDFReport } from "@/lib/PDFReport";
 import { ExecutionSummary } from "./ExecutionSummary";
 import { downloadRenderedHtml, downloadRenderedPdf } from "./ReportsHistoricTestCaseList";
 import { flushSync } from "react-dom";
 
-const TestReports = ({ reports, setLoading, progress, selectedTest, testData, stopped, setStopped }: any) => {
+const TestReports = ({ reports, setLoading, progress, selectedTest, testData, stopped, setStopped, onPlayTest,loading }: any) => {
     const [expandedReports, setExpandedReports] = useState<Record<string, boolean>>({});
     const { stopTest } = useTestExecution();
     const stepMap: Record<string, { connectionId: string; steps: Record<number, any> }> = {};
@@ -189,7 +189,7 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
                         successRate={successRate}
                     />
                     <div className="flex place-self-end justify-between items-center px-2">
-                        {totalPending > 0 && (
+                        {totalPending > 1 && (
                             <button
                                 onClick={handleStopAllTests}
                                 className="flex cursor-pointer items-center gap-2 text-xs border-red-500 border-2 text-red-500 font-semibold px-4 py-2 rounded hover:bg-red-50 hover:shadow-md"
@@ -233,50 +233,20 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
 
                     return (
                         <div key={reportId} id={reportId} className="p-1 flex flex-col gap-2">
-                            <div className="flex justify-start gap-2 pr-1">
-                                {/* {progressValue === 100 && ( */}
+                            <div className="flex justify-between items-center">
+                              
+
                                 <div className="flex gap-2 items-center">
+                                     {(progressValue === 0 || progressValue === 100 || !!stopped[reportId]) && (
                                     <button
-                                        onClick={async () => {
-                                            const { wasExpanded } = await ensureContainer(reportId);
-
-                                            const file = buildReportFile(reportId, test);
-                                            const header = {
-                                                name: test?.name || test?.testCaseName || reportId,
-                                                createdBy: test?.createdBy || test?.testerName,
-                                            };
-
-                                            await downloadRenderedHtml(reportId, file, containerRefs, header);
-
-                                            // if (!wasExpanded) setExpandedReports(prev => ({ ...prev, [reportId]: false }));
-                                        }}
-                                        className="flex cursor-pointer items-center gap-2 text-xs border-primary/60 border-2 text-primary/60 font-semibold px-3 py-1 rounded hover:shadow-md"
+                                        disabled={!!loading[reportId]}
+                                        onClick={(e) => { e.stopPropagation(); onPlayTest?.(test); }}
+                                        className={`flex items-center gap-1 rounded-md bg-primary/80 text-white px-3 py-2 cursor-pointer ${loading[reportId] ? "opacity-50 cursor-not-allowed" : ""}`}
                                     >
-                                        <DownloadIcon size={16} /> HTML Report (Test)
+                                       <Play className="w-4 h-4"/> Play
                                     </button>
-
-                                    <button
-                                        onClick={async () => {
-                                            const { wasExpanded } = await ensureContainer(reportId);
-
-                                            const file = buildReportFile(reportId, test);
-                                            const header = {
-                                                name: test?.name || test?.testCaseName || reportId,
-                                                createdBy: test?.createdBy || test?.testerName,
-                                            };
-
-                                            await downloadRenderedPdf(reportId, file, containerRefs, header);
-
-                                            // if (!wasExpanded) setExpandedReports(prev => ({ ...prev, [reportId]: false }));
-                                        }}
-                                        className="flex cursor-pointer items-center gap-2 text-xs border-primary/60 border-2 text-primary/60 font-semibold px-3 py-1 rounded hover:shadow-md"
-                                    >
-                                        <DownloadIcon size={16} /> PDF Report (Test)
-                                    </button>
-                                </div>
-                                {/* )} */}
-
-                                {progressValue < 100 && !stopped[reportId] && (
+                                )}
+                                {progressValue < 100 && progressValue > 0 && !stopped[reportId] && (
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -289,6 +259,47 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
                                         <StopCircle className="w-5 h-5 animate-pulse" />
                                         <span className="text-sm font-medium">Stop</span>
                                     </button>
+                                )}
+                                </div>
+
+                                  {progressValue === 100 && (
+                                    <div className="flex gap-2 items-center">
+                                        <button
+                                            onClick={async () => {
+                                                const { wasExpanded } = await ensureContainer(reportId);
+
+                                                const file = buildReportFile(reportId, test);
+                                                const header = {
+                                                    name: test?.name || test?.testCaseName || reportId,
+                                                    createdBy: test?.createdBy || test?.testerName,
+                                                };
+
+                                                await downloadRenderedHtml(reportId, file, containerRefs, header);
+
+                                            }}
+                                            className="flex cursor-pointer items-center gap-2 text-xs border-primary/60 border-2 text-primary/60 font-semibold px-3 py-1 rounded hover:shadow-md"
+                                        >
+                                            <DownloadIcon size={16} /> HTML Report (Test)
+                                        </button>
+
+                                        <button
+                                            onClick={async () => {
+                                                const { wasExpanded } = await ensureContainer(reportId);
+
+                                                const file = buildReportFile(reportId, test);
+                                                const header = {
+                                                    name: test?.name || test?.testCaseName || reportId,
+                                                    createdBy: test?.createdBy || test?.testerName,
+                                                };
+
+                                                await downloadRenderedPdf(reportId, file, containerRefs, header);
+
+                                            }}
+                                            className="flex cursor-pointer items-center gap-2 text-xs border-primary/60 border-2 text-primary/60 font-semibold px-3 py-1 rounded hover:shadow-md"
+                                        >
+                                            <DownloadIcon size={16} /> PDF Report (Test)
+                                        </button>
+                                    </div>
                                 )}
                             </div>
 

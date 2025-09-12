@@ -880,7 +880,7 @@ const Reusables = () => {
                                                     return { ...p, stepsData: reindexSteps(next) };
                                                 });
                                             }}
-                                            showDelete
+                                            showDelete={true}
                                         />
                                         <StepActions
                                             index={idx}
