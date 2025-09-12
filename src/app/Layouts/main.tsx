@@ -93,7 +93,7 @@ export const DashboardHeader = ({
 
           <h1
             className={`text-xl font-bold transition-colors duration-300 ${
-              darkMode ? "text-gray-100" : "text-gray-900"
+              darkMode ? "text-gray-100" : "text-primary/70"
             }`}
           >
             Admin Manager
