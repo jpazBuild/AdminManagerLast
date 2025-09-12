@@ -541,16 +541,16 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
                         {openPanels.jsonPreview && (
                             <div className="pt-2">
                                 {!editingJson ? (
-                                    <>
+                                    <div key={jsonValue.indexOf("editing")}>
                                         <pre className={getJSONPreviewClasses()}>
                                             <code>{jsonValue}</code>
                                         </pre>
                                         <button className={getEditButtonClasses()} onClick={() => setEditingJson(true)}>
                                             <FaEdit className="w-4 h-4" /> Edit JSON
                                         </button>
-                                    </>
+                                    </div>
                                 ) : (
-                                    <>
+                                    <div key={jsonValue.indexOf("editing")}>
                                         <textarea className={getTextareaClasses()} value={jsonValue} onChange={(e) => setJsonValue(e.target.value)} autoFocus spellCheck={false} />
                                         {jsonError && <div className={getErrorTextClasses()}>{jsonError}</div>}
                                         <div className="flex gap-2 mt-2">
@@ -568,7 +568,7 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
                                                 <FaXmark className="w-4 h-4" /> Cancel
                                             </button>
                                         </div>
-                                    </>
+                                    </div>
                                 )}
                             </div>
                         )}
@@ -644,6 +644,7 @@ const ReusableStepsBlock = ({
                         return (
                             // <div key={stableKeyRef} className={getReusableStepClasses()}>
                                 <InteractionItem
+                                    key={stableKeyRef}
                                     data={step}
                                     index={idx}
                                     isDarkMode={isDarkMode}
