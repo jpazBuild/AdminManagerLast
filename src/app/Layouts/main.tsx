@@ -1,8 +1,125 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Logo from "../../../public/New_logo.svg";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { TbAutomation, TbReportSearch } from "react-icons/tb";
+import { ChevronRight, Locate } from "lucide-react";
+import { RiFunctionLine } from "react-icons/ri";
+
+export const DashboardSidebar = ({
+  darkMode,
+  isCollapsed,
+  onToggleCollapse,
+}: {
+  darkMode: boolean;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
+}) => {
+  const pathname = usePathname();
+
+  const getSidebarLinkClasses = (path: string) => {
+    const isActive = pathname === path || pathname.endsWith(path);
+
+    if (isActive) {
+      return `flex items-center ${isCollapsed ? "p-2 justify-center text-center":"px-4 py-3"}  text-sm font-medium rounded-xl transition-all duration-300 ${
+        darkMode
+          ? "bg-slate-500 text-white shadow-lg"
+          : "bg-primary/10 text-primary/90 border-r-2 border-primary/90 shadow-md"
+      }`;
+    }
+
+    return `flex items-center ${isCollapsed ? "p-2 justify-center text-center":"px-4 py-3"}  text-sm font-medium rounded-xl transition-all duration-300 ${
+      darkMode
+        ? "text-gray-300 hover:bg-gray-700 hover:text-white"
+        : "text-primary/70 hover:bg-primary/5"
+    }`;
+  };
+
+  const menuItems = [
+    {
+      name: "Runner",
+      path: "/dashboard",
+      icon: (
+       <TbAutomation className="w-5 h-5" />
+      ),
+    },
+    {
+      name: "Reports",
+      path: "/reports",
+      icon: (
+       <TbReportSearch className="w-5 h-5" />
+      ),
+    },
+    {
+      name: "Reusables",
+      path: "/dashboard/reusables",
+      icon:(<RiFunctionLine className="w-5 h-5" />)
+    },
+    {
+      name: "Location Information",
+      path:"/create",
+      icon:(<Locate className="w-5 h-5" />)
+    }
+  ];
+
+  return (
+    <aside
+      className={`fixed left-1 top-20 bottom-4 rounded-2xl shadow-xl transform transition-all duration-500 ease-in-out z-40 ${
+        isCollapsed ? "w-16" : "w-64"
+      } ${
+        darkMode
+          ? "bg-gray-800/90 backdrop-blur-md border border-gray-600/30"
+          : "bg-white/90 backdrop-blur-md border border-gray-200/30"
+      }`}
+      style={{
+        height: 'calc(100vh - 6rem)',
+        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.1) inset'
+      }}
+    >
+      <button
+        onClick={onToggleCollapse}
+        className={`absolute -right-3 top-1/2 z-50 p-2 rounded-full transition-all duration-300 ${
+          darkMode 
+            ? "bg-gray-700 text-white hover:bg-gray-600 shadow-lg" 
+            : "bg-white text-gray-700 hover:bg-gray-100 shadow-lg border border-gray-200"
+        }`}
+        style={{
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+        }}
+      >
+        {isCollapsed ? (
+          <ChevronRight className="w-4 h-4" />
+        ) : (
+          <ChevronRight className="w-4 h-4 rotate-180" /> 
+        )}
+      </button>
+
+      <nav className="h-full px-3 py-6 overflow-y-auto">
+        <ul className="space-y-3">
+          {menuItems.map((item) => (
+            <li key={item.path}>
+              <Link
+                href={item.path}
+                className={getSidebarLinkClasses(item.path)}
+                title={isCollapsed ? item.name : undefined}
+              >
+                <span className={`transition-all duration-300 ${isCollapsed ? 'mx-auto' : ''}`}>
+                  {item.icon}
+                </span>
+                {!isCollapsed && <span className="ml-1 transition-opacity duration-300">{item.name}</span>}
+              </Link>
+            </li>
+          ))}
+        </ul>
+        
+        <div className={`my-6 mx-2 rounded-full h-0.5 ${
+          darkMode ? 'bg-gray-700/50' : 'bg-gray-200/50'
+        }`}></div>
+      </nav>
+    </aside>
+  );
+};
 
 export const DashboardHeader = ({
   children,
@@ -14,6 +131,8 @@ export const DashboardHeader = ({
   onDarkModeChange?: (isDark: boolean) => void;
 }) => {
   const [darkMode, setDarkMode] = useState<boolean>(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
   const pathname = usePathname();
 
   const applyDarkModeClass = (enabled: boolean) => {
@@ -32,11 +151,21 @@ export const DashboardHeader = ({
     onDarkModeChange?.(newMode);
   };
 
-  const getLinkClasses = (path: string) => {
-    const isActive =
-      (path === "/dashboard" && pathname === "/dashboard") ||
-      (path.startsWith("/dashboard/reusables") &&
-        pathname.startsWith("/dashboard/reusables")) || path === pathname;
+  const handleToggleSidebarCollapse = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+    localStorage.setItem("sidebarCollapsed", String(!sidebarCollapsed));
+  };
+
+const getLinkClasses = (path: string) => {
+  const isActive = 
+    path === "/dashboard" && (
+      pathname === "/dashboard" || 
+      pathname.startsWith("/dashboard/") || 
+      pathname === "/create" || 
+      pathname === "/reports"
+    ) || 
+    pathname === path || 
+    pathname.startsWith(path + "/");
 
     if (isActive) {
       return `lg:inline-block text-md font-medium px-4 py-2 rounded-lg transition-colors duration-300 ${
@@ -53,61 +182,156 @@ export const DashboardHeader = ({
     }`;
   };
 
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem("darkMode") === "true";
+    const savedSidebarCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
+    
+    setDarkMode(savedDarkMode);
+    applyDarkModeClass(savedDarkMode);
+    
+    setSidebarCollapsed(savedSidebarCollapsed);
+  }, []);
+
   return (
     <div className={`min-h-screen flex flex-col top-0 w-full ${overflow}`}>
       <header
-        className={`fixed top-0 left-0 w-full shadow-md p-4 z-20 transition-colors duration-300 ${
+        className={`fixed top-0 left-0 w-full shadow-md px-4 py-2 z-30 transition-colors duration-300 ${
           darkMode ? "bg-[#101827] text-gray-100" : "bg-gray-50 text-gray-900"
         }`}
       >
         <div className="flex items-center justify-between">
-          <Image
-            src={Logo}
-            alt="Blossom Logo"
-            className="h-12 w-auto rounded-md p-2"
-          />
+          <div className="flex items-center">
+            <button
+              onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+              className={`lg:hidden mr-3 p-2 rounded-lg transition-colors duration-200 ${
+                darkMode
+                  ? "text-gray-300 hover:bg-gray-700"
+                  : "text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d={mobileSidebarOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
+                />
+              </svg>
+            </button>
+            
+            <Image
+              src={Logo}
+              alt="Blossom Logo"
+              className="h-12 w-auto rounded-md p-2"
+            />
+          </div>
 
-          <div>
+          <div className="hidden lg:block">
             <Link href="/dashboard" className={getLinkClasses("/dashboard")}>
               Dashboard
             </Link>
-            <Link
-              href="/dashboard/reusables"
-              className={getLinkClasses("/dashboard/reusables")}
-            >
-              Reusables
-            </Link>
-            <Link
-              href="/reports"
-              className={getLinkClasses("/reports")}
-            >
-              Reports
-            </Link>
-            <Link
-              href="/create"
-              className={getLinkClasses("/create")}
-            >
-              Location Information
-            </Link>
           </div>
 
-          <h1
-            className={`text-xl font-bold transition-colors duration-300 ${
-              darkMode ? "text-gray-100" : "text-gray-900"
-            }`}
-          >
-            Admin Manager
-          </h1>
+          <div className="flex items-center space-x-4">
+            {/* <button
+              onClick={handleToggleDarkMode}
+              className={`p-2 rounded-lg transition-colors duration-200 ${
+                darkMode
+                  ? "text-yellow-400 hover:bg-gray-700"
+                  : "text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {darkMode ? (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                </svg>
+              )}
+            </button> */}
+
+            <h1
+              className={`text-xl font-bold transition-colors duration-300 ${
+                darkMode ? "text-gray-100" : "text-primary/70"
+              }`}
+            >
+              Admin Manager
+            </h1>
+          </div>
         </div>
       </header>
 
-      <main
-        className={`flex justify-center mt-14 top-0 ${overflow} transition-colors duration-300 ${
-          darkMode ? "bg-gray-900" : ""
-        }`}
-      >
-        {children}
-      </main>
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
+      <div className="flex pt-16">
+        <div className="hidden lg:block">
+          <DashboardSidebar
+            darkMode={darkMode}
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={handleToggleSidebarCollapse}
+          />
+        </div>
+
+        <div
+          className={`fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 transform transition-transform duration-200 ease-in-out z-40 lg:hidden ${
+            mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          } ${
+            darkMode
+              ? "bg-gray-800 border-r border-gray-700"
+              : "bg-white border-r border-gray-200"
+          }`}
+        >
+          <nav className="h-full px-3 py-4 overflow-y-auto">
+            <ul className="space-y-2">
+              {[
+                { name: "Dashboard", path: "/dashboard" },
+                { name: "Reusables", path: "/dashboard/reusables" },
+                { name: "Reports", path: "/reports" },
+                { name: "Location Information", path: "/create" },
+              ].map((item) => {
+                const isActive = pathname === item.path || pathname.startsWith(item.path);
+                
+                return (
+                  <li key={item.path}>
+                    <Link
+                      href={item.path}
+                      className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${
+                        isActive
+                          ? darkMode
+                            ? "bg-blue-600 text-white"
+                            : "bg-blue-50 text-blue-700 border-r-2 border-blue-600"
+                          : darkMode
+                          ? "text-gray-300 hover:bg-gray-700 hover:text-white"
+                          : "text-gray-700 hover:bg-gray-100"
+                      }`}
+                      onClick={() => setMobileSidebarOpen(false)}
+                    >
+                      <span className="ml-3">{item.name}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+        </div>
+
+        <main
+          className={`flex-1 transition-all duration-500 ${
+            sidebarCollapsed ? "lg:ml-20" : "lg:ml-72"
+          } ${darkMode ? "bg-gray-900" : ""} ${overflow}`}
+        >
+          <div className="p-6">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 };

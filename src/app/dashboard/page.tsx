@@ -19,6 +19,7 @@ import { checkConnection } from "@/utils/DBBUtils";
 import { SearchCombobox } from "../components/SearchCombobox";
 import TextInputWithClearButton from "../components/InputClear";
 import { User } from "@/types/types";
+import { DashboardSidebar } from "./components/DashboardSidebar";
 
 interface TestCase {
     id: string;

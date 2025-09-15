@@ -540,7 +540,7 @@ const CreateForm = () => {
 
     return (
         <DashboardHeader>
-            <div className="lg:w-2/3 w-full  flex flex-col items-center justify-start h-full gap-6 px-4 py-8">
+            <div className="w-full lg:w-2/3 mx-auto">
                 <h2 className=" text-2xl font-bold mb-2 text-primary/80 text-center">
                     Location Information
                 </h2>

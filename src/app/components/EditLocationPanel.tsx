@@ -693,14 +693,14 @@ const EditLocationPanel: React.FC<Props> = ({
       toast.error("No test ID available");
       return;
     }
-    const payload = buildLocationUpdatePayload();
+    const payload = await buildLocationUpdatePayload();
     if (!payload.groupId || !payload.moduleId || !payload.subModuleId) {
       toast.error("Please select group, module and submodule");
       return;
     }
     try {
       setIsLoadingUpdate(true);
-      const res = await axios.post(`${URL_API_ALB}tests`, payload);
+      const res = await axios.patch(`${URL_API_ALB}tests`, payload);
       if (res.data?.error) throw new Error(res.data.error);
       const group = groups.find(g => g.id === payload.groupId);
       const module = modules.find(m => m.id === payload.moduleId);
