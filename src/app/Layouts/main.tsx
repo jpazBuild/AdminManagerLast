@@ -4,8 +4,9 @@ import Logo from "../../../public/New_logo.svg";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { TbAutomation, TbReportSearch } from "react-icons/tb";
-import { ChevronRight, Locate } from "lucide-react";
+import { ChevronRight, Locate, User } from "lucide-react";
 import { RiFunctionLine } from "react-icons/ri";
+import path from "path";
 
 export const DashboardSidebar = ({
   darkMode,
@@ -60,6 +61,11 @@ export const DashboardSidebar = ({
       name: "Location Information",
       path:"/create",
       icon:(<Locate className="w-5 h-5" />)
+    },
+    {
+      name: "Users",
+      path:"/users",
+      icon:(<User className="w-5 h-5" />)
     }
   ];
 
@@ -162,7 +168,9 @@ const getLinkClasses = (path: string) => {
       pathname === "/dashboard" || 
       pathname.startsWith("/dashboard/") || 
       pathname === "/create" || 
-      pathname === "/reports"
+      pathname === "/reports" ||
+      pathname === "/users"
+
     ) || 
     pathname === path || 
     pathname.startsWith(path + "/");
