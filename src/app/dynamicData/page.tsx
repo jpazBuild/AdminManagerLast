@@ -412,22 +412,9 @@ const DynamicDataCrudPage = () => {
             <div className="md:col-span-2 flex flex-col">
 
               <div className="mt-2 self-center">
-                {/* <JSONDropzone
-                  onJSONParsed={(json) => {
-                    if (!Array.isArray(json)) return toast.error("JSON should be an array.");
-                    setCreateForm((f) => ({ ...f, dynamicData: json }));
-                    toast.success(`Loaded ${json.length} ítems.`);
-                  }}
-                  onClear={() => {
-                    setCreateForm((f) => ({ ...f, dynamicData: [] }));
-                    toast.info("Cleared dynamicData.");
-                  }}
-                  onFileInfoChange={() => { }}
-                  isDarkMode={darkMode}
-                /> */}
 
                 <JSONDropzone
-                  inputId="jsondz-create"          // id único
+                  inputId="jsondz-create"
                   onJSONParsed={(json) => setCreateForm(f => ({ ...f, dynamicData: Array.isArray(json) ? json : [] }))}
                   onClear={() => setCreateForm(f => ({ ...f, dynamicData: [] }))}
                   isDarkMode={darkMode}
@@ -465,7 +452,7 @@ const DynamicDataCrudPage = () => {
             {loadingHeaders ? "Loading..." : "Refresh List"}
           </Button>
           <span className="text-sm text-gray-500">
-            {loadingHeaders ? "Consultando encabezados…" : `${dynamicDataHeaders.length} ítem(s)`}
+            {loadingHeaders ? "Loading ..." : `${dynamicDataHeaders.length} ítem(s)`}
           </span>
         </div>
 
@@ -666,27 +653,10 @@ const DynamicDataCrudPage = () => {
 
                             <div>
                               <div className="flex items-center justify-between">
-                                <Label>dynamicData</Label>
+                                <Label className="text-primary/70">dynamicData</Label>
                                 <span className="text-xs text-gray-500">
                                   Should be an array of objects
                                 </span>
-                              </div>
-
-                              <div className="mt-2">
-                                <JSONDropzone
-                                  inputId={`jsondz-edit-${key}`}
-                                  onJSONParsed={(json) => {
-                                    if (!Array.isArray(json)) return toast.error("El JSON debe ser un arreglo.");
-                                    setEditForm(f => (f ? { ...f, dynamicData: json } : f));
-                                    setEditJsonTextMap(m => ({ ...m, [key]: JSON.stringify(json, null, 2) }));
-                                    setEditJsonErrorMap(m => ({ ...m, [key]: null }));
-                                  }}
-                                  onClear={() => {
-                                    setEditForm(f => (f ? { ...f, dynamicData: [] } : f));
-                                    setEditJsonTextMap(m => ({ ...m, [key]: "[]" }));
-                                  }}
-                                  isDarkMode={darkMode}
-                                />
                               </div>
 
                               <div className="max-h-[700px] flex overflow-y-auto">
