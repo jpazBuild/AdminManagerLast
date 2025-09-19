@@ -357,7 +357,7 @@ const DynamicDataCrudPage = () => {
         <h1 className="text-2xl font-semibold text-primary/80">Dynamic Data</h1>
 
         <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <h2 className="text-lg font-medium mb-3">Create Dynamic Data</h2>
+          <h2 className="text-lg font-medium mb-3 text-primary/70">Create Dynamic Data</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <SearchField
