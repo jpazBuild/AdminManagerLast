@@ -13,10 +13,8 @@ import TestSettings from "../components/TestSettings";
 import TestReports from "../components/TestReports";
 import NoData from "../components/NoData";
 import { useTestExecution } from "../hooks/useTestExecution";
-import { FaXmark } from "react-icons/fa6";
 import { URL_API_ALB } from "@/config";
 import { checkConnection } from "@/utils/DBBUtils";
-import { SearchCombobox } from "../components/SearchCombobox";
 import TextInputWithClearButton from "../components/InputClear";
 import { User } from "@/types/types";
 
@@ -412,15 +410,11 @@ const DashboardPage = () => {
         [users]
     );
 
-    // debajo de tus otros useCallback:
     const handlePlaySingle = useCallback((test: any) => {
-        // Opcional: si tu testData tiene forma { data: { [testId]: {...} } }
         const perTestData = testData?.data?.[test.id] ?? undefined;
 
-        // Activa el panel de reportes si aún no está visible
         setExecuteRun(true);
 
-        // Lanza el single sin limpiar nada
         runSingleTest(test, perTestData, isHeadless);
     }, [runSingleTest, testData, isHeadless]);
 

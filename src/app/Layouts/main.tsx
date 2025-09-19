@@ -174,7 +174,8 @@ const getLinkClasses = (path: string) => {
       pathname.startsWith("/dashboard/") || 
       pathname === "/create" || 
       pathname === "/reports" ||
-      pathname === "/users"
+      pathname === "/users" ||
+      pathname === "/dynamicData"
 
     ) || 
     pathname === path || 
