@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import TextInputWithClearButton from "./InputClear";
 import JSONDropzone from "./JSONDropzone";
 import SortableTestCasesAccordion from "./SortableItem";
 import SortableTestCaseItem from "./SortableTestCaseItem";
@@ -9,9 +8,12 @@ import { Download } from "lucide-react";
 import { toast } from "sonner";
 import { TestCase } from "@/types/TestCase";
 import { Checkbox } from "@/components/ui/checkbox";
-import { FakerInputWithAutocomplete } from "./FakerInput";
 import UnifiedInput from "./Unified";
 import ExpandToggle from "../dashboard/components/ExpandToggle";
+import axios from "axios";
+import { URL_API_ALB } from "@/config";
+import TextInputWithClearButton from "./InputClear";
+import { AiOutlineClose } from "react-icons/ai";
 
 interface TestStep {
     action: string;
@@ -50,11 +52,20 @@ interface DynamicValues {
 interface DynamicValueEntry {
     id: string;
     input: Record<string, string>;
-    originalExpressions?: Record<string, string>; // New field to store faker expressions
+    originalExpressions?: Record<string, string>;
     order?: number;
     testCaseName?: string;
     createdByName?: string;
 }
+
+
+type DynamicHeaderMini = {
+    id: string | number;
+    name?: string;
+    groupName?: string;
+    tagNames?: string[];
+    description?: string;
+};
 
 const TestCaseList: React.FC<TestCaseListProps> = ({
     testCases = [],
@@ -74,6 +85,16 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
     const [testCasesData, setTestCasesData] = useState<TestCase[]>([]);
     const [openDialog, setOpenDialog] = useState(false);
     const [openItems, setOpenItems] = useState<string[]>([]);
+
+    const [ddModalOpen, setDdModalOpen] = useState(false);
+    const [ddHeaders, setDdHeaders] = useState<DynamicHeaderMini[]>([]);
+    const [ddLoading, setDdLoading] = useState(false);
+    const [ddError, setDdError] = useState<string | null>(null);
+    const [ddPickLoading, setDdPickLoading] = useState<string | number | null>(null);
+    const [ddQuery, setDdQuery] = useState("");
+
+    const [selectedDD, setSelectedDD] = useState<DynamicHeaderMini | null>(null);
+    const [lastImportedData, setLastImportedData] = useState<any[] | null>(null);
 
     useEffect(() => {
         if (typeof onTestCasesDataChange === "function") {
@@ -494,15 +515,78 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
         }
     }, [allIds, selectedCases, toggleSelect]);
 
-    //calculate if all are expanded
     const allExpanded = useMemo(() => {
         if (allIds.length === 0) return false;
         return openItems.length === allIds.length;
     }, [allIds, openItems]);
 
+
+
+    const openDynamicDataModal = useCallback(async () => {
+        setDdModalOpen(true);
+        if (ddHeaders.length > 0) return;
+        try {
+            setDdLoading(true);
+            setDdError(null);
+            const res = await axios.post(`${URL_API_ALB}getDynamicDataHeaders`, {});
+            const arr = Array.isArray(res.data) ? res.data : [];
+            const norm = arr.map((x: any, idx: number) =>
+                typeof x === "string" ? ({ id: `idx-${idx}`, name: x }) : x
+            );
+            setDdHeaders(norm);
+        } catch (e: any) {
+            setDdError(e?.response?.data?.message || e?.message || "Error loading dynamic data headers.");
+        } finally {
+            setDdLoading(false);
+        }
+    }, [ddHeaders.length]);
+
+    const handlePickDynamicData = useCallback(async (hdr: DynamicHeaderMini) => {
+        try {
+            setDdPickLoading(hdr.id);
+            const res = await axios.post(`${URL_API_ALB}dynamicData`, { id: hdr.id });
+            const arr = res?.data?.dynamicData;
+            if (!Array.isArray(arr)) {
+                toast.error("This dynamic data is not valid.");
+                return;
+            }
+            handleParsedJSON(arr);
+            setEditMode?.('individual');
+            setSelectedDD(hdr);
+            setLastImportedData(arr);
+            toast.success(`Import from "${hdr.name ?? hdr.id}" (${arr.length} ítems).`);
+            setDdModalOpen(false);
+        } catch (e: any) {
+            toast.error(e?.response?.data?.message || e?.message || "Can't load detail.");
+        } finally {
+            setDdPickLoading(null);
+        }
+    }, [handleParsedJSON, setEditMode]);
+
+    const clearImportedDynamicData = useCallback(() => {
+        // Si quieres ser más fino, aquí podrías intentar “restar” sólo lo importado usando lastImportedData.
+        setDynamicValues([]);         // limpia todos los dynamic values actuales
+        setSelectedDD(null);
+        setLastImportedData(null);
+        setEditMode?.('global');
+        toast.info("Imported dynamic data cleared.");
+    }, [setEditMode]);
+
+
+    const filteredHeaders = useMemo(() => {
+        const q = ddQuery.trim().toLowerCase();
+        if (!q) return ddHeaders;
+        return ddHeaders.filter(h =>
+            String(h.name ?? "").toLowerCase().includes(q) ||
+            String(h.groupName ?? "").toLowerCase().includes(q) ||
+            (h.tagNames ?? []).some(t => String(t).toLowerCase().includes(q))
+        );
+    }, [ddQuery, ddHeaders]);
+
+
     return (
         <div className="space-y-4 mb-2">
-            <div className="flex justify-center w-full">
+            <div className="flex flex-col gap-2 items-center justify-center w-full">
                 <JSONDropzone
                     onJSONParsed={handleParsedJSON}
                     onFileInfoChange={({ loaded, name }) => {
@@ -511,6 +595,18 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                     onClear={handleClearJSONData}
                     isDarkMode={isDarkMode}
                 />
+                <div className="flex items-center gap-2">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={openDynamicDataModal}
+                        className={isDarkMode
+                            ? "rounded-2xl border border-gray-500 text-gray-100"
+                            : "rounded-2xl border border-gray-300 bg-primary/5"}
+                    >
+                        Import from Dynamic Data…
+                    </Button>
+                </div>
             </div>
 
             {editMode === 'global' && uniqueDynamicFields.length > 0 && (
@@ -593,6 +689,115 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                 </div>
             )}
 
+            {ddModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center min-h[20vh]">
+                    <div
+                        className="absolute inset-0 bg-black/50"
+                        onClick={() => setDdModalOpen(false)}
+                    />
+                    <div className={`relative z-10 w-[95%] max-w-3xl rounded-2xl shadow-xl
+      ${isDarkMode ? "bg-gray-800 text-white border border-gray-600" : "bg-white text-primary border border-gray-200"}`}>
+                        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                            <h3 className="text-lg font-semibold text-primary/80">Choose Dynamic Data</h3>
+                            <button
+                                className="text-sm underline"
+                                onClick={() => setDdModalOpen(false)}
+                            >
+                                <AiOutlineClose className="h-5 w-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-4 space-y-3">
+                            <div>
+                                <TextInputWithClearButton
+                                    value={ddQuery}
+                                    label="Search dynamic data"
+                                    onChangeHandler={(e) => setDdQuery(e.target.value)}
+                                    placeholder="Search by name, group or tag…"
+                                    id={"Search dynamic data"}
+                                    isSearch={true}
+                                />
+
+                            </div>
+
+                            {ddLoading && <div className="text-sm opacity-80">Loading headers…</div>}
+                            {ddError && <div className="text-sm text-red-600">{ddError}</div>}
+
+                            {!ddLoading && !ddError && (
+                                <div className="max-h-[50vh] overflow-y-auto space-y-2 pr-1">
+                                    {filteredHeaders.length === 0 && (
+                                        <div className="text-sm opacity-75">No results.</div>
+                                    )}
+                                    {filteredHeaders.map((h) => (
+                                        <div
+                                            key={String(h.id)}
+                                            className={`rounded-xl border p-3 flex items-center justify-between gap-3
+                  ${isDarkMode ? "border-gray-600 bg-gray-700/50" : "border-gray-200 bg-gray-50"}`}
+                                        >
+                                            <div className="min-w-0">
+                                                <p className="font-medium truncate">{h.name ?? "(Sin nombre)"}</p>
+                                                <div className="mt-1 flex flex-col items-center gap-2 text-xs">
+                                                    <span className="opacity-70">ID: {String(h.id)}</span>
+                                                    <div className="self-start flex items-center gap-1 flex-wrap">
+                                                        {h.groupName && (
+                                                            <span className="px-2 py-0.5 rounded-2xl bg-primary/90 text-white">
+                                                                {h.groupName}
+                                                            </span>
+                                                        )}
+                                                        {(h.tagNames ?? []).map((t, i) => (
+                                                            <span
+                                                                key={i}
+                                                                className="px-2 py-0.5 rounded-2xl bg-primary/60 text-white"
+                                                            >
+                                                                {t}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                {h.description && (
+                                                    <p className="mt-1 text-xs opacity-80 line-clamp-2">{h.description}</p>
+                                                )}
+
+                                            </div>
+
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                className="rounded-xl"
+                                                onClick={() => handlePickDynamicData(h)}
+                                                disabled={ddPickLoading === h.id}
+                                            >
+                                                {ddPickLoading === h.id ? "Importing…" : "Import"}
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )
+            }
+
+            {selectedDD && (
+                <div className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border ${isDarkMode ? "border-gray-600 bg-gray-800 text-white" : "border-gray-300 bg-white text-primary"
+                    }`}>
+                    <span className="text-sm break-words">
+                        Imported from: <strong>{selectedDD.name ?? String(selectedDD.id)}</strong>
+                    </span>
+                    <button
+                        type="button"
+                        onClick={clearImportedDynamicData}
+                        className={`text-xs rounded-lg px-2 py-1 border ${isDarkMode
+                            ? "border-gray-500 hover:border-gray-400 hover:text-white"
+                            : "border-primary/60 hover:border-primary"
+                            }`}
+                        title="Remove imported dynamic data"
+                    >
+                        Remove
+                    </button>
+                </div>
+            )}
 
             <SortableTestCasesAccordion
                 testCases={testCasesData}
@@ -602,7 +807,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                 isDarkMode={isDarkMode}
                 renderItem={renderTestCaseItem}
             />
-        </div>
+        </div >
     );
 };
 

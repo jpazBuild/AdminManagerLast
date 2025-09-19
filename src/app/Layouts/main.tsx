@@ -4,7 +4,7 @@ import Logo from "../../../public/New_logo.svg";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { TbAutomation, TbReportSearch } from "react-icons/tb";
-import { ChevronRight, Locate, User } from "lucide-react";
+import { ChevronRight, DatabaseZapIcon, Locate, User } from "lucide-react";
 import { RiFunctionLine } from "react-icons/ri";
 import path from "path";
 
@@ -66,6 +66,11 @@ export const DashboardSidebar = ({
       name: "Users",
       path:"/users",
       icon:(<User className="w-5 h-5" />)
+    },
+    {
+      name: "Dynamic Data",
+      path:"/dynamicData",
+      icon:(<DatabaseZapIcon className="w-5 h-5" />)
     }
   ];
 

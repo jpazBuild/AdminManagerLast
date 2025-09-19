@@ -39,6 +39,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
   defaultValue = "",
   readOnly = false,
   isSearch = false,
+  disabled,
   ...props
 }) => {
   const spanRef = useRef<HTMLSpanElement>(null);
@@ -143,7 +144,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
           </label>
         )}
 
-        {!isPassword && localValue?.length > 0 && readOnly === false && (
+        {!isPassword && localValue?.length > 0 && readOnly === false && !disabled && (
           <button
             type="button"
             onClick={clearInput}
