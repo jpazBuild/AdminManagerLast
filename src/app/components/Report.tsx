@@ -192,6 +192,14 @@ const ReportUI = ({
         setIsModalOpen(true);
     };
 
+    const endOfReportRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        if (endOfReportRef.current) {
+            endOfReportRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [report]);
+
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setSelectedImage("");
@@ -251,6 +259,7 @@ const ReportUI = ({
                         );
                     }
                     )}
+                    {/* <div ref={endOfReportRef} /> */}
                 </div>
             </div>
 
