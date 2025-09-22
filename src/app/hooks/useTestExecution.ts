@@ -361,6 +361,8 @@ export const useTestExecution = () => {
   ) => {
     console.log(`🔍 Batch de ${selectedCases.length} tests con máximo ${max} navegadores`);
     resetAllState(headless);
+    // reset reports if there reports
+    setReports([]);
     maxBrowsersRef.current = max;
     queueAddTests(selectedCases, testDataInput, headless, false);
   };

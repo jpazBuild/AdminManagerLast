@@ -86,25 +86,49 @@ function DisplayImageWithFetch({
 const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMode = true }) => {
     const [openPanels, setOpenPanels] = useState<PanelState>({});
     const [editingJson, setEditingJson] = useState(false);
-    const [jsonValue, setJsonValue] = useState(JSON.stringify(value, null, 2));
+    const [jsonValue, setJsonValue] = useState(() => JSON.stringify(value, null, 2));
     const [jsonError, setJsonError] = useState<string | null>(null);
 
+    const lastSavedStrRef = useRef<string | null>(null);
+
     useEffect(() => {
-        if (!editingJson) setJsonValue(JSON.stringify(value, null, 2));
-    }, [value, editingJson,jsonValue]);
+        if (editingJson) return;
+
+        const incoming = JSON.stringify(value, null, 2);
+
+        if (lastSavedStrRef.current) {
+            if (incoming === lastSavedStrRef.current) {
+                setJsonValue(incoming);
+                lastSavedStrRef.current = null;
+            }
+            return;
+        }
+
+        setJsonValue(incoming);
+    }, [value, editingJson]);
 
     function handleSave() {
         try {
-            let parsed = JSON.parse(jsonValue);
-            if (!parsed.action && value.action) parsed = { ...parsed, action: value.action };
+            const parsed = JSON.parse(jsonValue);
+
+            if (!parsed.action && (value as any)?.action) {
+                (parsed as any).action = (value as any).action;
+            }
+
             setJsonError(null);
-            setEditingJson(false);
+
+            const pretty = JSON.stringify(parsed, null, 2);
+            lastSavedStrRef.current = pretty;
+
+            setJsonValue(pretty);
+
             onChange?.(parsed);
+
+            setEditingJson(false);
         } catch (err: any) {
             setJsonError("Invalid JSON: " + err.message);
         }
     }
-
     const getDropdownHeaderClasses = () =>
         isDarkMode
             ? "flex justify-between items-center bg-slate-800/90 cursor-pointer rounded-md border-l-4 border-slate-500 p-2 hover:bg-slate-700/90 transition-colors duration-200"
@@ -541,7 +565,7 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
                         {openPanels.jsonPreview && (
                             <div className="pt-2">
                                 {!editingJson ? (
-                                    <div key={jsonValue.indexOf("editing")}>
+                                    <div key={"preview"}>
                                         <pre className={getJSONPreviewClasses()}>
                                             <code>{jsonValue}</code>
                                         </pre>
@@ -550,8 +574,22 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
                                         </button>
                                     </div>
                                 ) : (
-                                    <div key={jsonValue.indexOf("editing")}>
-                                        <textarea className={getTextareaClasses()} value={jsonValue} onChange={(e) => setJsonValue(e.target.value)} autoFocus spellCheck={false} />
+                                    <div key={"editor"}>
+                                        <textarea
+                                            rows={25}
+                                            className={getTextareaClasses()}
+                                            value={jsonValue}
+                                            onChange={(e) => setJsonValue(e.target.value)}
+                                            onFocus={() => setEditingJson(true)}
+                                            autoFocus
+                                            spellCheck={false}
+                                            style={{
+                                                whiteSpace: "pre-wrap",
+                                                overflowX: "hidden",
+                                                wordWrap: "break-word",
+                                                fontFamily: "monospace",
+                                            }}
+                                        />
                                         {jsonError && <div className={getErrorTextClasses()}>{jsonError}</div>}
                                         <div className="flex gap-2 mt-2">
                                             <button className={getSaveButtonClasses()} onClick={handleSave}>
@@ -643,23 +681,23 @@ const ReusableStepsBlock = ({
                         (step as any).__k = stableKeyRef;
                         return (
                             // <div key={stableKeyRef} className={getReusableStepClasses()}>
-                                <InteractionItem
-                                    key={stableKeyRef}
-                                    data={step}
-                                    index={idx}
-                                    isDarkMode={isDarkMode}
-                                    //   onUpdate={(stepIndex, updatedStep) => {
-                                    //     const newStepsData = [...(data.stepsData || [])];
-                                    //     newStepsData[stepIndex] = updatedStep;
-                                    //     updateReusableStepsData(newStepsData);
-                                    //   }}
-                                    //   onDelete={() => {
-                                    //     const newStepsData = (data.stepsData || []).filter((_: any, i: number) => i !== idx);
-                                    //     updateReusableStepsData(newStepsData);
-                                    //   }}
-                                    onDelete={undefined}
-                                    test={test}
-                                />
+                            <InteractionItem
+                                key={stableKeyRef}
+                                data={step}
+                                index={idx}
+                                isDarkMode={isDarkMode}
+                                //   onUpdate={(stepIndex, updatedStep) => {
+                                //     const newStepsData = [...(data.stepsData || [])];
+                                //     newStepsData[stepIndex] = updatedStep;
+                                //     updateReusableStepsData(newStepsData);
+                                //   }}
+                                //   onDelete={() => {
+                                //     const newStepsData = (data.stepsData || []).filter((_: any, i: number) => i !== idx);
+                                //     updateReusableStepsData(newStepsData);
+                                //   }}
+                                onDelete={undefined}
+                                test={test}
+                            />
                             // </div>
                         );
                     })}
@@ -676,7 +714,7 @@ const ReusableStepsBlock = ({
 };
 
 
-const InteractionItem: React.FC<InteractionItemProps> = React.memo(({ data, index, onDelete, onUpdate, isDarkMode = false ,showDelete=true}) => {
+const InteractionItem: React.FC<InteractionItemProps> = React.memo(({ data, index, onDelete, onUpdate, isDarkMode = false, showDelete = true }) => {
     const isReusableStep = data.type?.startsWith("STEPS") && Array.isArray(data.stepsData);
     if (isReusableStep) {
         return <ReusableStepsBlock data={data} isDarkMode={isDarkMode} onDelete={() => onDelete?.(index)} />;
@@ -718,8 +756,13 @@ const InteractionItem: React.FC<InteractionItemProps> = React.memo(({ data, inde
 
                 <JSONBox
                     value={data}
-                    onChange={(newData) => {
-                        const updatedData = { ...data, ...newData, action: data.action || newData.action };
+                    onChange={(edited) => {
+                        const updatedData = {
+                            ...edited,
+                            id: data.id ?? edited.id,
+                            indexStep: edited.indexStep ?? data.indexStep,
+                        };
+
                         onUpdate?.(index, updatedData);
                     }}
                     isDarkMode={isDarkMode}
