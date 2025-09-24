@@ -35,7 +35,6 @@ const CollectionsPage = () => {
     const [openCoreApi, setOpenCoreApi] = useState<Record<string, boolean>>({});
     const [isOpen, setIsOpen] = useState(false);
 
-
     // selectedRequest contiene la respuesta que se muestra en el panel derecho
     const [selectedRequest, setSelectedRequest] = useState<null | {
         collection: string;
@@ -83,9 +82,11 @@ const CollectionsPage = () => {
 
     return (
         <DashboardHeader pageType="api">
-            <div className="min-h-screen py-2 flex">
+            {/* Nota: usamos h-[calc(100vh-64px)] para descontar el header.
+                Ajusta 64px si tu DashboardHeader tiene otra altura. */}
+            <div className="flex h-[calc(100vh-64px)] overflow-hidden">
                 {/* ------------- SIDEBAR (izquierda) ------------- */}
-                <div className="min-h-screen w-72 border-r border-primary/10 p-4 flex-shrink-0 top-20 left-0 flex flex-col gap-4 bg-white">
+                <div className="w-72 border-r border-primary/10 p-4 flex-shrink-0 flex flex-col gap-4 bg-white h-full overflow-y-auto">
                     <SearchField
                         label="From"
                         value={selectedTypeOrigin ?? ""}
@@ -167,9 +168,10 @@ const CollectionsPage = () => {
 
 
                 {/* ------------- MAIN CONTENT (derecha) ------------- */}
-                <main className="flex-1 p-8 flex flex-col gap-4 overflow-hidden">
-                    {/* Bloque superior: Select a collection (70%) */}
-                    <div className="row-span-1 border rounded-md bg-white shadow-sm flex items-center justify-center overflow-hidden">
+                {/* IMPORTANTE: min-h-0 en el main (flex child) permite que los hijos con overflow funcionen correctamente */}
+                <main className="flex-1 p-8 flex flex-col gap-4 min-h-0">
+                    {/* Bloque superior: Select a collection */}
+                    <div className="flex-1 border rounded-md bg-white shadow-sm flex items-center justify-center overflow-hidden">
                         <div className="flex flex-col items-center justify-center text-center text-slate-500 space-y-3">
                             <Image
                                 src="/select-collection.svg"
@@ -184,8 +186,10 @@ const CollectionsPage = () => {
                             </div>
                         </div>
                     </div>
-                    {/* Bloque inferior: Response JSON (30%) */}
-                    <div className="border rounded-md bg-white shadow-sm overflow-hidden">
+
+                    {/* Bloque inferior: Response JSON */}
+                    {/* limitamos su altura con max-h-[40vh] para que nunca empuje la página */}
+                    <div className="border rounded-md bg-white shadow-sm flex flex-col overflow-hidden max-h-[40vh]">
                         <button
                             onClick={() => setIsOpen(!isOpen)}
                             className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
@@ -197,11 +201,17 @@ const CollectionsPage = () => {
                         </button>
 
                         {isOpen && (
-                            <div className="h-64 p-6 overflow-auto text-slate-500 text-sm">
-                                <div className="flex flex-col items-center justify-center space-y-2 py-8">
-                                    <span className="text-4xl">&lt;/&gt;</span>
-                                    <p>API response are shown here</p>
-                                </div>
+                            <div className="flex-1 p-4 overflow-auto text-slate-500 text-sm">
+                                {selectedRequest ? (
+                                    <pre className="whitespace-pre-wrap break-words text-xs">
+                                        {JSON.stringify(selectedRequest.response, null, 2)}
+                                    </pre>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center space-y-2 py-8">
+                                        <span className="text-4xl">&lt;/&gt;</span>
+                                        <p>API response are shown here</p>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
