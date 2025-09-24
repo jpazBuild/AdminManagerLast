@@ -7,9 +7,9 @@ import {
 import { Eye, File, FileChartColumn, Locate, Plus, Settings } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import CopyToClipboard from "./CopyToClipboard";
-import StepActions from "./StepActions";
-import InteractionItem from "./Interaction";
+import CopyToClipboard from "../../components/CopyToClipboard";
+import StepActions from "../../components/StepActions";
+import InteractionItem from "../../components/Interaction";
 import { toast } from "sonner";
 import { handleAxiosRequest } from "@/utils/handleAxiosRequest";
 import axios from "axios";
@@ -18,10 +18,10 @@ import ReusableStepModal from "./ReusableStepModal";
 import { URL_API_ALB } from "@/config";
 import TestCaseActions from "./TestCaseActions";
 import ReportTestCaseList from "./ReportsHistoricTestCaseList";
-import UnifiedInput from "./Unified";
+import UnifiedInput from "../../components/Unified";
 import { updateTest } from "@/utils/DBBUtils";
-import { useTestLocationInformation } from "../hooks/useTestLocationInformation";
-import { SearchField } from "./SearchField";
+import { useTestLocationInformation } from "../../hooks/useTestLocationInformation";
+import { SearchField } from "../../components/SearchField";
 import EditLocationPanel from "./EditLocationPanel";
 
 const useScrollPosition = (dependencies: any[]) => {
@@ -600,8 +600,9 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
 
                                 <div className="flex justify-between items-center w-full">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 flex-wrap max-w-[80%]">
                                         <h3 className="break-words pl-2 line-clamp-6 font-medium">{test.testCaseName || test.name}</h3>
+                                        <CopyToClipboard text={test.testCaseName || test.name} isDarkMode={isDarkMode} />
                                     </div>
                                     <span className={styleClasses.createdBy}>
                                         {test.createdByName || test.createdBy || 'Unknown User'}

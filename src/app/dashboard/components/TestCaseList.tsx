@@ -1,19 +1,20 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import JSONDropzone from "./JSONDropzone";
+import JSONDropzone from "../../components/JSONDropzone";
 import SortableTestCasesAccordion from "./SortableItem";
 import SortableTestCaseItem from "./SortableTestCaseItem";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 import { TestCase } from "@/types/TestCase";
 import { Checkbox } from "@/components/ui/checkbox";
-import UnifiedInput from "./Unified";
-import ExpandToggle from "../dashboard/components/ExpandToggle";
+import UnifiedInput from "../../components/Unified";
+import ExpandToggle from "./ExpandToggle";
 import axios from "axios";
 import { URL_API_ALB } from "@/config";
-import TextInputWithClearButton from "./InputClear";
+import TextInputWithClearButton from "../../components/InputClear";
 import { AiOutlineClose } from "react-icons/ai";
+import CopyToClipboard from "@/app/components/CopyToClipboard";
 
 interface TestStep {
     action: string;
@@ -201,7 +202,6 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
             const updated = [...prev];
 
             if (editMode === 'global' && uniqueDynamicFields.includes(fieldName)) {
-                console.log('🌐 Modo global: aplicando a todos los test cases');
 
                 testCasesData.forEach((testCase, idx) => {
                     const testCaseFields = getDynamicFields(testCase);
@@ -735,7 +735,11 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                   ${isDarkMode ? "border-gray-600 bg-gray-700/50" : "border-gray-200 bg-gray-50"}`}
                                         >
                                             <div className="min-w-0">
-                                                <p className="font-medium truncate">{h.name ?? "(Sin nombre)"}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-medium truncate">{h?.name ?? "(No Name)"}</p>
+                                                    <CopyToClipboard text={h.name ?? ""} isDarkMode={isDarkMode} />
+                                                </div>
+
                                                 <div className="mt-1 flex flex-col items-center gap-2 text-xs">
                                                     <span className="opacity-70">ID: {String(h.id)}</span>
                                                     <div className="self-start flex items-center gap-1 flex-wrap">
