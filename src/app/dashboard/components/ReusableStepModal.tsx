@@ -2,12 +2,12 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import TextInputWithClearButton from "./InputClear";
+import TextInputWithClearButton from "../../components/InputClear";
 import { toast } from "sonner";
 import axios from "axios";
 import { URL_API_ALB } from '@/config';
 import { checkConnection } from '@/utils/DBBUtils';
-import { SearchField } from './SearchField';
+import { SearchField } from '../../components/SearchField';
 import { User } from '@/types/types';
 
 interface ReusableStepModalProps {

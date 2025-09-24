@@ -23,7 +23,7 @@ interface StepCardProps {
     stepData: StepData;
     index: number;
     handleImageClick: (image: string) => void;
-    stopped?: boolean; // Indicates if the step is stopped
+    stopped?: boolean;
 }
 
 const StepScreenshot = ({ step, handleImageClick }: any) => {
