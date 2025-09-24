@@ -7,7 +7,7 @@ import { SearchField } from "@/app/components/SearchField";
 import { DashboardHeader } from "@/app/Layouts/main";
 import { ChevronRight, ChevronDown, Folder } from "lucide-react";
 import { useState } from "react";
-
+import colletEmptyState from "../../../assets/apisImages/select-collection.svg"
 
 const httpMethods = [
     { name: "GET", color: "bg-green-100 text-green-700", text: "CoreAPI" },
@@ -35,7 +35,6 @@ const CollectionsPage = () => {
     const [openCoreApi, setOpenCoreApi] = useState<Record<string, boolean>>({});
     const [isOpen, setIsOpen] = useState(false);
 
-    // selectedRequest contiene la respuesta que se muestra en el panel derecho
     const [selectedRequest, setSelectedRequest] = useState<null | {
         collection: string;
         method: string;
@@ -82,11 +81,9 @@ const CollectionsPage = () => {
 
     return (
         <DashboardHeader pageType="api">
-            {/* Nota: usamos h-[calc(100vh-64px)] para descontar el header.
-                Ajusta 64px si tu DashboardHeader tiene otra altura. */}
-            <div className="flex h-[calc(100vh-64px)] overflow-hidden">
-                {/* ------------- SIDEBAR (izquierda) ------------- */}
-                <div className="w-72 border-r border-primary/10 p-4 flex-shrink-0 flex flex-col gap-4 bg-white h-full overflow-y-auto">
+       
+            <div className="flex w-full h-full min-h-screen">
+                <div className="w-72 border-r border-primary/10 p-4 flex flex-col gap-4 bg-white h-full min-h-screen">
                     <SearchField
                         label="From"
                         value={selectedTypeOrigin ?? ""}
@@ -166,19 +163,13 @@ const CollectionsPage = () => {
                     </div>
                 </div>
 
-
-                {/* ------------- MAIN CONTENT (derecha) ------------- */}
-                {/* IMPORTANTE: min-h-0 en el main (flex child) permite que los hijos con overflow funcionen correctamente */}
-                <main className="flex-1 p-8 flex flex-col gap-4 min-h-0">
-                    {/* Bloque superior: Select a collection */}
-                    <div className="flex-1 border rounded-md bg-white shadow-sm flex items-center justify-center overflow-hidden">
-                        <div className="flex flex-col items-center justify-center text-center text-slate-500 space-y-3">
+                <div className="relative flex  w-full p-8 flex-col gap-4 min-h-screen">
+                    <div className="flex border border-primary/20 rounded-md bg-white shadow-sm items-center justify-center h-full">
+                        <div className="flex flex-col items-center justify-center text-center text-slate-500">
                             <Image
-                                src="/select-collection.svg"
+                                src={colletEmptyState}
                                 alt="Select a collection"
-                                width={160}
-                                height={160}
-                                className="object-contain"
+                                className="h-20 w-auto rounded-md p-2"
                             />
                             <div>
                                 <p className="font-medium text-lg">Select a collection</p>
@@ -187,9 +178,8 @@ const CollectionsPage = () => {
                         </div>
                     </div>
 
-                    {/* Bloque inferior: Response JSON */}
-                    {/* limitamos su altura con max-h-[40vh] para que nunca empuje la página */}
-                    <div className="border rounded-md bg-white shadow-sm flex flex-col overflow-hidden max-h-[40vh]">
+                
+                    <div className="border border-primary/20 rounded-md bg-white shadow-sm flex flex-col h-full">
                         <button
                             onClick={() => setIsOpen(!isOpen)}
                             className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
@@ -201,13 +191,13 @@ const CollectionsPage = () => {
                         </button>
 
                         {isOpen && (
-                            <div className="flex-1 p-4 overflow-auto text-slate-500 text-sm">
+                            <div className="flex p-4 overflow-auto text-slate-500 text-sm max-h-[400px] w-full h-full">
                                 {selectedRequest ? (
                                     <pre className="whitespace-pre-wrap break-words text-xs">
                                         {JSON.stringify(selectedRequest.response, null, 2)}
                                     </pre>
                                 ) : (
-                                    <div className="flex flex-col items-center justify-center space-y-2 py-8">
+                                    <div className="w-full h-full self-center flex flex-col items-center justify-center py-8 my-auto">
                                         <span className="text-4xl">&lt;/&gt;</span>
                                         <p>API response are shown here</p>
                                     </div>
@@ -215,7 +205,7 @@ const CollectionsPage = () => {
                             </div>
                         )}
                     </div>
-                </main>
+                </div>
             </div>
         </DashboardHeader>
     );
