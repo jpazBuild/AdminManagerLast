@@ -318,7 +318,10 @@ const DashboardPage = () => {
             if (moduleId) searchParams.moduleId = await moduleId;
             if (submoduleId) searchParams.subModuleId = await submoduleId;
             if (searchTestCaseName) searchParams.name = await searchTestCaseName;
-            if (selectedCreatedBy && selectedCreatedBy !== "All") searchParams.createdBy = await selectedCreatedBy;
+            if (selectedCreatedBy && selectedCreatedBy !== "All") searchParams.createdBy = await getUserIdByName(selectedCreatedBy);
+
+            console.log("Searching with params:", searchParams);
+            
             const response = await axios.post(`${URL_API_ALB}getTestHeaders`, await searchParams);
 
             await setDataTestCases(response.data || []);
@@ -418,6 +421,11 @@ const DashboardPage = () => {
         runSingleTest(test, perTestData, isHeadless);
     }, [runSingleTest, testData, isHeadless]);
 
+    //busqueda de id por name de usuario
+    const getUserIdByName = useCallback((name: string) => {
+        const user = users.find((u) => u.name === name);
+        return user ? user.id : null;
+    }, [users]);
     return (
         <DashboardHeader onDarkModeChange={handleDarkModeChange}>
             <div className={`p-4 flex justify-center items-center w-full flex-col gap-4 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-primary"} transition-colors duration-300`}>

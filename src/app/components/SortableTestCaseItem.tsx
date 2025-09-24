@@ -52,6 +52,15 @@ const useScrollPosition = (dependencies: any[]) => {
     return scrollRef;
 };
 
+type Row = {
+    id: string;
+    order?: number;
+    createdByName?: string;
+    input: Record<string, any>;
+    originalExpressions?: Record<string, string>;
+    OriginalExpression?: Record<string, string>;
+};
+
 interface Props {
     test: TestCase;
     index: number;
@@ -210,7 +219,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
     }, [test]);
 
     const handleDelete = useCallback(async () => {
-        
+
         const apiUrl = (URL_API_ALB ?? '');
         console.log("responseTest?.id para deleteTest:", await test?.id);
         const id = await test?.id;
@@ -525,17 +534,47 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
 
     console.log("Rendering SortableTestCaseItem for test:", test);
-    
+
     const allStepsWithReusableIds = useMemo(() => {
         if (!responseTest?.stepsData) return '';
 
         const stepsTextArray = responseTest.stepsData.map((step: any) => {
-            
+
         });
 
         return stepsTextArray.join('\n');
     }, [responseTest?.stepsData]);
-    
+
+    //quiero filtrar los dynamic v    
+    console.log("dynamicValues en SortableTestCaseItem:", dynamicValues);
+    const toInputWithOriginalExpressions = (row: Row) => {
+        if (!row) return null;
+
+        const input = row.input ?? {};
+        const exprs = row.originalExpressions ?? row.OriginalExpression ?? {};
+
+        const replacedInput = Object.entries(input).reduce<Record<string, any>>(
+            (acc, [key, val]) => {
+                acc[key] = key in exprs ? exprs[key] : val;
+                return acc;
+            },
+            {}
+        );
+
+        return {
+            id: row.id,
+            input: replacedInput,
+            order: row.order,
+            createdByName: row.createdByName,
+        };
+    };
+
+    const dynamicValueForThisTest = useMemo(() => {
+        const row = dynamicValues.find((v: any) => v.id === test.id);
+        if (!row) return null;
+        return toInputWithOriginalExpressions(row);
+    }, [dynamicValues, test.id]);
+
     return (
         <div className={styleClasses.mainContainer}>
 
@@ -643,230 +682,237 @@ const SortableTestCaseItem: React.FC<Props> = ({
                     </div>
 
                     {viewMode === 'data' && (
-                        <div
-                            ref={scrollRef}
-                            className={styleClasses.scrollContainer}
-                        >
-                            {!isLoadingTest && responseTest?.testData?.map((field: string, idx: number) => (
-                                <div key={`${field}-${idx}`} className="flex flex-col gap-4 px-1 break-words">
-                                    <UnifiedInput
-                                        id={`${field}-${test.testCaseId || test.id}`}
-                                        value={getFieldValue((test.testCaseId || test.id) ?? '', field)}
-                                        placeholder={`Enter ${field}`}
-                                        label={`Enter ${field}`}
-                                        isDarkMode={isDarkMode}
-                                        enableFaker={true}
-                                        onChange={(val, originalExpression) => {
-                                            const testId = (test.testCaseId || test.id) ?? '';
+                        <div className="flex flex-col w-full">
+                            <div className="self-end flex gap-2 border rounded-md px-3 py-2">
+                                <CopyToClipboard text={JSON.stringify(dynamicValueForThisTest)} isDarkMode={false} />
+                                Copy dynamic values
+                            </div>
+                            <div
+                                ref={scrollRef}
+                                className={styleClasses.scrollContainer}
+                            >
 
-                                            handleValueChange(field, val, testId, originalExpression);
+                                {!isLoadingTest && responseTest?.testData?.map((field: string, idx: number) => (
+                                    <div key={`${field}-${idx}`} className="flex flex-col gap-4 px-1 break-words">
+                                        <UnifiedInput
+                                            id={`${field}-${test.testCaseId || test.id}`}
+                                            value={getFieldValue((test.testCaseId || test.id) ?? '', field)}
+                                            placeholder={`Enter ${field}`}
+                                            label={`Enter ${field}`}
+                                            isDarkMode={isDarkMode}
+                                            enableFaker={true}
+                                            onChange={(val, originalExpression) => {
+                                                const testId = (test.testCaseId || test.id) ?? '';
 
-                                            setResponseTest((prev: any) => {
-                                                if (!prev) return prev;
+                                                handleValueChange(field, val, testId, originalExpression);
 
-                                                const allFields = prev.testData || [];
-                                                const updatedTestDataObj: Record<string, string> = {};
+                                                setResponseTest((prev: any) => {
+                                                    if (!prev) return prev;
 
-                                                allFields.forEach((f: string) => {
-                                                    const currentVal =
-                                                        f === field
-                                                            ? val
-                                                            : getFieldValue(testId, f) || "";
-                                                    updatedTestDataObj[f] = currentVal;
+                                                    const allFields = prev.testData || [];
+                                                    const updatedTestDataObj: Record<string, string> = {};
+
+                                                    allFields.forEach((f: string) => {
+                                                        const currentVal =
+                                                            f === field
+                                                                ? val
+                                                                : getFieldValue(testId, f) || "";
+                                                        updatedTestDataObj[f] = currentVal;
+                                                    });
+
+                                                    setTestCasesData(prevCases =>
+                                                        prevCases.map(tc =>
+                                                            tc.id === testId
+                                                                ? { ...tc, testData: updatedTestDataObj }
+                                                                : tc
+                                                        )
+                                                    );
+
+                                                    return {
+                                                        ...prev,
+                                                        testDataObj: updatedTestDataObj
+                                                    };
                                                 });
+                                            }}
+                                        />
+                                    </div>
+                                ))}
 
-                                                setTestCasesData(prevCases =>
-                                                    prevCases.map(tc =>
-                                                        tc.id === testId
-                                                            ? { ...tc, testData: updatedTestDataObj }
-                                                            : tc
-                                                    )
-                                                );
-
-                                                return {
-                                                    ...prev,
-                                                    testDataObj: updatedTestDataObj
-                                                };
-                                            });
-                                        }}
-                                    />
-                                </div>
-                            ))}
-
-                            {isLoadingTest && (
-                                <div className="flex justify-center items-center h-32">
-                                    <span className="text-gray-500">Loading data...</span>
-                                </div>
-                            )}
+                                {isLoadingTest && (
+                                    <div className="flex justify-center items-center h-32">
+                                        <span className="text-gray-500">Loading data...</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
                     {viewMode === 'steps' && (
-                       <div className="flex flex-col">
-                                                <div
-                            ref={scrollRef}
-                            className={styleClasses.stepsScrollContainer}
-                        >
-                            <div className={styleClasses.stepsStickyHeader}>
-                                <div className="flex flex-wrap items-center gap-4 justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Button
-                                            variant={selectionMode ? "destructive" : "outline"}
-                                            size="sm"
-                                            onClick={() => {
-                                                setSelectionMode(!selectionMode);
-                                                setSelectedStepsForReusable([]);
-                                            }}
-                                            className={`${isDarkMode
-                                                ? 'bg-gray-700 text-white border-white/40'
-                                                : 'bg-gray-200 text-gray-900 border-primary/40'
-                                                } border shadow-md cursor-pointer flex items-center`}
-                                        >
-                                            <Settings className="w-4 h-4 mr-1" />
-                                            {selectionMode ? 'Cancel Selection' : 'Select Steps for Reusable'}
-                                        </Button>
-
-                                        {selectionMode && selectedStepsForReusable.length > 0 && (
+                        <div className="flex flex-col">
+                            <div
+                                ref={scrollRef}
+                                className={styleClasses.stepsScrollContainer}
+                            >
+                                <div className={styleClasses.stepsStickyHeader}>
+                                    <div className="flex flex-wrap items-center gap-4 justify-between">
+                                        <div className="flex items-center gap-2">
                                             <Button
+                                                variant={selectionMode ? "destructive" : "outline"}
                                                 size="sm"
-                                                onClick={() => setShowReusableModal(true)}
-                                                className="bg-primary/90 text-white cursor-pointer flex items-center"
+                                                onClick={() => {
+                                                    setSelectionMode(!selectionMode);
+                                                    setSelectedStepsForReusable([]);
+                                                }}
+                                                className={`${isDarkMode
+                                                    ? 'bg-gray-700 text-white border-white/40'
+                                                    : 'bg-gray-200 text-gray-900 border-primary/40'
+                                                    } border shadow-md cursor-pointer flex items-center`}
                                             >
-                                                <Plus className="w-4 h-4 mr-1" />
-                                                Create Reusable ({selectedStepsForReusable.length})
+                                                <Settings className="w-4 h-4 mr-1" />
+                                                {selectionMode ? 'Cancel Selection' : 'Select Steps for Reusable'}
                                             </Button>
-                                        )}
-                                    </div>
 
-                                    <div className="flex items-center gap-2">
-                                        <div className="rounded-md flex items-center gap-2 border-dashed border p-1">
-                                            <span>Copy All steps</span>
-                                            <CopyToClipboard
-                                                text={JSON.stringify(transformedStepsToCopy(responseTest?.stepsData || []), null, 2)}
-                                                isDarkMode={isDarkMode}
-                                            />
+                                            {selectionMode && selectedStepsForReusable.length > 0 && (
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => setShowReusableModal(true)}
+                                                    className="bg-primary/90 text-white cursor-pointer flex items-center"
+                                                >
+                                                    <Plus className="w-4 h-4 mr-1" />
+                                                    Create Reusable ({selectedStepsForReusable.length})
+                                                </Button>
+                                            )}
                                         </div>
-                                    </div>
 
-                                </div>
-
-
-                            </div>
-
-                            <StepActions
-                                index={-1}
-                                steps={responseTest?.stepsData || []}
-                                test={{ ...test }}
-                                setTestCasesData={setTestCasesData}
-                                setResponseTest={setResponseTest}
-                            />
-
-                            {isLoadingTest && (
-                                <div className="flex justify-center items-center h-32">
-                                    <span className="text-gray-500">Loading steps...</span>
-                                </div>
-                            )}
-
-                            {!isLoadingTest && responseTest?.stepsData?.map((step: any, i: number) => (
-                                <div key={i} className="flex flex-col">
-                                    <div
-                                        className={getStepSelectionClasses(i)}
-                                        onClick={() => handleStepSelection(i)}
-                                    >
-                                        {selectionMode && (
-                                            <div className="absolute top-2 left-2 z-10">
-                                                <Checkbox
-                                                    checked={selectedStepsForReusable.includes(i)}
-                                                    onCheckedChange={() => handleStepSelection(i)}
+                                        <div className="flex items-center gap-2">
+                                            <div className="rounded-md flex items-center gap-2 border-dashed border p-1">
+                                                <span>Copy All steps</span>
+                                                <CopyToClipboard
+                                                    text={JSON.stringify(transformedStepsToCopy(responseTest?.stepsData || []), null, 2)}
+                                                    isDarkMode={isDarkMode}
                                                 />
                                             </div>
-                                        )}
+                                        </div>
 
-                                        <InteractionItem
-                                            data={{ id: `${test.testCaseId || test.id}-step-${i}`, ...step }}
+                                    </div>
+
+
+                                </div>
+
+                                <StepActions
+                                    index={-1}
+                                    steps={responseTest?.stepsData || []}
+                                    test={{ ...test }}
+                                    setTestCasesData={setTestCasesData}
+                                    setResponseTest={setResponseTest}
+                                />
+
+                                {isLoadingTest && (
+                                    <div className="flex justify-center items-center h-32">
+                                        <span className="text-gray-500">Loading steps...</span>
+                                    </div>
+                                )}
+
+                                {!isLoadingTest && responseTest?.stepsData?.map((step: any, i: number) => (
+                                    <div key={i} className="flex flex-col">
+                                        <div
+                                            className={getStepSelectionClasses(i)}
+                                            onClick={() => handleStepSelection(i)}
+                                        >
+                                            {selectionMode && (
+                                                <div className="absolute top-2 left-2 z-10">
+                                                    <Checkbox
+                                                        checked={selectedStepsForReusable.includes(i)}
+                                                        onCheckedChange={() => handleStepSelection(i)}
+                                                    />
+                                                </div>
+                                            )}
+
+                                            <InteractionItem
+                                                data={{ id: `${test.testCaseId || test.id}-step-${i}`, ...step }}
+                                                index={i}
+                                                onDelete={(idx) => {
+                                                    setResponseTest((prev: any) => {
+                                                        if (!prev) return prev;
+                                                        const updatedSteps = prev.stepsData.filter((_: any, j: number) => j !== idx)
+                                                            .map((s: any, k: number) => ({ ...s, indexStep: k + 1 }));
+                                                        return { ...prev, stepsData: updatedSteps };
+                                                    });
+
+                                                    setTestCasesData(prev => {
+                                                        const newData = [...prev];
+                                                        const tc = { ...newData[index] };
+                                                        tc.stepsData = tc.stepsData?.filter((_, j) => j !== idx) || [];
+                                                        newData[index] = tc;
+                                                        return newData;
+                                                    });
+
+                                                    setSelectedStepsForReusable(prev =>
+                                                        prev.filter(stepIdx => stepIdx !== idx)
+                                                            .map(stepIdx => stepIdx > idx ? stepIdx - 1 : stepIdx)
+                                                    );
+                                                }}
+                                                onUpdate={(idx, newStep) => {
+                                                    if (newStep.type?.startsWith('STEPS') && Array.isArray(newStep.stepsData)) {
+                                                        handleUpdateReusableStep(idx, newStep);
+                                                        return;
+                                                    }
+
+                                                    setResponseTest((prev: any) => {
+                                                        if (!prev) return prev;
+                                                        const updatedSteps = [...prev.stepsData];
+                                                        updatedSteps[idx] = { ...updatedSteps[idx], ...newStep };
+                                                        return { ...prev, stepsData: updatedSteps };
+                                                    });
+
+                                                    setTestCasesData(prev => {
+                                                        const newData = [...prev];
+                                                        const tc = { ...newData[index] };
+                                                        const stepsData = [...(tc.stepsData || [])];
+                                                        stepsData[idx] = { ...stepsData[idx], ...newStep };
+                                                        tc.stepsData = stepsData;
+                                                        newData[index] = tc;
+                                                        return newData;
+                                                    });
+                                                }}
+                                                isDarkMode={isDarkMode}
+                                                test={test}
+                                                setTestCasesData={setTestCasesData}
+                                                setResponseTest={setResponseTest}
+                                            />
+                                        </div>
+
+                                        <StepActions
                                             index={i}
-                                            onDelete={(idx) => {
-                                                setResponseTest((prev: any) => {
-                                                    if (!prev) return prev;
-                                                    const updatedSteps = prev.stepsData.filter((_: any, j: number) => j !== idx)
-                                                        .map((s: any, k: number) => ({ ...s, indexStep: k + 1 }));
-                                                    return { ...prev, stepsData: updatedSteps };
-                                                });
-
-                                                setTestCasesData(prev => {
-                                                    const newData = [...prev];
-                                                    const tc = { ...newData[index] };
-                                                    tc.stepsData = tc.stepsData?.filter((_, j) => j !== idx) || [];
-                                                    newData[index] = tc;
-                                                    return newData;
-                                                });
-
-                                                setSelectedStepsForReusable(prev =>
-                                                    prev.filter(stepIdx => stepIdx !== idx)
-                                                        .map(stepIdx => stepIdx > idx ? stepIdx - 1 : stepIdx)
-                                                );
-                                            }}
-                                            onUpdate={(idx, newStep) => {
-                                                if (newStep.type?.startsWith('STEPS') && Array.isArray(newStep.stepsData)) {
-                                                    handleUpdateReusableStep(idx, newStep);
-                                                    return;
-                                                }
-
-                                                setResponseTest((prev: any) => {
-                                                    if (!prev) return prev;
-                                                    const updatedSteps = [...prev.stepsData];
-                                                    updatedSteps[idx] = { ...updatedSteps[idx], ...newStep };
-                                                    return { ...prev, stepsData: updatedSteps };
-                                                });
-
-                                                setTestCasesData(prev => {
-                                                    const newData = [...prev];
-                                                    const tc = { ...newData[index] };
-                                                    const stepsData = [...(tc.stepsData || [])];
-                                                    stepsData[idx] = { ...stepsData[idx], ...newStep };
-                                                    tc.stepsData = stepsData;
-                                                    newData[index] = tc;
-                                                    return newData;
-                                                });
-                                            }}
-                                            isDarkMode={isDarkMode}
-                                            test={test}
+                                            steps={responseTest?.stepsData || []}
+                                            test={{ ...test }}
                                             setTestCasesData={setTestCasesData}
                                             setResponseTest={setResponseTest}
                                         />
                                     </div>
+                                ))}
 
-                                    <StepActions
-                                        index={i}
-                                        steps={responseTest?.stepsData || []}
-                                        test={{ ...test }}
-                                        setTestCasesData={setTestCasesData}
-                                        setResponseTest={setResponseTest}
-                                    />
-                                </div>
-                            ))}
+                                <ReusableStepModal
+                                    isOpen={showReusableModal}
+                                    onClose={() => setShowReusableModal(false)}
+                                    selectedSteps={selectedStepsForReusable}
+                                    steps={responseTest?.stepsData || []}
+                                    onCreateReusable={handleCreateReusableStep}
+                                    isDarkMode={isDarkMode}
+                                    responseTest={responseTest}
+                                    onSetResponseData={handleResponseCreateReusedStep}
+                                />
 
-                            <ReusableStepModal
-                                isOpen={showReusableModal}
-                                onClose={() => setShowReusableModal(false)}
-                                selectedSteps={selectedStepsForReusable}
-                                steps={responseTest?.stepsData || []}
-                                onCreateReusable={handleCreateReusableStep}
-                                isDarkMode={isDarkMode}
-                                responseTest={responseTest}
-                                onSetResponseData={handleResponseCreateReusedStep}
-                            />
-                           
-                        </div>
+                            </div>
 
-                         <TestCaseActions
+                            <TestCaseActions
                                 test={currentTestCase}
                                 onDelete={handleDelete}
                                 onUpdate={handleUpdateConfirm}
                                 isLoadingUpdate={isLoadingUpdate}
                                 isDarkMode={isDarkMode}
                             />
-                       </div> 
+                        </div>
                     )}
 
                     {viewMode === 'Historic reports' && test.id && (
@@ -892,7 +938,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                         </div>
                     )}
 
-                    
+
                 </AccordionContent>
             </AccordionItem>
         </div>
