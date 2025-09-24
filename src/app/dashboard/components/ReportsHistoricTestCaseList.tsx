@@ -3,9 +3,9 @@ import { URL_API_ALB } from "@/config";
 import { toast } from "sonner";
 import { fetchReportByUrl } from "@/utils/fetchReportByUrl";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import StepCard from "../components/StepCard";
-import { ImageModalWithZoom } from "../components/Report";
-import { ExecutionSummary } from "./ExecutionSummary";
+import StepCard from "../../components/StepCard";
+import { ImageModalWithZoom } from "../../components/Report";
+import { ExecutionSummary } from "../../components/ExecutionSummary";
 import { DownloadIcon } from "lucide-react";
 import { buildStandaloneHtml } from "@/utils/buildHtmlreport";
 

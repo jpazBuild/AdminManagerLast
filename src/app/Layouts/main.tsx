@@ -260,9 +260,9 @@ export const DashboardHeader = ({
             <Link href="/dashboard" className={getLinkClasses("/dashboard")}>
               Dashboard
             </Link>
-            <Link href="/api" className={getLinkClasses("/api")}>
+            {/* <Link href="/api" className={getLinkClasses("/api")}>
               API
-            </Link>
+            </Link> */}
           </div>
 
           <div className="flex items-center space-x-4">
@@ -356,7 +356,7 @@ export const DashboardHeader = ({
           className={`flex-1 transition-all duration-500 ${sidebarCollapsed ? "lg:ml-20" : "lg:ml-72"
             } ${darkMode ? "bg-gray-900" : ""} ${overflow}`}
         >
-          <div className="py-4">
+          <div className="py-4 ">
             {children}
           </div>
         </main>
