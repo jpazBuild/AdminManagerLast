@@ -4,10 +4,12 @@
 import Image from "next/image";
 import TextInputWithClearButton from "@/app/components/InputClear";
 import { SearchField } from "@/app/components/SearchField";
+import { Input } from "@/components/ui/input";
 import { DashboardHeader } from "@/app/Layouts/main";
 import { ChevronRight, ChevronDown, Folder } from "lucide-react";
 import { useState } from "react";
 import colletEmptyState from "../../../assets/apisImages/select-collection.svg"
+import trashIcon from "../../../assets/apisImages/trash.svg"
 
 const httpMethods = [
     { name: "GET", color: "bg-green-100 text-green-700", text: "CoreAPI" },
@@ -127,13 +129,23 @@ const CollectionsPage = () => {
                         placeholder="Search collections"
                         options={typeOrigin.map((t) => ({ label: t.name, value: t.name }))}
                     />
-                    <SearchField
-                        label="Team"
-                        value={selectedTeam ?? ""}
-                        onChange={setSelectedTeam}
-                        placeholder="Search Team"
-                        options={teams.map((t) => ({ label: t.name, value: t.name }))}
-                    />
+                    <div className="relative">
+                        <SearchField
+                            label="Team"
+                            value={selectedTeam ?? ""}
+                            onChange={setSelectedTeam}
+                            placeholder="Search Team"
+                            options={teams.map((t) => ({ label: t.name, value: t.name }))}
+                            disabled={selectedTypeOrigin === "Postman"}
+                        />
+                        {selectedTypeOrigin === "Postman" && (
+                            <div className="absolute left-0 top-full mt-1 w-full z-10">
+                                <div className="bg-slate-700 text-white text-xs rounded-md px-3 py-2 shadow-lg">
+                                    Teams only can be selected from Postman
+                                </div>
+                            </div>
+                        )}
+                    </div>
                     <TextInputWithClearButton
                         id="collection-name"
                         label="Search Collections"
@@ -220,12 +232,14 @@ const CollectionsPage = () => {
 
                                     {/* URL */}
                                     <div>
-                                        <label className="block text-sm text-slate-600 mb-1">Enter request URL</label>
-                                        <input
+                                        <TextInputWithClearButton
+                                            id="request-url"
                                             type="text"
+                                            inputMode="text"
                                             value={requestUrl}
-                                            onChange={(e) => setRequestUrl(e.target.value)}
-                                            className="w-full border rounded-lg px-3 py-2 bg-slate-50 text-sm"
+                                            onChangeHandler={(e) => setRequestUrl(e.target.value)}
+                                            placeholder="Enter request URL"
+                                            label="Enter request URL"
                                         />
                                     </div>
 
@@ -235,25 +249,33 @@ const CollectionsPage = () => {
                                         <div className="space-y-2">
                                             {requestHeaders.map((h, i) => (
                                                 <div key={i} className="flex gap-2">
-                                                    <input
+                                                    <TextInputWithClearButton
+                                                        id={`header-key-${i}`}
+                                                        type="text"
+                                                        inputMode="text"
                                                         value={h.key}
-                                                        onChange={(e) => {
+                                                        onChangeHandler={(e) => {
                                                             const arr = [...requestHeaders];
                                                             arr[i].key = e.target.value;
                                                             setRequestHeaders(arr);
                                                         }}
                                                         placeholder="Enter key"
-                                                        className="flex-1 border rounded px-2 py-1 bg-white text-sm"
+                                                        label="Key"
+                                                        className="flex-1"
                                                     />
-                                                    <input
+                                                    <TextInputWithClearButton
+                                                        id={`header-value-${i}`}
+                                                        type="text"
+                                                        inputMode="text"
                                                         value={h.value}
-                                                        onChange={(e) => {
+                                                        onChangeHandler={(e) => {
                                                             const arr = [...requestHeaders];
                                                             arr[i].value = e.target.value;
                                                             setRequestHeaders(arr);
                                                         }}
                                                         placeholder="Enter value"
-                                                        className="flex-1 border rounded px-2 py-1 bg-white text-sm"
+                                                        label="Value"
+                                                        className="flex-1"
                                                     />
                                                     <button
                                                         onClick={() => {
@@ -262,7 +284,12 @@ const CollectionsPage = () => {
                                                         }}
                                                         className="px-2"
                                                     >
-                                                        🗑
+                                                        <Image
+                                                            src={trashIcon}
+                                                            alt="Delete"
+                                                            width={24}
+                                                            height={24}
+                                                        />
                                                     </button>
                                                 </div>
                                             ))}
@@ -280,7 +307,7 @@ const CollectionsPage = () => {
                                         <button
                                             onClick={() => runRequest(selectedRequest.collection, selectedRequest.method)}
                                             disabled={isRequestRunning}
-                                            className="bg-blue-600 text-white px-6 py-2 rounded-md hover:opacity-95 disabled:opacity-50"
+                                            className="bg-primary/90 text-white px-6 py-2 rounded-md hover:opacity-95 disabled:opacity-50"
                                         >
                                             {isRequestRunning ? "Running..." : "Run"}
                                         </button>
@@ -316,11 +343,43 @@ const CollectionsPage = () => {
                         </button>
 
                         {isOpen && (
-                            <div className="flex p-4 overflow-auto text-slate-500 text-sm max-h-[400px] w-full h-full">
+                            <div className="flex p-4 overflow-auto text-sm max-h-[400px] w-full h-full bg-slate-100 rounded-md">
                                 {selectedRequest ? (
-                                    <pre className="whitespace-pre-wrap break-words text-xs">
-                                        {JSON.stringify(selectedRequest.response, null, 2)}
-                                    </pre>
+                                    <div className="w-full font-mono text-xs">
+                                        <div className="mb-2 flex items-center gap-4">
+                                            <span className="text-blue-700 font-bold">{'{'}</span>
+                                            <span className="text-orange-500 font-semibold">{selectedRequest.response?.status} OK</span>
+                                            <span className="text-slate-500">|</span>
+                                            <span className="text-orange-500">timestamp: &quot;{selectedRequest.response?.timestamp}&quot;</span>
+                                        </div>
+                                        <div className="pl-4">
+                                            <span className="text-blue-700">&quot;data&quot;</span>
+                                            <span className="text-slate-500">: </span>
+                                            <span className="text-blue-700">{'{'}</span>
+                                            <div className="pl-4">
+                                                <span className="text-blue-700">&quot;message&quot;</span>
+                                                <span className="text-slate-500">: </span>
+                                                <span className="text-green-700">&quot;{selectedRequest.response?.data?.message}&quot;</span>
+                                                <span className="text-slate-500">,</span>
+                                                <br />
+                                                <span className="text-blue-700">&quot;requestUrl&quot;</span>
+                                                <span className="text-slate-500">: </span>
+                                                <span className="text-green-700">&quot;{selectedRequest.response?.data?.requestUrl}&quot;</span>
+                                                <span className="text-slate-500">,</span>
+                                                <br />
+                                                <span className="text-blue-700">&quot;headers&quot;</span>
+                                                <span className="text-slate-500">: </span>
+                                                <span className="text-green-700">{JSON.stringify(selectedRequest.response?.data?.headers, null, 2)}</span>
+                                                <span className="text-slate-500">,</span>
+                                                <br />
+                                                <span className="text-blue-700">&quot;payload&quot;</span>
+                                                <span className="text-slate-500">: </span>
+                                                <span className="text-green-700">{JSON.stringify(selectedRequest.response?.data?.payload, null, 2)}</span>
+                                            </div>
+                                            <span className="text-blue-700">{'}'}</span>
+                                        </div>
+                                        <span className="text-blue-700 font-bold">{'}'}</span>
+                                    </div>
                                 ) : (
                                     <div className="w-full h-full self-center flex flex-col items-center justify-center py-8 my-auto">
                                         <span className="text-4xl">&lt;/&gt;</span>
