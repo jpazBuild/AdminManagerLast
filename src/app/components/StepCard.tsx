@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { CheckIcon, Clock, CodeIcon } from "lucide-react";
+import { Clock, CodeIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@radix-ui/react-tabs";
 import { TabsContent } from "@/components/ui/tabs";
@@ -8,7 +8,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { httpMethodsStyle } from "../api/utils/colorMethods";
 import TextInputWithClearButton from "./InputClear";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 interface Step {
     status?: string;
@@ -27,6 +27,7 @@ interface StepData {
     action?: string;
 
 }
+
 
 interface StepCardProps {
     step: Step;
