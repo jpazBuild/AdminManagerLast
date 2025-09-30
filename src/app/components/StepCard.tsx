@@ -169,6 +169,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
                                         <TabsTrigger
                                             value="request"
                                             className="text-primary rounded-md flex flex-col gap-2 cursor-pointer"
+                                            key={"request"}
                                         >
                                             <p className="bg-primary/20 px-3 py-2">Request</p>
                                             {activeTabApi === "request" && (
@@ -178,6 +179,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
 
                                         <TabsTrigger
                                             value="response"
+                                            key={"response"}
                                             className="text-primary rounded-md flex flex-col gap-2 cursor-pointer"
                                         >
                                             <p className="bg-primary/20 px-3 py-2">Response</p>
@@ -188,6 +190,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
 
                                         <TabsTrigger
                                             value="environment"
+                                            key={"environment"}
                                             className="text-primary rounded-md flex flex-col gap-2 cursor-pointer"
                                         >
                                             <p className="bg-primary/20 px-3 py-2">Environment</p>
@@ -230,6 +233,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
                                                     {Object.entries(step.apisScriptsResult?.environment?.__request?.headers || {}).map(([key, value]) => (
                                                         <TextInputWithClearButton
                                                             label={key}
+                                                            key={key}
                                                             placeholder=""
                                                             id={key}
                                                             type="text"
@@ -300,6 +304,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
 
                                                         <TextInputWithClearButton
                                                             label={key}
+                                                            key={key}
                                                             placeholder=""
                                                             id={key}
                                                             type="text"
