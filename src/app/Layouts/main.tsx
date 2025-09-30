@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import Image from "next/image";
 import Logo from "../../../public/New_logo.svg";
 import Link from "next/link";
@@ -154,12 +154,16 @@ export const DashboardHeader = ({
   children,
   overflow = "overflow-y-auto",
   onDarkModeChange,
-  pageType
+  pageType,
+  callback,
+  typeFixed = true
 }: {
   children: React.ReactNode;
   overflow?: string;
   onDarkModeChange?: (isDark: boolean) => void;
   pageType?: string
+  callback?: (isOpen: boolean) => void;
+  typeFixed?: boolean
 }) => {
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(true);
@@ -223,6 +227,10 @@ export const DashboardHeader = ({
 
     setSidebarCollapsed(savedSidebarCollapsed);
   }, []);
+
+  useEffect(() => {
+    callback?.(mobileSidebarOpen);
+  }, [mobileSidebarOpen, callback]);
 
   return (
     <div className={`min-h-screen flex flex-col top-0 w-full ${overflow}`}>
@@ -302,7 +310,7 @@ export const DashboardHeader = ({
         />
       )}
 
-      <div className="flex pt-16">
+      <div className="flex w-full h-full">
         <div className="hidden lg:block">
           <DashboardSidebar
             darkMode={darkMode}
@@ -313,7 +321,7 @@ export const DashboardHeader = ({
         </div>
 
         <div
-          className={`fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 transform transition-transform duration-200 ease-in-out z-40 lg:hidden ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          className={`fixed left-0 top-16 w-64 transform transition-transform duration-200 ease-in-out z-40 lg:hidden ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
             } ${darkMode
               ? "bg-gray-800 border-r border-gray-700"
               : "bg-white border-r border-gray-200"
@@ -353,10 +361,13 @@ export const DashboardHeader = ({
         </div>
 
         <main
-          className={`flex-1 transition-all duration-500 ${sidebarCollapsed ? "lg:ml-20" : "lg:ml-72"
-            } ${darkMode ? "bg-gray-900" : ""} ${overflow}`}
+          className={`flex w-full transition-all duration-500
+            ${typeFixed ? "fixed" : "overflow-y-auto"} right-0 min-h-screen h-full pt-16 pb-4
+            ${sidebarCollapsed ? "lg:pl-20" : "lg:pl-72"
+            } 
+            ${darkMode ? "bg-gray-900" : ""} ${overflow}`}
         >
-          <div className="py-4 ">
+          <div className="py-4 px-2 w-full h-full flex flex-col">
             {children}
           </div>
         </main>

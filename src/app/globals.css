@@ -26,6 +26,11 @@ body {
   border-radius: 8px;
 }
 
+body.modal-open {
+    overflow: hidden !important;
+    height: 100vh;
+}
+
 /* Dark mode scrollbar */
 @media (prefers-color-scheme: dark) {
   ::-webkit-scrollbar-thumb {

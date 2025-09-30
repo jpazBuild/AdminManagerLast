@@ -178,8 +178,10 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
         setLoading((prev: any) => ({ ...prev, ...newLoading }));
     };
 
+    console.log("stepMap final", stepMap);
+    
     return (
-        <div className="space-y-6 mt-6">
+        <div className="space-y-6 mt-6 flex flex-col overflow-y-auto">
             {totalTests > 0 && (
                 <div className="space-y-2">
                     <ExecutionSummary
