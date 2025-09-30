@@ -1,6 +1,14 @@
 import Image from "next/image";
-import { Clock } from "lucide-react";
-import { useState } from "react";
+import { CheckIcon, Clock, CodeIcon } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Tabs, TabsList, TabsTrigger } from "@radix-ui/react-tabs";
+import { TabsContent } from "@/components/ui/tabs";
+import { AiOutlineClose } from "react-icons/ai";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { httpMethodsStyle } from "../api/utils/colorMethods";
+import TextInputWithClearButton from "./InputClear";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 interface Step {
     status?: string;
@@ -9,6 +17,7 @@ interface Step {
     result?: string;
     error?: string;
     screenshot?: string;
+    apisScriptsResult?: any;
 }
 
 interface StepData {
@@ -16,6 +25,7 @@ interface StepData {
         selectors?: { type: string; locator: string }[];
     };
     action?: string;
+
 }
 
 interface StepCardProps {
@@ -23,7 +33,7 @@ interface StepCardProps {
     stepData: StepData;
     index: number;
     handleImageClick: (image: string) => void;
-    stopped?: boolean; // Indicates if the step is stopped
+    stopped?: boolean;
 }
 
 const StepScreenshot = ({ step, handleImageClick }: any) => {
@@ -74,15 +84,21 @@ const StepScreenshot = ({ step, handleImageClick }: any) => {
 
 const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: StepCardProps) => {
     const status = (step?.status ?? "").toLowerCase();
-
+    const [activeTabApi, setActiveTabApi] = useState("request");
+    const [openModalApi, setOpenModalApi] = useState(false);
     const isStepSuccess = status === "completed";
     const isStepError = status === "failed";
     const isProcessing = status === "processing";
     const isSkipped = status === "skipped";
     const isStopped = stopped;
     console.log("StepCard stopped:", stopped, "status:", status);
-
+    const gqlQuery = step.apisScriptsResult?.environment?.__request?.data?.query;
     const timeInSeconds = step?.time ? (Number(step.time) / 1000).toFixed(2) : null;
+
+    const reqHeadersStr = useMemo(
+        () => JSON.stringify(step?.apisScriptsResult?.environment?.__request?.headers, null, 2),
+        [step?.apisScriptsResult?.environment?.__request?.headers]
+    );
 
     return (
         <div
@@ -102,14 +118,211 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
         >
             <div
                 className="absolute top-0 left-0 bg-primary text-white px-3 py-1 text-sm font-semibold shadow-md"
-                style={{ borderTopLeftRadius: "5px",borderBottomRightRadius: "20px" }}
+                style={{ borderTopLeftRadius: "5px", borderBottomRightRadius: "20px" }}
             >
                 Step {index}
             </div>
+
+
+
+
             <p className="text-md text-primary mt-6 font-semibold break-words max-w-full">
                 {step?.action ?? stepData?.action}
             </p>
-            
+
+            {step?.apisScriptsResult && (
+                <button onClick={() => setOpenModalApi(true)} className="self-center text-primary bg-primary/10 px-4 py-2 rounded-md mt-4 w-fit flex items-center gap-2">
+                    <CodeIcon className="w-4 h-4" /> View API/Script details
+                </button>
+            )
+
+
+            }
+
+            {openModalApi && step?.apisScriptsResult && (
+                <Dialog open={openModalApi}>
+                    <DialogContent
+                        showCloseButton={false}
+                        className="sm:max-w-3xl max-w-lg max-h-[90vh] overflow-y-auto bg-white"
+                    >
+                        <button
+                            className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
+                            onClick={() => setOpenModalApi(false)}
+                            aria-label="Close"
+                        >
+                            <AiOutlineClose className="w-5 h-5" />
+                        </button>
+
+                        <h2 className="text-xl font-bold text-primary/85">
+                            API/Script Execution Details
+                        </h2>
+
+                        <div className=" p-2 bg-gray-100 rounded-md border border-gray-300 h-full">
+
+                            <div className="flex flex-col h-full">
+                                <Tabs
+                                    value={activeTabApi}
+                                    onValueChange={setActiveTabApi}
+                                    className="mt-2 flex flex-col text-primary/85 sticky top-0 bg-white py-2 h-full"
+                                >
+                                    <TabsList className="self-center flex gap-2">
+                                        <TabsTrigger
+                                            value="request"
+                                            className="text-primary rounded-md flex flex-col gap-2 cursor-pointer"
+                                        >
+                                            <p className="bg-primary/20 px-3 py-2">Request</p>
+                                            {activeTabApi === "request" && (
+                                                <span className="self-center h-2 w-8 bg-primary/90 rounded-full" />
+                                            )}
+                                        </TabsTrigger>
+
+                                        <TabsTrigger
+                                            value="response"
+                                            className="text-primary rounded-md flex flex-col gap-2 cursor-pointer"
+                                        >
+                                            <p className="bg-primary/20 px-3 py-2">Response</p>
+                                            {activeTabApi === "response" && (
+                                                <span className="self-center h-2 w-8 bg-primary/90 rounded-full" />
+                                            )}
+                                        </TabsTrigger>
+
+                                        <TabsTrigger
+                                            value="environment"
+                                            className="text-primary rounded-md flex flex-col gap-2 cursor-pointer"
+                                        >
+                                            <p className="bg-primary/20 px-3 py-2">Environment</p>
+                                            {activeTabApi === "environment" && (
+                                                <span className="self-center h-2 w-8 bg-primary/90 rounded-full" />
+                                            )}
+                                        </TabsTrigger>
+                                    </TabsList>
+
+                                    <TabsContent value="request" className="text-primary/85 flex flex-col gap-2 px-2 py-2">
+                                        {step.apisScriptsResult?.environment?.__request?.url && (
+                                            <div className="mt-2">
+                                                <strong>Request URL:</strong>
+                                                <pre className="whitespace-pre-wrap break-words text-sm">
+                                                    {step.apisScriptsResult?.environment?.__request?.url}
+                                                </pre>
+                                            </div>
+                                        )}
+
+                                        {step.apisScriptsResult?.environment?.__request?.method && (
+                                            <div className="mt-2">
+                                                <strong>Request Method:</strong>
+                                                <span
+                                                    className={`ml-2 text-xs px-2 py-1 rounded ${httpMethodsStyle(
+                                                        step.apisScriptsResult?.environment?.__request?.method?.toUpperCase()
+                                                    )}`}
+                                                >
+                                                    {step.apisScriptsResult?.environment?.__request?.method?.toUpperCase()}
+                                                </span>
+                                            </div>
+                                        )}
+
+                                        <div className="flex flex-col gap-2">
+                                            <strong className="mt-2">Request Headers:</strong>
+                                            {Object.entries(step.apisScriptsResult?.environment?.__request?.headers || {}).length === 0 && (
+                                                <p className="text-sm text-gray-500">No headers available.</p>
+                                            )}
+                                            {Object.entries(step.apisScriptsResult?.environment?.__request?.headers || {}).length > 0 && (
+                                                <div className="p-2 flex flex-col gap-2 max-h-[600px] overflow-y-auto overflow-x-hidden mt-1">
+                                                    {Object.entries(step.apisScriptsResult?.environment?.__request?.headers || {}).map(([key, value]) => (
+                                                        <TextInputWithClearButton
+                                                            label={key}
+                                                            placeholder=""
+                                                            id={key}
+                                                            type="text"
+                                                            value={String(value)}
+                                                            readOnly
+                                                        />
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {gqlQuery && (
+                                            <div className="mt-2">
+                                                <strong>Request Query:</strong>
+                                                <SyntaxHighlighter
+                                                    language="graphql"
+                                                    style={oneLight}
+                                                    customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem" }}
+                                                >
+                                                    {gqlQuery}
+                                                </SyntaxHighlighter>
+                                            </div>
+                                        )}
+
+                                        {step.apisScriptsResult?.environment?.__request?.data?.variables && (
+                                            <div className="mt-2">
+                                                <strong>Variables:</strong>
+                                                <SyntaxHighlighter
+                                                    language="json"
+                                                    style={oneLight}
+                                                    customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem" }}
+                                                >
+                                                    {JSON.stringify(
+                                                        step.apisScriptsResult?.environment?.__request?.data.variables,
+                                                        null,
+                                                        2
+                                                    )}
+                                                </SyntaxHighlighter>
+                                               
+                                            </div>
+                                        )}
+                                    </TabsContent>
+
+                                    <TabsContent value="response">
+
+                                        <SyntaxHighlighter
+                                                    language="json"
+                                                    style={oneLight}
+                                                    customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem" }}
+                                                >
+                                                    {JSON.stringify(
+                                                        step.apisScriptsResult?.environment?.__response?.json,
+                                                        null,
+                                                        2
+                                                    )}
+                                        </SyntaxHighlighter>
+                                       
+                                    </TabsContent>
+
+                                    <TabsContent value="environment" className="px-2 py-2">
+                                        {Object.keys(step.apisScriptsResult?.environment?.environment || {}).length === 0 && (
+                                            <p className="text-sm text-gray-500">No environment variables available.</p>
+                                        )}
+                                        {Object.entries(step.apisScriptsResult?.environment?.environment || {}).length > 0 && (
+                                            <>
+                                                <div className="flex flex-col gap-2 max-h-[600px] overflow-y-auto overflow-x-hidden">
+                                                    {Object.entries(step.apisScriptsResult?.environment?.environment || {}).map(([key, value]) => (
+
+                                                        <TextInputWithClearButton
+                                                            label={key}
+                                                            placeholder=""
+                                                            id={key}
+                                                            type="text"
+                                                            value={String(value)}
+                                                            readOnly
+                                                        />
+
+                                                    ))}
+                                                </div>
+                                            </>
+
+                                        )}
+                                    </TabsContent>
+                                </Tabs>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            )}
+
+
+
+
             {step?.result && (
                 <p className="text-sm break-words">
                     <strong>Result:</strong> {step?.result}

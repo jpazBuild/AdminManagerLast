@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Search, Settings } from "lucide-react";
-import { SelectField } from "./SelectField";
-import { SearchField } from "./SearchField";
+import { SelectField } from "../../components/SelectField";
+import { SearchField } from "../../components/SearchField";
 
 interface TestSettingsProps {
   onBrowserLimitChange: (value: number) => void;
