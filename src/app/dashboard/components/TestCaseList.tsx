@@ -564,8 +564,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
     }, [handleParsedJSON, setEditMode]);
 
     const clearImportedDynamicData = useCallback(() => {
-        // Si quieres ser más fino, aquí podrías intentar “restar” sólo lo importado usando lastImportedData.
-        setDynamicValues([]);         // limpia todos los dynamic values actuales
+        setDynamicValues([]);
         setSelectedDD(null);
         setLastImportedData(null);
         setEditMode?.('global');
@@ -585,7 +584,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
 
 
     return (
-        <div className="space-y-4 mb-2">
+        <div className=" flex flex-col gap-2">
             <div className="flex flex-col gap-2 items-center justify-center w-full">
                 <JSONDropzone
                     onJSONParsed={handleParsedJSON}
@@ -609,7 +608,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                 </div>
             </div>
 
-            {editMode === 'global' && uniqueDynamicFields.length > 0 && (
+            {editMode === 'global' && uniqueDynamicFields.length > 1 && (
                 <div className={styleClasses.globalFields}>
                     <div>
                         <h3 className={styleClasses.globalFieldsTitle}>
@@ -650,44 +649,46 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                 </div>
             )}
 
-            {allIds.length > 0 && (
-                <div className="flex justify-between items-center px-2">
-                    <p className="font-medium text-lg">Test cases</p>
-                    <div className="flex items-center gap-2">
-                        <Checkbox
-                            id="select-all-tests"
-                            checked={selectAllChecked}
-                            onCheckedChange={handleSelectAllChange}
-                            className={isDarkMode ? "border-gray-500 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500" : ""}
-                        />
-                        <Label htmlFor="select-all-tests">
-                            {allIds.length} {allIds.length === 1 ? "Result" : "Results"}
-                        </Label>
-                    </div>
-                </div>
-            )}
-            {allIds.length > 0 && (
-                <div className="flex justify-between items-center">
-                    <div className="flex justify-between items-center gap-4">
-                        {allIds.length > 1 && (
-                            <ExpandToggle
-                                isDarkMode={isDarkMode}
-                                allExpanded={allExpanded}
-                                onExpandAll={handleExpandAll}
-                                onCollapseAll={handleCollapseAll}
+            <div className="flex flex-col gap-2 sticky top-0">
+                {allIds.length > 0 && (
+                    <div className="flex justify-between items-center px-2">
+                        <p className="font-medium text-lg">Test cases</p>
+                        <div className="flex items-center gap-2">
+                            <Checkbox
+                                id="select-all-tests"
+                                checked={selectAllChecked}
+                                onCheckedChange={handleSelectAllChange}
+                                className={isDarkMode ? "border-gray-500 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500" : ""}
                             />
-                        )}
+                            <Label htmlFor="select-all-tests">
+                                {allIds.length} {allIds.length === 1 ? "Result" : "Results"}
+                            </Label>
+                        </div>
                     </div>
+                )}
+                {allIds.length > 0 && (
+                    <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-center gap-4">
+                            {allIds.length > 1 && (
+                                <ExpandToggle
+                                    isDarkMode={isDarkMode}
+                                    allExpanded={allExpanded}
+                                    onExpandAll={handleExpandAll}
+                                    onCollapseAll={handleCollapseAll}
+                                />
+                            )}
+                        </div>
 
-                    <Button
-                        onClick={handleExportAsDataObject}
-                        variant="outline"
-                        className={styleClasses.exportButton}
-                    >
-                        <Download /> Export Dynamic Values
-                    </Button>
-                </div>
-            )}
+                        <Button
+                            onClick={handleExportAsDataObject}
+                            variant="outline"
+                            className={styleClasses.exportButton}
+                        >
+                            <Download /> Export Dynamic Values
+                        </Button>
+                    </div>
+                )}
+            </div>
 
             {ddModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center min-h[20vh]">

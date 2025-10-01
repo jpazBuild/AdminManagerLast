@@ -40,6 +40,11 @@ const nextConfig: NextConfig = {
         destination: '/dashboard',
         permanent: false,
       },
+      {
+        source: '/api',
+        destination: '/api/collections',
+        permanent: false,
+      }
     ];
   },
 };

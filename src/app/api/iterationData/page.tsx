@@ -7,7 +7,7 @@ import selectIterationDataIcon from "../../../assets/apisImages/select-iteration
 import { DashboardHeader } from "@/app/Layouts/main";
 import { URL_API_ALB } from "@/config";
 import TextInputWithClearButton from "@/app/components/InputClear";
-import { MoreVertical } from "lucide-react";
+import { CopyPlus, MoreVertical, Trash2Icon } from "lucide-react";
 
 
 type Row = { variable: string; value: string };
@@ -76,15 +76,16 @@ const IterationDataPage = () => {
             const rows = firstDetail ? rowsFromIterationDetails(firstDetail) : [];
 
             const nextIndex = packages.length + 1;
-            setPackages((prev) => [
-                ...prev,
-                {
-                    id: crypto.randomUUID(),
-                    name: `Number${nextIndex}`,
-                    selected: true,
-                    rows,
-                },
-            ]);
+            // setPackages((prev) => [
+            //     ...prev,
+            //     {
+            //         id: crypto.randomUUID(),
+            //         name: `Number${nextIndex}`,
+            //         selected: true,
+            //         rows,
+            //     },
+            // ]);
+            setPackages([])
         } catch (e) {
             setError("No se pudo cargar la información de iteraciones.");
             console.error(e);
@@ -139,7 +140,7 @@ const IterationDataPage = () => {
     };
     const [openMenu, setOpenMenu] = useState<string | null>(null);
 
-
+    
     return (
         <DashboardHeader pageType="api">
             {packages.length === 0 ? (
@@ -176,7 +177,7 @@ const IterationDataPage = () => {
                     {/* 🔹 SOLO aparece si hay packages */}
 
 
-                    <div className="space-y-6 max-w-3xl mx-auto">
+                    <div className="space-y-6 w-full lg:w-1/2 mx-auto">
                         <h1 className="text-2xl font-bold text-[#0A2342]">Data packages</h1>
                         <p className="text-[#7B8CA6] mb-6">
                             Selected sets will be used in iterations.
@@ -206,46 +207,46 @@ const IterationDataPage = () => {
                                     </div>
                                     {/* 🔹 Botón Delete package con estilo */}
                                     <div className="relative">
-  {/* Botón ⋮ */}
-  <button
-    onClick={() => setOpenMenu(openMenu === pkg.id ? null : pkg.id)}
-    className="p-2 rounded-full hover:bg-gray-100"
-  >
-    <MoreVertical className="h-5 w-5 text-gray-600" />
-  </button>
+                                        {/* Botón ⋮ */}
+                                        <button
+                                            onClick={() => setOpenMenu(openMenu === pkg.id ? null : pkg.id)}
+                                            className="p-2 rounded-full hover:bg-gray-100"
+                                        >
+                                            <MoreVertical className="h-5 w-5 text-gray-600" />
+                                        </button>
 
-  {/* Dropdown */}
-  {openMenu === pkg.id && (
-    <div className="absolute right-0 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg z-10">
-      {/* Duplicate */}
-      <button
-        onClick={() => {
-          const duplicate = {
-            ...pkg,
-            id: crypto.randomUUID(),
-            name: pkg.name + " Copy",
-          };
-          setPackages((prev) => [...prev, duplicate]);
-          setOpenMenu(null);
-        }}
-        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-[#0A2342] hover:bg-gray-50"
-      >
-        📑 Duplicate
-      </button>
+                                        {/* Dropdown */}
+                                        {openMenu === pkg.id && (
+                                            <div className="absolute right-0 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg z-10">
+                                                {/* Duplicate */}
+                                                <button
+                                                    onClick={() => {
+                                                        const duplicate = {
+                                                            ...pkg,
+                                                            id: crypto.randomUUID(),
+                                                            name: pkg.name + " Copy",
+                                                        };
+                                                        setPackages((prev) => [...prev, duplicate]);
+                                                        setOpenMenu(null);
+                                                    }}
+                                                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-[#0A2342] hover:bg-gray-50"
+                                                >
+                                                    <CopyPlus className="w-4 h-4"/> Duplicate
+                                                </button>
 
-      {/* Delete */}
-      <button
-        onClick={() => {
-          deletePackage(pkg.id);
-          setOpenMenu(null);
-        }}
-        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-      >
-        🗑 Delete
-      </button>
-    </div>
-  )}
-</div>
+                                                {/* Delete */}
+                                                <button
+                                                    onClick={() => {
+                                                        deletePackage(pkg.id);
+                                                        setOpenMenu(null);
+                                                    }}
+                                                    className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                                                >
+                                                    <Trash2Icon className="w-4 h-4"/> Delete
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
 
 
 
@@ -253,9 +254,9 @@ const IterationDataPage = () => {
 
                                 {/* Columnas */}
 
-                                <div className="mt-4 space-y-2">
+                                <div className="mt-4 flex flex-col gap-2">
                                     {pkg.rows.map((row, i) => (
-                                        <div key={i} className="flex gap-2">
+                                        <div key={i} className="flex gap-2 items-center">
                                             <TextInputWithClearButton
                                                 id={`row-variable-${pkg.id}-${i}`}
                                                 type="text"
@@ -264,7 +265,6 @@ const IterationDataPage = () => {
                                                 onChangeHandler={(e) => updateRow(pkg.id, i, "variable", e.target.value)}
                                                 placeholder="Enter variable"
                                                 label="Variable"
-                                                className="flex-1"
                                             />
                                             <TextInputWithClearButton
                                                 id={`row-value-${pkg.id}-${i}`}
@@ -274,13 +274,12 @@ const IterationDataPage = () => {
                                                 onChangeHandler={(e) => updateRow(pkg.id, i, "value", e.target.value)}
                                                 placeholder="Enter value"
                                                 label="Value"
-                                                className="flex-1"
                                             />
                                             <button
                                                 onClick={() => deleteRow(pkg.id, i)}
                                                 className="px-2"
                                             >
-                                                🗑
+                                                <Trash2Icon className="w-5 h-5 text-primary/80" />
                                             </button>
                                         </div>
                                     ))}
