@@ -293,7 +293,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
                                         </SyntaxHighlighter>
                                        
                                     </TabsContent>
-
+                                                    
                                     <TabsContent value="environment" className="px-2 py-2">
                                         {Object.keys(step.apisScriptsResult?.environment?.environment || {}).length === 0 && (
                                             <p className="text-sm text-gray-500">No environment variables available.</p>

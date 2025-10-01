@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import axios from "axios";
 import { URL_API_ALB } from "@/config";
 import { toast } from "sonner";
+import { checkConnection } from "@/utils/DBBUtils";
 
 type GetParams = { teamId: number; collectionUid: string };
 
@@ -21,26 +22,21 @@ export const useFetchCollection = () => {
 
     setLoading((p) => ({ ...p, [collectionUid]: true }));
 
-    const p = axios
-      .get(`${URL_API_ALB}getPostmanCollection`, {
-        params: { teamId, collectionUid },
-      })
-      .then((res) => {
-        const data = res.data;
-        setCache((prev) => ({ ...prev, [collectionUid]: data }));
-        return data;
-      })
-      .catch((err) => {
-        toast.error("Failed to fetch collection");
-        throw err;
-      })
-      .finally(() => {
-        setLoading((p) => ({ ...p, [collectionUid]: false }));
-        delete inflight.current[collectionUid];
-      });
-
-    inflight.current[collectionUid] = p;
-    return p;
+    try {
+      await checkConnection()
+      const res = await axios.post(`${URL_API_ALB}getPostmanCollection`,
+        { teamId, collectionUid },
+      );
+      const data = res.data;
+      setCache((prev) => ({ ...prev, [collectionUid]: data }));
+      return data;
+    } catch (error) {
+      toast.error("Failed to fetch collection");
+      throw error;
+    }finally{
+      setLoading((p) => ({ ...p, [collectionUid]: false }));
+      delete inflight.current[collectionUid];
+    }
   };
 
   return { getCollection, cache, loading };

@@ -19,14 +19,14 @@ export const useFetchElementsPostman = () => {
   const [elements, setElements] = useState<TeamsShape | null>(null);
 
   useEffect(() => {
-    const ac = new AbortController();
+    const controller = new AbortController();
 
     (async () => {
       try {
 
         await checkConnection()
         const response = await axios.get(`${URL_API_ALB}getPostmanElements`, {
-          signal: ac.signal as any,
+          signal: controller.signal as any,
         });
         setElements(response.data);
       } catch (error: any) {
@@ -36,7 +36,7 @@ export const useFetchElementsPostman = () => {
       }
     })();
 
-    return () => ac.abort();
+    return () => controller.abort();
   }, []);
 
   return { elements };

@@ -4,14 +4,18 @@ import Image from "next/image";
 import TextInputWithClearButton from "@/app/components/InputClear";
 import { SearchField } from "@/app/components/SearchField";
 import { DashboardHeader } from "@/app/Layouts/main";
-import { ChevronRight, ChevronDown, Folder, Trash2Icon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ChevronRight, ChevronDown, Folder, Trash2Icon, FolderIcon, Play } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import colletEmptyState from "../../../assets/apisImages/select-collection.svg"
 import TooltipLocation from "@/app/components/ToolTip";
 import JSONEditor from "../components/JsonEditor";
 import { httpMethodsStyle } from "../utils/colorMethods";
 import { useFetchElementsPostman } from "./hooks/useFetchElementsPostman";
 import { useFetchCollection } from "./hooks/useFetchCollection";
+import SyntaxHighlighter from "react-syntax-highlighter";
+import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { tomorrow } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { TbBrandGraphql, TbCodeVariablePlus } from "react-icons/tb";
 
 const listCollections = [
     { name: "Interface Mocks 1", team: "Team A", origin: "Postman" },
@@ -21,6 +25,37 @@ const listCollections = [
     { name: "Collection 5", team: "Team B", origin: "Postman" },
 ];
 
+type Detail = {
+    key: string;
+    uid: string;
+    name: string;
+    teamId: number | string;
+    data: any;
+};
+
+
+const parseMaybeJson = (val: unknown) => {
+    if (val == null) return null;
+    if (typeof val === "object") return val as any;
+    if (typeof val !== "string") return null;
+
+    try {
+        const once = JSON.parse(val);
+        if (typeof once === "string") {
+            try { return JSON.parse(once); } catch { return once; }
+        }
+        return once;
+    } catch {
+        try {
+            const normalized = val
+                .replace(/(['"])?([a-zA-Z0-9_]+)\1\s*:/g, '"$2":')
+                .replace(/'/g, '"');
+            return JSON.parse(normalized);
+        } catch {
+            return null;
+        }
+    }
+};
 const CollectionsPage = () => {
     const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
     const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
@@ -33,36 +68,38 @@ const CollectionsPage = () => {
         collection: string;
         method: string;
         response: any;
+        node: any;
     }>(null);
 
     const [requestUrl, setRequestUrl] = useState<string>("");
     const [requestHeaders, setRequestHeaders] = useState<Array<{ key: string; value: string }>>([{ key: "", value: "" }]);
     const [isRequestRunning, setIsRequestRunning] = useState<boolean>(false);
-    const [collectionQuery, setCollectionQuery] = useState<string>("");           // solo para buscar por nombre
-    const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null); // ID/UID real del workspace
-    const [selectedCollectionUid, setSelectedCollectionUid] = useState<string | null>(null); // UID real de la colección
-
+    const [collectionQuery, setCollectionQuery] = useState<string>("");
+    const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
+    const [selectedCollectionUid, setSelectedCollectionUid] = useState<string | null>(null);
+    const [loadingByCollection, setLoadingByCollection] = useState<Record<string, boolean>>({});
     const { elements: elementsPostman } = useFetchElementsPostman();
+    const [dataDetailCollection, setDataDetailCollection] = useState<any[]>([]);
+    const [openFolder, setOpenFolder] = useState<Record<string, boolean>>({});
+    const [activeTab, setActiveTab] = useState<"request" | "header">("request");
+    const [activeTabRequest, setActiveTabRequest] = useState<"graphql" | "variables">("graphql");
     const { getCollection, cache: collectionsCache, loading: loadingCollection } =
         useFetchCollection();
 
+
     const teams = [{ name: "Team A" }, { name: "Team B" }, { name: "Team C" }];
     const typeOrigin = [{ name: "Postman" }, { name: "BD" }];
+    const [dataDetailCollections, setDataDetailCollections] = useState<
+        Array<{ key: string; uid: string; name: string; teamId: string | number; data: any }>
+    >([]);
 
-    const toggleCollection = (name: string) => {
-        setOpenCollection((prev) => ({ ...prev, [name]: !prev[name] }));
-    };
-
-    const toggleCoreApi = (collectionName: string) => {
-        setOpenCoreApi((prev) => ({ ...prev, [collectionName]: !prev[collectionName] }));
-    };
-
-    const selectRequest = (collectionName: string, methodName: string) => {
-
+    const selectRequest = (collectionName: string, methodName: string, node: any) => {
+        console.log("selectRequest", { collectionName, methodName, node });
         setSelectedRequest({
             collection: collectionName,
             method: methodName,
             response: null,
+            node
         });
 
         const defaultUrl = `http://localhost:3000/api/${collectionName.toLowerCase().replace(/\s+/g, "-")}`;
@@ -72,7 +109,6 @@ const CollectionsPage = () => {
 
         setIsOpen(false);
     };
-
 
     const runRequest = async (collectionName: string, methodName: string) => {
         try {
@@ -93,6 +129,7 @@ const CollectionsPage = () => {
                 collection: collectionName,
                 method: methodName,
                 response: mockResponse,
+                node: selectedRequest?.node || null,
             });
 
             setIsOpen(true);
@@ -116,24 +153,11 @@ const CollectionsPage = () => {
     const collectionUid = selectedCollection ?? "";
 
     useEffect(() => {
-        const loadCollection = async () => {
-            if (selectedTypeOrigin === "Postman") {
-                console.log("Loading collection for teamId:", teamId, "collectionUid:", collectionUid);
-
-                const test = await getCollection({ teamId, collectionUid });
-                console.log("Fetched collection:", test);
-            }
-
-        };
-        loadCollection();
-
-    }, [selectedTeam, selectedCollection, selectedTypeOrigin, teamId, collectionUid, getCollection]);
-
-    useEffect(() => {
         if (selectedTypeOrigin === "BD") {
             setSelectedTeam(null);
         }
     }, [selectedTypeOrigin]);
+
 
     const currentWs = elementsPostman?.teams?.[0].teamId
 
@@ -159,6 +183,186 @@ const CollectionsPage = () => {
         })();
     }, [selectedTypeOrigin]);
 
+    const resolvedTeamIdForApi = useMemo(() => {
+        if (!elementsPostman?.teams?.length) return undefined;
+
+        const teamWithWS = elementsPostman.teams.find((team: any) =>
+            team?.workspaces?.some(
+                (ws: any) => String(ws.id ?? ws.uid ?? ws.workspaceId) === String(selectedWorkspaceId)
+            )
+        );
+
+        return teamWithWS?.teamId ?? elementsPostman.teams[0].teamId;
+    }, [elementsPostman, selectedWorkspaceId]);
+
+    const handleOpenCollection = async (collection: any) => {
+        const name = String(collection?.name ?? "");
+        const uid = String(collection?.uid ?? collection?.id ?? collection?.collectionUid ?? "");
+
+        const willOpen = !openCollection[name];
+        setOpenCollection(prev => ({ ...prev, [name]: willOpen }));
+
+        if (!willOpen) return;
+        if (selectedTypeOrigin !== "Postman") {
+            console.log("[handleOpenCollection] abort: not Postman");
+            return;
+        }
+        if (!uid) {
+            console.log("[handleOpenCollection] abort: no uid");
+            return;
+        }
+        if (!resolvedTeamIdForApi) {
+            console.log("[handleOpenCollection] abort: no resolvedTeamIdForApi");
+            return;
+        }
+        if (loadingByCollection[name]) {
+            console.log("[handleOpenCollection] skip: already loading", name);
+            return;
+        }
+
+        const cacheKeyWithTeam = `${resolvedTeamIdForApi}:${uid}`;
+        const cacheKeyUidOnly = uid;
+
+        const cached =
+            collectionsCache?.[cacheKeyWithTeam] ??
+            collectionsCache?.[cacheKeyUidOnly];
+
+        const pushToStack = (data: any) => {
+            setDataDetailCollections(prev => {
+                const exists = prev.some(
+                    x => x.key === cacheKeyWithTeam || x.key === cacheKeyUidOnly || x.uid === uid
+                );
+                if (exists) return prev;
+                return [{ key: cacheKeyWithTeam, uid, name, teamId: resolvedTeamIdForApi, data }, ...prev];
+            });
+        };
+
+        try {
+            if (cached) {
+                console.log("[handleOpenCollection] using cache:", cached);
+                pushToStack(cached);
+                return;
+            }
+
+            console.log("[handleOpenCollection] fetching:", {
+                teamId: resolvedTeamIdForApi,
+                collectionUid: uid
+            });
+
+            setLoadingByCollection(prev => ({ ...prev, [name]: true }));
+
+            const resp = await getCollection({
+                teamId: resolvedTeamIdForApi as any,
+                collectionUid: uid
+            });
+
+            const data = resp?.data ?? resp;
+            console.log("[handleOpenCollection] fetched OK");
+            pushToStack(data);
+        } catch (err) {
+            console.error("[handleOpenCollection] getCollection error:", err);
+        } finally {
+            setLoadingByCollection(prev => ({ ...prev, [name]: false }));
+        }
+    };
+    console.log("dataDetailCollections:", dataDetailCollections);
+
+    const dataDetailByUid = useMemo<Record<string, Detail>>(
+        () =>
+            Object.fromEntries(
+                dataDetailCollections.map((dc) => [dc.uid, dc])
+            ),
+        [dataDetailCollections]
+    );
+
+    const folderKey = (colUid: string, path: string[]) =>
+        `${colUid}:${path.join("/")}`;
+
+    const toggleFolderOpen = (key: string) =>
+        setOpenFolder((prev) => ({ ...prev, [key]: !prev[key] }));
+
+    const renderNode = (
+        node: any,
+        colUid: string,
+        colName: string,
+        path: string[] = []
+    ): React.ReactNode => {
+        if (!node) return null;
+
+        const isFolder = Array.isArray(node.item) && !node.request;
+        const displayName = node.name ?? node.request?.url?.raw ?? "Untitled";
+
+        if (isFolder) {
+            const key = folderKey(colUid, [...path, displayName]);
+            const isOpen = !!openFolder[key];
+
+            return (
+                <li key={key} className="select-none">
+                    <div
+                        className="flex items-center gap-2 cursor-pointer text-primary/80"
+                        onClick={() => toggleFolderOpen(key)}
+                    >
+                        {isOpen ? (
+                            <ChevronDown className="w-4 h-4 text-primary" />
+                        ) : (
+                            <ChevronRight className="w-4 h-4 text-primary" />
+                        )}
+                        <Folder className="w-4 h-4 text-primary" />
+                        <span className="font-medium">{displayName}</span>
+                    </div>
+
+                    {isOpen && (
+                        <ul className="ml-5 mt-1 space-y-1">
+                            {node.item.map((child: any, idx: number) =>
+                                renderNode(child, colUid, colName, [...path, displayName, String(idx)])
+                            )}
+                        </ul>
+                    )}
+                </li>
+            );
+        }
+
+        const method = String(node?.request?.method ?? "GET").toUpperCase();
+        const reqKey = `${colUid}:${[...path, displayName].join("/")}`;
+
+
+        return (
+            <div key={reqKey} className="flex items-center gap-2">
+                <span
+                    className={`text-[10px] px-2 py-0.5 rounded ${httpMethodsStyle(method)}`}
+                    title={method}
+                >
+                    {method}
+                </span>
+
+                <button
+                    type="button"
+                    className="text-left truncate text-primary/85 font-medium"
+                    onClick={() => selectRequest(colName, displayName, node)}
+                    title={displayName}
+                >
+                    {displayName}
+                </button>
+            </div>
+        );
+    };
+
+    const renderCollectionTree = (colDetail: any, colUid: string, colName: string) => {
+        const items = colDetail?.data?.item ?? [];
+        if (!Array.isArray(items) || items.length === 0) {
+            return <p className="text-gray-500">No folders or requests</p>;
+        }
+        return (
+            <ul className="space-y-1">
+                {items.map((node: any, idx: number) =>
+                    renderNode(node, colUid, colName, [String(idx)])
+                )}
+            </ul>
+        );
+    };
+
+    const variablesRaw = selectedRequest?.node?.request?.body?.graphql?.variables;
+    const variablesParsed = useMemo(() => parseMaybeJson(variablesRaw), [variablesRaw]);
 
     return (
         <DashboardHeader pageType="api" callback={(mobileSidebarOpen) => {
@@ -210,191 +414,202 @@ const CollectionsPage = () => {
                     </div>
 
                     <div className="flex-1 p-4 overflow-y-auto">
-                        {selectedTeam &&
-                            Array.isArray(elementsPostman?.teams[0]?.workspaces?.find((t: any) => t.name === selectedTeam)?.collections) &&
-                            elementsPostman?.teams[0]?.workspaces?.find((t: any) => t.name === selectedTeam)?.collections?.length > 0 && (
-                                <>
-                                    {/* {elementsPostman?.teams[0]?.workspaces?.find((t: any) => t.name === selectedTeam)?.collections?.map((collection: any, idx: number) => (
-                                        <div key={idx} className="mb-2">
-                                            <div
-                                                className="flex items-center gap-2 text-primary/80 cursor-pointer select-none"
-                                                onClick={() => toggleCollection(collection.name)}
-                                            >
-                                                {openCollection[collection.name]
-                                                    ? <ChevronDown className="w-4 h-4 text-primary" />
-                                                    : <ChevronRight className="w-4 h-4 text-primary" />
-                                                }
-                                                <p className="text-sm">{collection.name}</p>
-                                            </div>
+                        {elementsPostman?.teams[0]?.workspaces?.find((t: any) => t.id === selectedWorkspaceId)?.collections?.length && (
+                            <>
+                                {elementsPostman?.teams[0]?.workspaces
+                                    ?.find((t: any) => t.id === selectedWorkspaceId)
+                                    ?.collections
+                                    ?.filter((c: any) =>
+                                        collectionQuery ? c.name?.toLowerCase().includes(collectionQuery.toLowerCase()) : true
+                                    )
+                                    ?.map((collection: any, idx: number) => {
+                                        const isOpen = !!openCollection[collection.name];
+                                        const isLoading = !!loadingByCollection[collection.name];
+                                        return (
+                                            <div key={idx} className="mb-2">
+                                                <div
+                                                    className="flex items-center gap-2 text-primary/80 cursor-pointer select-none"
+                                                    onClick={() => handleOpenCollection(collection)}
+                                                >
+                                                    {isOpen
+                                                        ? <ChevronDown className="w-4 h-4 text-primary" />
+                                                        : <ChevronRight className="w-4 h-4 text-primary" />
+                                                    }
+                                                    <p className="text-sm">{collection.name}</p>
 
-                                            {openCollection[collection.name] && (
-                                                <div className="ml-5 mt-1">
-                                                    <div
-                                                        className="flex items-center gap-2 text-primary/80 cursor-pointer"
-                                                        onClick={() => toggleCoreApi(collection.name)}
-                                                    >
-                                                        {openCoreApi[collection.name]
-                                                            ? <ChevronDown className="w-4 h-4 text-primary" />
-                                                            : <ChevronRight className="w-4 h-4 text-primary" />
-                                                        }
-                                                        <Folder className="w-4 h-4 text-primary" />
-                                                        <p className="text-sm">CoreAPI</p>
-                                                    </div>
-
-                                                    {openCoreApi[collection.name] && (
-                                                        <div className="ml-6 mt-2 flex flex-col gap-2">
-                                                            {httpMethods.map((method, i) => (
-                                                                <div
-                                                                    key={i}
-                                                                    onClick={() => { selectRequest(collection.name, method.name); runRequest(collection.name, method.name); }}
-                                                                    className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded-md"
-                                                                >
-                                                                    <span className={`px-2 py-0.5 rounded-md font-semibold text-xs ${method.color}`}>
-                                                                        {method.name}
-                                                                    </span>
-                                                                    <span className="text-gray-700">{method.text}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
+                                                    {isLoading && (
+                                                        <span className="ml-2 text-xs text-primary/70 animate-pulse">
+                                                            loading...
+                                                        </span>
                                                     )}
                                                 </div>
-                                            )}
-                                        </div>
-                                    ))} */}
 
-                                    {/* {selectedWorkspaceId && Array.isArray(currentWs?.collections) && currentWs.collections.length > 0 && (
-                                        <>
-                                            {currentWs.collections
-                                                .filter((c: any) => collectionQuery ? c.name?.toLowerCase().includes(collectionQuery.toLowerCase()) : true)
-                                                .map((collection: any, idx: number) => (
-                                                    <div key={idx} className="mb-2">
-                                                        <div
-                                                            className="flex items-center gap-2 text-primary/80 cursor-pointer select-none"
-                                                            onClick={() => toggleCollection(collection.name)}
-                                                        >
-                                                            {openCollection[collection.name]
-                                                                ? <ChevronDown className="w-4 h-4 text-primary" />
-                                                                : <ChevronRight className="w-4 h-4 text-primary" />
-                                                            }
-                                                            <p className="text-sm">{collection.name}</p>
-
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setSelectedCollectionUid(String(collection.uid ?? collection.id)); // <- CLAVE
-                                                                }}
-                                                                className="ml-auto text-xs px-2 py-1 border rounded hover:bg-gray-50"
-                                                                title="Select collection"
-                                                            >
-                                                                Select
-                                                            </button>
-                                                        </div>
-
-                                                        {openCollection[collection.name] && (
-                                                            <div className="ml-5 mt-1">
-                                                                <div
-                                                                    className="flex items-center gap-2 text-primary/80 cursor-pointer"
-                                                                    onClick={() => toggleCoreApi(collection.name)}
-                                                                >
-                                                                    {openCoreApi[collection.name]
-                                                                        ? <ChevronDown className="w-4 h-4 text-primary" />
-                                                                        : <ChevronRight className="w-4 h-4 text-primary" />
-                                                                    }
-                                                                    <Folder className="w-4 h-4 text-primary" />
-                                                                    <p className="text-sm">CoreAPI</p>
-                                                                </div>
-                                                            </div>
-                                                        )}
+                                                {isOpen && (
+                                                    <div className="ml-6 mt-2 text-sm text-gray-600">
+                                                        {dataDetailByUid?.[String(collection.uid)]
+                                                            ? renderCollectionTree(
+                                                                dataDetailByUid[String(collection.uid)],
+                                                                String(collection.uid),
+                                                                String(collection.name)
+                                                            )
+                                                            : <p className="text-gray-500">Loading…</p>}
                                                     </div>
-                                                ))}
-                                        </>
-                                    )} */}
-                                </>
-                            )}
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                            </>
+                        )}
                     </div>
                 </div>
 
-                <div className="flex-1 flex flex-col gap-4 overflow-hidden">
-                    <div className="flex-1 flex border border-primary/20 rounded-md bg-white shadow-sm overflow-hidden">
+                <div className="flex h-full w-full flex-col gap-4 overflow-hidden flex-wrap-col">
+                    <div className="flex w-full h-full border border-primary/20 rounded-md bg-white shadow-sm justify-center max-h-2/3">
                         {selectedRequest ? (
-                            <div className="w-full p-6 overflow-y-auto">
-                                <div className="max-w-3xl">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h2 className="text-lg font-semibold">
-                                            {selectedRequest.collection}
+                            <div className="flex justify-center self-center place-content-center w-full p-6 overflow-y-auto">
+                                <div className="w-2/3 py-2">
+                                    <div className="flex flex-col gap-2 mb-4">
+                                        <div className="flex items-center text-lg font-semibold text-primary/80">
+                                            {selectedRequest?.node?.name}
                                             <span
-                                                className={`ml-2 text-xs px-2 py-1 rounded ${httpMethodsStyle(selectedRequest.method)}`}
+                                                className={`ml-2 text-xs px-2 py-1 rounded ${httpMethodsStyle(selectedRequest?.node?.request?.method)}`}
                                             >
-                                                {selectedRequest.method}
+                                                {selectedRequest?.node?.request?.method ?? "GET"}
                                             </span>
-                                        </h2>
-                                    </div>
-                                    <div>
-                                        <TextInputWithClearButton
-                                            id="request-url"
-                                            type="text"
-                                            inputMode="text"
-                                            value={requestUrl}
-                                            onChangeHandler={(e) => setRequestUrl(e.target.value)}
-                                            placeholder="Enter request URL"
-                                            label="Enter request URL"
-                                        />
+                                        </div>
+                                        <p className="text-gray-500">Set the information for this collection below</p>
                                     </div>
 
-                                    <div className="mt-4">
-                                        <h2 className="text-sm text-slate-600 mb-2">Headers</h2>
-                                        <div className="flex flex-col gap-2">
-                                            {requestHeaders.map((h, i) => (
-                                                <div key={i} className="flex gap-2 w-full items-start">
-                                                    <div className="flex-1">
-                                                        <TextInputWithClearButton
-                                                            id={`header-key-${i}`}
-                                                            type="text"
-                                                            inputMode="text"
-                                                            value={h.key}
-                                                            onChangeHandler={(e) => {
-                                                                const arr = [...requestHeaders];
-                                                                arr[i].key = e.target.value;
-                                                                setRequestHeaders(arr);
-                                                            }}
-                                                            placeholder="Enter key"
-                                                            label="Key"
-                                                        />
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <TextInputWithClearButton
-                                                            id={`header-value-${i}`}
-                                                            type="text"
-                                                            inputMode="text"
-                                                            value={h.value}
-                                                            onChangeHandler={(e) => {
-                                                                const arr = [...requestHeaders];
-                                                                arr[i].value = e.target.value;
-                                                                setRequestHeaders(arr);
-                                                            }}
-                                                            placeholder="Enter value"
-                                                            label="Value"
-                                                        />
-                                                    </div>
-                                                    <button
-                                                        onClick={() => {
-                                                            const arr = requestHeaders.filter((_, idx) => idx !== i);
-                                                            setRequestHeaders(arr.length ? arr : [{ key: "", value: "" }]);
-                                                        }}
-                                                        className="mt-6 p-2 rounded-md hover:bg-gray-100"
-                                                    >
-                                                        <Trash2Icon className="w-5 h-5 text-primary/60 hover:text-red-700" />
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <button
-                                            onClick={() => setRequestHeaders([...requestHeaders, { key: "", value: "" }])}
-                                            className="text-blue-600 text-sm mt-2"
-                                        >
-                                            + Add header
+                                    <div className="flex justify-center gap-2 mb-6 text-primary/85">
+                                        <button onClick={() => setActiveTab("request")} className={`px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 ${activeTab === "request" ? "font-semibold bg-gray-200" : ""}`}>
+                                            Request
+                                        </button>
+                                        <button onClick={() => setActiveTab("header")} className={`px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 ${activeTab === "header" ? "font-semibold bg-gray-200" : ""}`}>
+                                            Header
                                         </button>
                                     </div>
+                                    {activeTab === "request" && (
+                                        <div>
+                                            <TextInputWithClearButton
+                                                id="request-url"
+                                                type="text"
+                                                inputMode="text"
+                                                value={selectedRequest?.node?.request?.url?.raw ?? requestUrl}
+                                                onChangeHandler={(e) => setRequestUrl(e.target.value)}
+                                                placeholder="Enter request URL"
+                                                label="Enter request URL"
+                                            />
+                                            {selectedRequest?.node?.request?.body?.mode === "graphql" && (
+                                                <div className="flex items-center gap-2 mt-4">
+                                                    <div onClick={() => setActiveTabRequest("graphql")} className="flex gap-2 bg-gray-200 px-3 py-2 text-[14px] rounded-3xl"><TbBrandGraphql className="text-primary/85 w-5 h-5" /> Query/Mutation</div>
+                                                    <div onClick={() => setActiveTabRequest("variables")} className="flex gap-2 bg-gray-200 px-3 py-2 text-[14px] rounded-3xl"><TbCodeVariablePlus className="text-primary/85 w-5 h-5" /> Variables</div>
+                                                </div>
+                                            )}
+
+                                            {
+                                                activeTabRequest === "graphql" && (
+                                                    <>
+                                                        {["POST", "PUT", "PATCH"].includes((selectedRequest?.node?.request?.method ?? "GET").toUpperCase()) && (
+
+                                                            <div className="max-h-[400px] overflow-y-auto">
+                                                                <SyntaxHighlighter
+                                                                    language={selectedRequest?.node?.request?.body?.mode === "graphql" ? "graphql" : "json"}
+                                                                    style={oneLight}
+                                                                    customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem", backgroundColor: "#F3F6F9", marginTop: "1rem" }}
+                                                                >
+                                                                    {selectedRequest?.node?.request?.body?.mode === "graphql"
+                                                                        ? selectedRequest?.node?.request?.body?.graphql.query ?? "// Request body"
+                                                                        : JSON.stringify(selectedRequest?.node?.request?.body?.raw, null, 2) ?? "// Request body"}
+                                                                </SyntaxHighlighter>
+                                                            </div>
+
+                                                        )}
+                                                    </>
+                                                )
+                                            }
+
+                                            {
+                                                activeTabRequest === "variables" && (
+                                                    <div className="max-h-[400px] overflow-y-auto">
+                                                        <SyntaxHighlighter
+                                                            language="json"
+                                                            style={oneLight}
+                                                            customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem", backgroundColor: "#F3F6F9", marginTop: "1rem" }}
+                                                        >
+                                                            {
+                                                                variablesParsed != null
+                                                                    ? JSON.stringify(variablesParsed, null, 2)
+                                                                    : (typeof variablesRaw === "string" ? variablesRaw : "{}")
+                                                            }
+                                                        </SyntaxHighlighter>
+                                                    </div>
+                                                )
+                                            }
+
+                                        </div>
+
+
+
+
+                                    )}
+
+                                    {activeTab === "header" && (
+                                        <div className="mt-4 w-full">
+                                            <h2 className="text-sm text-slate-600 mb-2">Headers</h2>
+                                            <div className="flex flex-col gap-2 w-full">
+                                                {requestHeaders.map((h, i) => (
+                                                    <div key={i} className="flex gap-2 w-full items-center">
+                                                        <div className="flex w-full">
+                                                            <TextInputWithClearButton
+                                                                id={`header-key-${i}`}
+                                                                type="text"
+                                                                inputMode="text"
+                                                                value={h.key}
+                                                                onChangeHandler={(e) => {
+                                                                    const arr = [...requestHeaders];
+                                                                    arr[i].key = e.target.value;
+                                                                    setRequestHeaders(arr);
+                                                                }}
+                                                                placeholder="Enter key"
+                                                                label="Key"
+                                                            />
+                                                        </div>
+                                                        <div className="flex w-full">
+                                                            <TextInputWithClearButton
+                                                                id={`header-value-${i}`}
+                                                                type="text"
+                                                                inputMode="text"
+                                                                value={h.value}
+                                                                onChangeHandler={(e) => {
+                                                                    const arr = [...requestHeaders];
+                                                                    arr[i].value = e.target.value;
+                                                                    setRequestHeaders(arr);
+                                                                }}
+                                                                placeholder="Enter value"
+                                                                label="Value"
+                                                            />
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                const arr = requestHeaders.filter((_, idx) => idx !== i);
+                                                                setRequestHeaders(arr.length ? arr : [{ key: "", value: "" }]);
+                                                            }}
+                                                            className="w-10 p-2 rounded-md hover:bg-gray-100"
+                                                        >
+                                                            <Trash2Icon className="w-5 h-5 text-primary/60 hover:text-red-700" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <button
+                                                onClick={() => setRequestHeaders([...requestHeaders, { key: "", value: "" }])}
+                                                className="text-blue-600 text-sm mt-2"
+                                            >
+                                                + Add header
+                                            </button>
+                                        </div>
+                                    )}
+
 
                                     <div className="pt-4">
                                         <button
@@ -422,7 +637,7 @@ const CollectionsPage = () => {
                         )}
                     </div>
 
-                    <div className="flex-1 border border-primary/20 rounded-md bg-white shadow-sm flex flex-col overflow-hidden">
+                    <div className="flex border h-full border-primary/20 rounded-md bg-white shadow-sm flex-col overflow-hidden">
                         <button
                             onClick={() => setIsOpen(!isOpen)}
                             className="flex-shrink-0 w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-slate-800 hover:bg-slate-50 border-b border-primary/10"
@@ -448,56 +663,9 @@ const CollectionsPage = () => {
                     </div>
                 </div>
             </div>
+
         </DashboardHeader>
     );
 };
 
 export default CollectionsPage;
-
-{/* {elementsPostman.teams[0].workspaces.filter((t:any) => t.name === selectedTeam)?.collections.map((collection:any, idx:number) => (
-                                <div key={idx} className="mb-2">
-                                    <div
-                                        className="flex items-center gap-2 text-primary/80 cursor-pointer select-none"
-                                        onClick={() => toggleCollection(collection.name)}
-                                    >
-                                        {openCollection[collection.name]
-                                            ? <ChevronDown className="w-4 h-4 text-primary" />
-                                            : <ChevronRight className="w-4 h-4 text-primary" />
-                                        }
-                                        <p className="text-sm">{collection.name}</p>
-                                    </div>
-
-                                    {openCollection[collection.name] && (
-                                        <div className="ml-5 mt-1">
-                                            <div
-                                                className="flex items-center gap-2 text-primary/80 cursor-pointer"
-                                                onClick={() => toggleCoreApi(collection.name)}
-                                            >
-                                                {openCoreApi[collection.name]
-                                                    ? <ChevronDown className="w-4 h-4 text-primary" />
-                                                    : <ChevronRight className="w-4 h-4 text-primary" />
-                                                }
-                                                <Folder className="w-4 h-4 text-primary" />
-                                                <p className="text-sm">CoreAPI</p>
-                                            </div>
-
-                                            {openCoreApi[collection.name] && (
-                                                <div className="ml-6 mt-2 flex flex-col gap-2">
-                                                    {httpMethods.map((method, i) => (
-                                                        <div
-                                                            key={i}
-                                                            onClick={() => { selectRequest(collection.name, method.name); runRequest(collection.name, method.name); }}
-                                                            className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded-md"
-                                                        >
-                                                            <span className={`px-2 py-0.5 rounded-md font-semibold text-xs ${method.color}`}>
-                                                                {method.name}
-                                                            </span>
-                                                            <span className="text-gray-700">{method.text}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            ))} */}
