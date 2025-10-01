@@ -32,7 +32,6 @@ const IterationDataPage = () => {
     const [loadingNewPackage, setLoadingNewPackage] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    //  Convierte los detalles de iteración en filas (VARIABLE / VALUE)
     const rowsFromIterationDetails = (detail: IterationDetailResponse): Row[] => {
         const rows: Row[] = [];
         for (const item of detail.iterationData) {
@@ -50,19 +49,16 @@ const IterationDataPage = () => {
         return rows;
     };
 
-    // 👉 Solo se llama cuando das clic en New package
     const handleNewPackage = async () => {
         setLoadingNewPackage(true);
         setError(null);
         try {
-            // 1) Obtener headers
             const { data: headers } = await axios.post<IterationHeader[]>(
                 `${URL_API_ALB}getIterationDataHeaders`,
                 {}
             );
             setAvailableHeaders(headers || []);
 
-            // 2) Obtener detalles de cada header
             const detailsEntries = await Promise.all(
                 (headers || []).map(async (h) => {
                     const { data } = await axios.post<IterationDetailResponse>(
@@ -75,7 +71,6 @@ const IterationDataPage = () => {
             const details = Object.fromEntries(detailsEntries);
             setIterationDetails(details);
 
-            // 3) Crear un package usando el primero que venga de la API
             const firstHeader = headers?.[0];
             const firstDetail = firstHeader ? details[firstHeader.id] : null;
             const rows = firstDetail ? rowsFromIterationDetails(firstDetail) : [];
@@ -98,7 +93,7 @@ const IterationDataPage = () => {
         }
     };
 
-    
+
     const addRow = (pkgId: string) =>
         setPackages((prev) =>
             prev.map((p) =>
@@ -179,12 +174,13 @@ const IterationDataPage = () => {
             ) : (
                 <>
                     {/* 🔹 SOLO aparece si hay packages */}
-                    <h1 className="text-2xl font-bold text-[#0A2342]">Data packages</h1>
-                    <p className="text-[#7B8CA6] mb-6">
-                        Selected sets will be used in iterations.
-                    </p>
 
-                    <div className="space-y-6">
+
+                    <div className="space-y-6 max-w-3xl mx-auto">
+                        <h1 className="text-2xl font-bold text-[#0A2342]">Data packages</h1>
+                        <p className="text-[#7B8CA6] mb-6">
+                            Selected sets will be used in iterations.
+                        </p>
                         {packages.map((pkg) => (
                             <div
                                 key={pkg.id}
@@ -209,22 +205,55 @@ const IterationDataPage = () => {
                                         />
                                     </div>
                                     {/* 🔹 Botón Delete package con estilo */}
-                                    <button
-                                        onClick={() => {
-                                            // aquí en vez de eliminar directo, abriremos el menú
-                                            setOpenMenu(openMenu === pkg.id ? null : pkg.id);
-                                        }}
-                                        className="p-2 rounded-full hover:bg-gray-100"
-                                    >
-                                        <MoreVertical className="h-5 w-5 text-gray-600" />
-                                    </button>
+                                    <div className="relative">
+  {/* Botón ⋮ */}
+  <button
+    onClick={() => setOpenMenu(openMenu === pkg.id ? null : pkg.id)}
+    className="p-2 rounded-full hover:bg-gray-100"
+  >
+    <MoreVertical className="h-5 w-5 text-gray-600" />
+  </button>
+
+  {/* Dropdown */}
+  {openMenu === pkg.id && (
+    <div className="absolute right-0 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg z-10">
+      {/* Duplicate */}
+      <button
+        onClick={() => {
+          const duplicate = {
+            ...pkg,
+            id: crypto.randomUUID(),
+            name: pkg.name + " Copy",
+          };
+          setPackages((prev) => [...prev, duplicate]);
+          setOpenMenu(null);
+        }}
+        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-[#0A2342] hover:bg-gray-50"
+      >
+        📑 Duplicate
+      </button>
+
+      {/* Delete */}
+      <button
+        onClick={() => {
+          deletePackage(pkg.id);
+          setOpenMenu(null);
+        }}
+        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+      >
+        🗑 Delete
+      </button>
+    </div>
+  )}
+</div>
+
 
 
                                 </div>
 
                                 {/* Columnas */}
 
-                                <div className="space-y-2">
+                                <div className="mt-4 space-y-2">
                                     {pkg.rows.map((row, i) => (
                                         <div key={i} className="flex gap-2">
                                             <TextInputWithClearButton
