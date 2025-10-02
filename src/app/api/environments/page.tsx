@@ -4,8 +4,9 @@ import TextInputWithClearButton from "@/app/components/InputClear";
 import { DashboardHeader } from "@/app/Layouts/main";
 import { URL_API_ALB } from "@/config";
 import axios from "axios";
-import { CircleAlert, Settings, X } from "lucide-react";
+import { CircleAlert, Settings, Trash2Icon, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import MoreMenu from "../components/MoreMenu";
 
 type EnvRow = {
     id: string;
@@ -309,6 +310,19 @@ const EnvironmentsPage = () => {
         setTimeout(() => setToastMsg(null), 4000);
     };
 
+    const deleteEnvironment = async (id: string) => {
+        try {
+            await axios.delete(`${URL_API_ALB}envs`, { data: { id } });
+            setEnvironments(prev => prev.filter(e => e.id !== id));
+            if (selectedEnvironment?.id === id) setSelectedEnvironment(null);
+            setToastMsg("Environment deleted successfully.");
+            setTimeout(() => setToastMsg(null), 4000);
+        } catch (e) {
+            setToastMsg("Error while deleting environment.");
+            setTimeout(() => setToastMsg(null), 4000);
+        }
+    };
+
     return (
         <DashboardHeader pageType="api" callback={setMobileSidebarOpen}>
             <div className="flex gap-2 w-full h-full overflow-hidden">
@@ -344,9 +358,9 @@ const EnvironmentsPage = () => {
                     )}
                 </div>
 
-                <div className="flex h-full w-full flex-col overflow-hidden">
+                <div className="flex h-full w-full flex-col overflow-hidden justify-center self-center items-center">
                     {selectedEnvironment ? (
-                        <div className="flex flex-col h-full overflow-hidden">
+                        <div className="flex flex-col h-full w-3/4 overflow-hidden justify-center">
                             <div className="px-6 pt-6 pb-3 flex items-center justify-between">
                                 <div>
                                     <h2 className="text-2xl font-bold text-primary/85">
@@ -354,6 +368,8 @@ const EnvironmentsPage = () => {
                                     </h2>
                                     <p className="text-sm text-gray-500">Edit variables and values</p>
                                 </div>
+
+
 
                                 <div className="flex items-center gap-4">
                                     {isDirty && (
@@ -375,6 +391,15 @@ const EnvironmentsPage = () => {
                                     >
                                         {saving ? "Saving..." : "Save"}
                                     </button>
+
+
+                                    <MoreMenu
+                                        disabled={saving}
+                                        onDelete={() => {
+                                            if (!selectedEnvironment) return;
+                                            deleteEnvironment(selectedEnvironment.id);
+                                        }}
+                                    />
                                 </div>
                             </div>
 
@@ -388,7 +413,11 @@ const EnvironmentsPage = () => {
                                     onChangeHandler={(e) => setQuery(e.target.value)}
                                 />
                             </div>
-
+                            {query.trim().length > 0 && filtered.length < rows.length && (
+                                <div className="pl-6 py-1 text-sm text-gray-500">
+                                    {filtered.length} result{filtered.length !== 1 ? "s" : ""}
+                                </div>
+                            )}
                             <div className="flex flex-col w-full h-full overflow-y-auto px-6">
                                 <div className="grid grid-cols-[28px_1fr_1fr] gap-3 py-2 text-xs text-gray-500">
                                     <div className="flex items-center">
@@ -405,6 +434,8 @@ const EnvironmentsPage = () => {
                                 </div>
 
                                 <div className="h-full flex flex-col gap-2 overflow-y-auto overflow-x-hidden">
+
+
                                     {filtered.map((r) => (
                                         <div
                                             key={r.id}
