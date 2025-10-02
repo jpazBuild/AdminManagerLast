@@ -8,9 +8,9 @@ import axios from "axios";
 import { FaSearch } from "react-icons/fa";
 import { toast } from "sonner";
 import { FiPlay } from "react-icons/fi";
-import TestCaseList from "../components/TestCaseList";
-import TestSettings from "../components/TestSettings";
-import TestReports from "../components/TestReports";
+import TestCaseList from "./components/TestCaseList";
+import TestSettings from "./components/TestSettings";
+import TestReports from "./components/TestReports";
 import NoData from "../components/NoData";
 import { useTestExecution } from "../hooks/useTestExecution";
 import { URL_API_ALB } from "@/config";
@@ -317,10 +317,9 @@ const DashboardPage = () => {
             if (groupId) searchParams.groupId = await groupId;
             if (moduleId) searchParams.moduleId = await moduleId;
             if (submoduleId) searchParams.subModuleId = await submoduleId;
-            if (searchTestCaseName) searchParams.name = await searchTestCaseName;
+            if (searchTestCaseName) searchParams.partialName = await searchTestCaseName;
             if (selectedCreatedBy && selectedCreatedBy !== "All") searchParams.createdBy = await getUserIdByName(selectedCreatedBy);
 
-            console.log("Searching with params:", searchParams);
             
             const response = await axios.post(`${URL_API_ALB}getTestHeaders`, await searchParams);
 
@@ -421,14 +420,13 @@ const DashboardPage = () => {
         runSingleTest(test, perTestData, isHeadless);
     }, [runSingleTest, testData, isHeadless]);
 
-    //busqueda de id por name de usuario
     const getUserIdByName = useCallback((name: string) => {
         const user = users.find((u) => u.name === name);
         return user ? user.id : null;
     }, [users]);
     return (
-        <DashboardHeader onDarkModeChange={handleDarkModeChange}>
-            <div className={`p-4 flex justify-center items-center w-full flex-col gap-4 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-primary"} transition-colors duration-300`}>
+        <DashboardHeader typeFixed={false} onDarkModeChange={handleDarkModeChange}>
+            <div className={`p-4 flex justify-center items-center w-full h-full flex-col gap-4 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-primary"} transition-colors duration-300`}>
                 <div className="w-full lg:w-2/3 flex flex-col gap-4 mb-4 mt-2 justify-center items-center">
                     <h2 className="font-medium tracking-wide text-center text-[20px] w-full">Find test cases</h2>
 

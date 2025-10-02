@@ -3,12 +3,12 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { FaChevronDown, FaChevronUp } from "react-icons/fa";
-import ReportUI from "./Report";
-import { useTestExecution } from "../hooks/useTestExecution";
+import ReportUI from "../../components/Report";
+import { useTestExecution } from "../../hooks/useTestExecution";
 import { StopCircle, Download as DownloadIcon, Play } from "lucide-react";
-import { handleDownloadHTMLReport, handleDownloadHTMLReportSingle } from "../hooks/HTMLReport";
+import { handleDownloadHTMLReport, handleDownloadHTMLReportSingle } from "../../hooks/HTMLReport";
 import { handleDownloadPDFReport } from "@/lib/PDFReport";
-import { ExecutionSummary } from "./ExecutionSummary";
+import { ExecutionSummary } from "../../components/ExecutionSummary";
 import { downloadRenderedHtml, downloadRenderedPdf } from "./ReportsHistoricTestCaseList";
 import { flushSync } from "react-dom";
 
@@ -178,8 +178,10 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
         setLoading((prev: any) => ({ ...prev, ...newLoading }));
     };
 
+    console.log("stepMap final", stepMap);
+    
     return (
-        <div className="space-y-6 mt-6">
+        <div className="space-y-6 mt-6 flex flex-col overflow-y-auto">
             {totalTests > 0 && (
                 <div className="space-y-2">
                     <ExecutionSummary

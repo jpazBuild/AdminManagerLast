@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { DashboardHeader } from "../Layouts/main";
 import { URL_API_ALB } from "@/config";
-import { ChevronDown, ChevronUp, Download, Trash2, PencilLine, Save, X, ChevronRight, ArrowDown, ArrowUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash2, PencilLine, Save, X, ChevronRight, ArrowDown, ArrowUp, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -13,6 +13,8 @@ import { SearchField } from "../components/SearchField";
 import TextInputWithClearButton from "../components/InputClear";
 import AddCustomStep from "../components/AddCustomStep";
 import { FaSync } from "react-icons/fa";
+import CopyToClipboard from "../components/CopyToClipboard";
+import { Switch } from "@/components/ui/switch";
 
 type DynamicHeader = {
   id: string | number;
@@ -52,23 +54,14 @@ type EditForm = {
   dynamicData: any[];
 };
 
-const TAGS_TO_ARRAY = (s: string) =>
-  s
-    .split(",")
-    .map((t) => t.trim())
-    .filter(Boolean);
-
 const ARRAY_TO_TAGS = (arr: string[]) => arr?.join(", ") ?? "";
 
 const DynamicDataCrudPage = () => {
   const [darkMode, setDarkMode] = useState(false);
-
   const [dynamicDataHeaders, setDynamicDataHeaders] = useState<DynamicHeader[]>([]);
   const [loadingHeaders, setLoadingHeaders] = useState(false);
-
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [details, setDetails] = useState<Record<string, DetailState>>({});
-
   const [creating, setCreating] = useState(false);
   const [createForm, setCreateForm] = useState<CreateForm>({
     groupName: "",
@@ -78,34 +71,31 @@ const DynamicDataCrudPage = () => {
     createdBy: "",
     dynamicData: [],
   });
-
   const [tags, setTags] = useState<any[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [loadingCats, setLoadingCats] = useState(false);
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<EditForm | null>(null);
-  const isEditing = useMemo(() => !!editingId, [editingId]);
+  const [editingMap, setEditingMap] = useState<Record<string, boolean>>({});
+  const [editForms, setEditForms] = useState<Record<string, EditForm>>({});
+  const isEditing = (id: string | number) => !!editingMap[String(id)];
 
   const [editJsonTextMap, setEditJsonTextMap] = useState<Record<string, string>>({});
   const [editJsonErrorMap, setEditJsonErrorMap] = useState<Record<string, string | null>>({});
-
   const [createMode, setCreateMode] = useState<'dropzone' | 'editor'>('dropzone');
   const [createJsonText, setCreateJsonText] = useState<string>("[]");
   const [createJsonError, setCreateJsonError] = useState<string | null>(null);
   const [openDynamicIds, setOpenDynamicIds] = useState<Record<string, boolean>>({});
-  const [editViewMode, setEditViewMode] = useState<'json' | 'cards'>('json');
+  const [editViewMode, setEditViewMode] = useState<'json' | 'cards'>('cards');
   const [openEditItemIds, setOpenEditItemIds] = useState<Record<string, boolean>>({});
-
   const [showCustomDynamic, setShowCustomDynamic] = useState(false);
   const [insertAfterIndex, setInsertAfterIndex] = useState<number | null>(null);
-
 
   const toggleDynamicId = (id: string | number) => {
     const k = String(id);
     setOpenDynamicIds(prev => ({ ...prev, [k]: !prev[k] }));
   };
+
   useEffect(() => {
     fetchHeaders();
     fetchCatalogs();
@@ -128,7 +118,6 @@ const DynamicDataCrudPage = () => {
       setGroups(Array.isArray(groupsRes.data) ? groupsRes.data : []);
       setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
     } catch (e) {
-      console.error(e);
       toast.error("No se pudieron cargar Tags/Groups/Users.");
     } finally {
       setLoadingCats(false);
@@ -144,8 +133,7 @@ const DynamicDataCrudPage = () => {
         typeof x === "string" ? { id: `idx-${idx}`, name: x } : x
       );
       setDynamicDataHeaders(normalized);
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast.error("No se pudieron cargar los headers.");
     } finally {
       setLoadingHeaders(false);
@@ -165,8 +153,8 @@ const DynamicDataCrudPage = () => {
         [key]: { loading: false, error: null, data: res.data },
       }));
       const pretty = JSON.stringify(res?.data?.dynamicData ?? [], null, 2);
-      setEditJsonTextMap((m) => ({ ...m, [key]: pretty })); // NEW
-      setEditJsonErrorMap((m) => ({ ...m, [key]: null })); // NEW
+      setEditJsonTextMap((m) => ({ ...m, [key]: pretty }));
+      setEditJsonErrorMap((m) => ({ ...m, [key]: null }));
     } catch (e: any) {
       setDetails((d) => ({
         ...d,
@@ -199,11 +187,11 @@ const DynamicDataCrudPage = () => {
       return;
     }
     if (!Array.isArray(createForm.dynamicData) || createForm.dynamicData.length === 0) {
-      toast.info("Cargá el JSON de dynamicData (arreglo de objetos) con el Dropzone.");
+      toast.info("Upload with JSON Dropzone or fill dynamicData with JSON.");
       return;
     }
     if (!createForm.createdBy) {
-      toast.info("Selecciona el Created By.");
+      toast.info("Select Created By.");
       return;
     }
 
@@ -233,7 +221,6 @@ const DynamicDataCrudPage = () => {
       });
       await fetchHeaders();
     } catch (e: any) {
-      console.error(e);
       toast.error(e?.response?.data?.error || "Can't create dynamic data.");
     } finally {
       setCreating(false);
@@ -243,10 +230,9 @@ const DynamicDataCrudPage = () => {
   const startEdit = (hdr: DynamicHeader, detail: any | null) => {
     const id = hdr.id;
     const key = String(id);
-    setEditingId(key);
-
+    setEditingMap(m => ({ ...m, [key]: true }));
     const dyn = detail?.dynamicData;
-    setEditForm({
+    const form: EditForm = {
       id,
       groupName: hdr.groupName ?? "",
       name: hdr.name ?? "",
@@ -254,16 +240,16 @@ const DynamicDataCrudPage = () => {
       tagNames: Array.isArray(hdr.tagNames) ? hdr.tagNames : [],
       createdBy: hdr.createdBy ?? hdr.createdByName ?? "",
       dynamicData: Array.isArray(dyn) ? dyn : [],
-    });
-
-    const pretty = JSON.stringify(Array.isArray(dyn) ? dyn : [], null, 2);
-    setEditJsonTextMap((m) => ({ ...m, [key]: pretty }));
-    setEditJsonErrorMap((m) => ({ ...m, [key]: null }));
+    };
+    setEditForms(f => ({ ...f, [key]: form }));
+    const pretty = JSON.stringify(form.dynamicData ?? [], null, 2);
+    setEditJsonTextMap(m => ({ ...m, [key]: pretty }));
+    setEditJsonErrorMap(m => ({ ...m, [key]: null }));
   };
 
-  const cancelEdit = () => {
-    setEditingId(null);
-    setEditForm(null);
+  const cancelEdit = (key: string) => {
+    setEditingMap(m => { const c = { ...m }; delete c[key]; return c; });
+    setEditForms(f => { const c = { ...f }; delete c[key]; return c; });
   };
 
   const applyEditJsonTextToState = (key: string) => {
@@ -271,19 +257,21 @@ const DynamicDataCrudPage = () => {
       const text = editJsonTextMap[key] ?? "[]";
       const parsed = JSON.parse(text);
       if (!Array.isArray(parsed)) throw new Error("JSON should be an array.");
-      setEditForm((f) => (f ? { ...f, dynamicData: parsed } : f));
-      setEditJsonErrorMap((m) => ({ ...m, [key]: null }));
+      setEditForms(fs => ({
+        ...fs,
+        [key]: { ...(fs[key] ?? {} as any), dynamicData: parsed }
+      }));
+      setEditJsonErrorMap(m => ({ ...m, [key]: null }));
       return true;
     } catch (err: any) {
-      setEditJsonErrorMap((m) => ({ ...m, [key]: err?.message || "JSON invalid" }));
+      setEditJsonErrorMap(m => ({ ...m, [key]: err?.message || "JSON invalid" }));
       return false;
     }
   };
 
-  const saveEdit = async () => {
-    if (!editForm) return;
-    const key = String(editForm.id);
-
+  const saveEdit = async (key: string) => {
+    const form = editForms[key];
+    if (!form) return;
     if (editViewMode === 'json') {
       const ok = applyEditJsonTextToState(key);
       if (!ok) {
@@ -293,34 +281,29 @@ const DynamicDataCrudPage = () => {
     } else {
       setEditJsonTextMap(m => ({
         ...m,
-        [key]: JSON.stringify(editForm.dynamicData ?? [], null, 2),
+        [key]: JSON.stringify(form.dynamicData ?? [], null, 2),
       }));
     }
-
-    const reindexedForSave = reindexDynamicData(editForm.dynamicData);
-
+    const reindexedForSave = reindexDynamicData((editForms[key]?.dynamicData) ?? []);
     const payload = {
-      id: editForm.id,
-      groupName: editForm.groupName,
-      name: editForm.name,
-      description: editForm.description,
-      tagNames: editForm.tagNames,
-      createdBy: editForm.createdBy,
+      id: form.id,
+      groupName: form.groupName,
+      name: form.name,
+      description: form.description,
+      tagNames: form.tagNames,
+      createdBy: form.createdBy,
       dynamicData: reindexedForSave,
-      updatedBy: editForm.createdBy
+      updatedBy: form.createdBy
     };
-
     try {
       await axios.patch(`${URL_API_ALB}dynamicData`, payload, {
         headers: { "Content-Type": "application/json" },
       });
       toast.success("Dynamic Data updated.");
-      setEditingId(null);
-      setEditForm(null);
+      cancelEdit(key);
       await fetchHeaders();
       if (expanded[key]) fetchDetail(payload.id);
     } catch (e: any) {
-      console.error(e);
       toast.error(e?.response?.data?.message || "Can't update dynamic data.");
     }
   };
@@ -338,7 +321,6 @@ const DynamicDataCrudPage = () => {
       });
       await fetchHeaders();
     } catch (e: any) {
-      console.error(e);
       toast.error(e?.response?.data?.message || "Can't delete dynamic data.");
     }
   };
@@ -415,9 +397,7 @@ const DynamicDataCrudPage = () => {
   const normalizeToDynamicItem = (raw: any) => {
     const base = (raw && typeof raw === 'object') ? raw : {};
     const { id, input: maybeInput, order: _ignoreOrder, ...rest } = base;
-
     const input = (maybeInput && typeof maybeInput === 'object') ? maybeInput : base;
-
     return {
       id: id,
       input,
@@ -426,26 +406,52 @@ const DynamicDataCrudPage = () => {
     };
   };
 
-
   const insertCustomDynamic = (rawItems: any[], afterIndex: number | null, docKey: string) => {
-    setEditForm(f => {
-      if (!f) return f;
-      const current = [...(f.dynamicData ?? [])];
+    setEditForms(fs => {
+      const currentForm = fs[docKey];
+      if (!currentForm) return fs;
+      const current = [...(currentForm.dynamicData ?? [])];
       const idx = afterIndex == null ? current.length : Math.min(Math.max(afterIndex + 1, 0), current.length);
       const items = rawItems.map(normalizeToDynamicItem);
-
       current.splice(idx, 0, ...items);
-
       const reindexed = reindexDynamicData(current);
-
-      setEditJsonTextMap(m => ({
-        ...m,
-        [docKey]: JSON.stringify(reindexed, null, 2),
-      }));
-
-      return { ...f, dynamicData: reindexed };
+      setEditJsonTextMap(m => ({ ...m, [docKey]: JSON.stringify(reindexed, null, 2) }));
+      return { ...fs, [docKey]: { ...currentForm, dynamicData: reindexed } };
     });
+    setShowCustomDynamic(false);
+    setInsertAfterIndex(null);
   };
+
+  const handleChangeView =
+    (docKey: string, form?: EditForm) =>
+      (mode: "json" | "cards") => {
+        switch (mode) {
+          case "json": {
+            setEditJsonTextMap((m) => ({
+              ...m,
+              [docKey]: JSON.stringify(form?.dynamicData ?? [], null, 2),
+            }));
+            setEditViewMode("json");
+            break;
+          }
+          case "cards": {
+            const ok = applyEditJsonTextToState(docKey);
+            if (!ok) break;
+            setEditForms((fs) => {
+              const current = fs[docKey];
+              if (!current) return fs;
+              const reindexed = reindexDynamicData(current.dynamicData);
+              setEditJsonTextMap((m) => ({
+                ...m,
+                [docKey]: JSON.stringify(reindexed, null, 2),
+              }));
+              return { ...fs, [docKey]: { ...current, dynamicData: reindexed } };
+            });
+            setEditViewMode("cards");
+            break;
+          }
+        }
+      };
   return (
     <DashboardHeader onDarkModeChange={setDarkMode}>
       <div className="p-4 space-y-6">
@@ -505,26 +511,26 @@ const DynamicDataCrudPage = () => {
             </div>
 
             <div className="md:col-span-2 flex flex-col">
-              <div className="flex items-center gap-2 mb-3">
+
+
+              <div className="flex items-center gap-2 mb-3 justify-center">
                 <button
                   type="button"
-                  className={`rounded-xl px-4 py-3 ${createMode === 'dropzone' ? 'bg-primary/90 text-white hover:bg-primary/80' : 'bg-white/90 text-primary/90 hover:text-primary/70'}`}
-
+                  className={`rounded-xl px-4 py-3 text-[14px] bg-primary/5 ${createMode === 'dropzone' ? ' text-primary border-b-4' : ' text-primary/90 '}`}
                   onClick={() => setCreateMode('dropzone')}
                 >
-                  Cargar JSON (Dropzone)
+                  Upload JSON (Dropzone)
                 </button>
                 <button
                   type="button"
-                  className={`rounded-xl px-4 py-3 ${createMode === 'editor' ? 'bg-primary/90 text-white hover:bg-primary/80' : 'bg-white/90 text-primary/90 hover:text-primary/70'}`}
+                  className={`rounded-xl px-4 py-3 text-[14px] bg-primary/5 ${createMode === 'editor' ? ' text-primary border-b-4' : ' text-primary/90 '}`}
                   onClick={() => setCreateMode('editor')}
                 >
-                  Editar JSON (Textarea)
+                  Edit JSON (Editor)
                 </button>
               </div>
 
-              <div className="mt-2 self-center w-full">
-
+              <div className="mt-2 self-center w-full flex flex-col justify-center">
                 {createMode === 'dropzone' ? (
                   <>
                     <div className="mt-2 self-center">
@@ -586,19 +592,15 @@ const DynamicDataCrudPage = () => {
                 )}
               </div>
 
-              {createMode === 'dropzone' && (
+              {createMode === 'dropzone' && createForm.dynamicData.length > 0 && (
                 <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3 max-h-64 overflow-auto">
                   <pre className="text-xs whitespace-pre-wrap break-all">
-                    {createForm.dynamicData.length
-                      ? JSON.stringify(createForm.dynamicData, null, 2)
-                      : ""}
+                    {createForm.dynamicData.length > 0 && (
+                      JSON.stringify(createForm.dynamicData, null, 2)
+                    )}
                   </pre>
                 </div>
-              )
-
-
-              }
-
+              )}
             </div>
           </div>
 
@@ -633,8 +635,7 @@ const DynamicDataCrudPage = () => {
             const key = String(id);
             const isOpen = !!expanded[key];
             const state = details[key];
-
-            console.log("editForm for key", key, editForm);
+            const ef = editForms[key];
 
             return (
               <div key={key} className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
@@ -672,7 +673,6 @@ const DynamicDataCrudPage = () => {
                       {!isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
                     </span>
                   </button>
-
                 </div>
 
                 {isOpen && (
@@ -686,8 +686,8 @@ const DynamicDataCrudPage = () => {
                             value={item.createdByName}
                             onChangeHandler={() => { }}
                             placeholder="Created by"
-                            disabled={true}
-                            readOnly={true}
+                            disabled
+                            readOnly
                           />
                         </div>
                       )}
@@ -699,26 +699,21 @@ const DynamicDataCrudPage = () => {
                             value={item.description}
                             onChangeHandler={() => { }}
                             placeholder="Description"
-                            disabled={true}
-                            readOnly={true}
+                            disabled
+                            readOnly
                           />
                         </div>
                       )}
-
                     </div>
 
-                    {!isEditing && (
+                    {!isEditing(item.id) && (
                       <div className="flex justify-end items-center mb-3 gap-2">
                         <Button
                           variant="outline"
                           className="rounded-xl px-3 py-2 border border-gray-300"
                           onClick={() => {
                             const st = details[key];
-                            if (!st?.data) {
-                              toast.info("Abre la tarjeta para cargar el detalle antes de editar.");
-                              toggleExpand(id);
-                              return;
-                            }
+                            if (!st?.data) { toast.info("Abre la tarjeta..."); toggleExpand(id); return; }
                             startEdit(item, st?.data);
                           }}
                           title="Editar"
@@ -743,16 +738,15 @@ const DynamicDataCrudPage = () => {
 
                     {!state?.loading && !state?.error && (
                       <>
-                        {(!isEditing || editingId !== key) && (
+                        {!isEditing(item.id) && (
                           <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 max-h-[700px] overflow-y-auto">
-
-                            {details[key]?.data?.dynamicData.length === 0 && (
+                            {!(details[key]?.data?.dynamicData || []).length && (
                               <p className="text-sm text-gray-500">No dynamicData available.</p>
                             )}
-
                             {(details[key]?.data?.dynamicData ?? []).map((obj: any, i: number) => {
                               const objId = String(obj?.id ?? i);
-                              const isOpen = !!openDynamicIds[objId];
+                              const open = !!openDynamicIds[objId];
+
 
                               return (
                                 <div
@@ -760,37 +754,28 @@ const DynamicDataCrudPage = () => {
                                   className="relative mb-3 rounded-md border border-gray-200 bg-gray-100 shadow-sm overflow-hidden py-4"
                                 >
                                   <div className="text-white/90 absolute top-0 left-0 bg-primary/90 p-2 rounded-l-md rounded-br-full text-[12px] font-semibold">{obj.order}</div>
-
                                   <button
                                     type="button"
                                     onClick={() => toggleDynamicId(objId)}
                                     className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-50 mt-2"
-                                    aria-expanded={isOpen}
+                                    aria-expanded={open}
                                     aria-controls={`dd-panel-${objId}`}
                                   >
-
                                     <div className="flex items-center gap-2 text-primary/80">
-                                      <span
-                                        className={`transition-transform duration-200 ${isOpen ? "rotate-90" : "rotate-0"}`}
-                                      >
+                                      <span className={`transition-transform duration-200 ${open ? "rotate-90" : "rotate-0"}`}>
                                         <ChevronRight className="w-5 h-5" />
                                       </span>
                                       <span className="font-medium text-sm">
                                         {obj?.id ?? `Item #${i + 1}`}
                                       </span>
                                     </div>
-
                                     <span className="text-xs text-gray-500">
                                       {Object.keys(obj.input ?? {}).length} fields
                                     </span>
                                   </button>
-
-                                  {isOpen && (
-                                    <div
-                                      id={`dd-panel-${objId}`}
-                                      className="px-3 pb-3"
-                                    >
-                                      {obj.input.length === 0 && (
+                                  {open && (
+                                    <div id={`dd-panel-${objId}`} className="px-3 pb-3">
+                                      {Object.keys(obj.input ?? {}).length === 0 && (
                                         <p className="text-sm text-gray-500">No fields available.</p>
                                       )}
                                       {Object.entries(obj.input ?? {}).map(([fieldKey, fieldVal]) => (
@@ -799,22 +784,8 @@ const DynamicDataCrudPage = () => {
                                             id={`${objId}-input-${fieldKey}`}
                                             label={fieldKey}
                                             value={String(fieldVal ?? "")}
-                                            readOnly={true}
-                                            onChangeHandler={(e) => {
-                                              const val = e.target.value;
-                                              setEditForm(f => {
-                                                if (!f) return f;
-                                                const arr = [...(f.dynamicData ?? [])];
-                                                const objToUpdate = { ...arr[i] };
-                                                objToUpdate.input = { ...objToUpdate.input, [fieldKey]: val };
-                                                arr[i] = objToUpdate;
-                                                setEditJsonTextMap(m => ({
-                                                  ...m,
-                                                  [key]: JSON.stringify(arr, null, 2),
-                                                }));
-                                                return { ...f, dynamicData: arr };
-                                              });
-                                            }}
+                                            readOnly
+                                            onChangeHandler={() => { }}
                                             placeholder={`Value for ${fieldKey}`}
                                           />
                                         </div>
@@ -824,47 +795,39 @@ const DynamicDataCrudPage = () => {
                                 </div>
                               );
                             })}
-
-
                           </div>
                         )}
 
-                        {isEditing && editingId === key && editForm && (
+                        {isEditing(item.id) && ef && (
                           <div className="mt-4 space-y-3">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-
                               <div>
                                 <TextInputWithClearButton
                                   label="Name"
                                   id={`edit-name-${key}`}
-                                  value={editForm.name}
+                                  value={ef.name}
                                   onChangeHandler={(e) =>
-                                    setEditForm((f) => (f ? { ...f, name: e.target.value } : f))
+                                    setEditForms(fs => ({ ...fs, [key]: { ...fs[key], name: e.target.value } }))
                                   }
                                   placeholder="Test Dynamic Data 1"
                                 />
                               </div>
-
                               <div className="md:col-span-2">
-
                                 <TextInputWithClearButton
                                   label="Description"
                                   id={`edit-description-${key}`}
-                                  value={editForm.description}
+                                  value={ef.description}
                                   onChangeHandler={(e) =>
-                                    setEditForm((f) =>
-                                      f ? { ...f, description: e.target.value } : f
-                                    )
+                                    setEditForms(fs => ({ ...fs, [key]: { ...fs[key], description: e.target.value } }))
                                   }
                                   placeholder="Descripción"
                                 />
                               </div>
-
                               <SearchField
                                 label="Group"
-                                value={editForm.groupName}
+                                value={ef.groupName}
                                 onChange={(v) =>
-                                  setEditForm((f) => (f ? { ...f, groupName: v } : f))
+                                  setEditForms(fs => ({ ...fs, [key]: { ...fs[key], groupName: v } }))
                                 }
                                 placeholder="Search group..."
                                 className="w-full"
@@ -874,11 +837,9 @@ const DynamicDataCrudPage = () => {
                               <div>
                                 <SearchField
                                   label="Tag"
-                                  value={ARRAY_TO_TAGS(editForm.tagNames)}
+                                  value={ARRAY_TO_TAGS(ef.tagNames)}
                                   onChange={(v) =>
-                                    setEditForm((f) =>
-                                      f ? { ...f, tagNames: v ? [v] : [] } : f
-                                    )
+                                    setEditForms(fs => ({ ...fs, [key]: { ...fs[key], tagNames: v ? [v] : [] } }))
                                   }
                                   placeholder="Search tag..."
                                   className="w-full"
@@ -886,13 +847,12 @@ const DynamicDataCrudPage = () => {
                                   options={tagOptions}
                                 />
                               </div>
-
                               <div>
                                 <SearchField
                                   label="Created By"
-                                  value={userIdToName[editForm.createdBy] || ""}
+                                  value={userIdToName[ef.createdBy] || ""}
                                   onChange={(v) =>
-                                    setEditForm((f) => (f ? { ...f, createdBy: v } : f))
+                                    setEditForms(fs => ({ ...fs, [key]: { ...fs[key], createdBy: v } }))
                                   }
                                   placeholder="Select user..."
                                   className="w-full"
@@ -901,262 +861,260 @@ const DynamicDataCrudPage = () => {
                                 />
                               </div>
                             </div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <button
-                                type="button"
-                                className={`${editViewMode === 'json' ? 'bg-primary/70 text-white hover:bg-primary/80' : 'bg-gray-100 text-primary/90 hover:text-primary/70'} rounded-xl px-4 py-2`}
 
-                                onClick={() => {
-                                  setEditJsonTextMap(m => ({
-                                    ...m,
-                                    [key]: JSON.stringify(editForm?.dynamicData ?? [], null, 2),
-                                  }));
-                                  setEditViewMode('json');
-                                }}
-                              >
-                                JSON
-                              </button>
-                              <button
-                                type="button"
-                                className={`${editViewMode === 'cards' ? 'bg-primary/70 text-white hover:bg-primary/80' : 'bg-gray-100 text-primary/90 hover:text-primary/70'} rounded-xl px-4 py-2`}
-
-                                onClick={() => {
-                                  const ok = applyEditJsonTextToState(key);
-                                  if (ok) {
-                                    setEditForm(f => {
-                                      if (!f) return f;
-                                      const reindexed = reindexDynamicData(f.dynamicData);
-                                      setEditJsonTextMap(m => ({
-                                        ...m,
-                                        [key]: JSON.stringify(reindexed, null, 2),
-                                      }));
-                                      return { ...f, dynamicData: reindexed };
-                                    });
-                                    setEditViewMode('cards');
-                                  }
-                                }}
-                              >
-                                UI
-                              </button>
-                            </div>
-                            <div>
-
-                              {editViewMode === 'json' ? (
-                                <>
-                                  <div className="flex items-center justify-between">
-                                    <Label className="text-primary/70">dynamicData</Label>
-                                    <span className="text-xs text-gray-500">Should be an array of objects</span>
-                                  </div>
-
-                                  <div className="max-h-[700px] flex overflow-y-auto">
-                                    <textarea
-                                      className="mt-3 w-full text-primary/90 bg-primary/5 max-h-[700px] overflow-y-auto resize-none rounded-xl border border-gray-300 px-3 py-2 font-mono text-xs"
-                                      value={editJsonTextMap[key] ?? "[]"}
-                                      rows={20}
-                                      onInput={(e) => {
-                                        const el = e.currentTarget;
-                                        el.style.height = "auto";
-                                        const newH = Math.min(el.scrollHeight, MAX_H);
-                                        el.style.height = `${newH}px`;
-                                        el.style.overflowY = el.scrollHeight > MAX_H ? "auto" : "hidden";
-                                      }}
-                                      onChange={(e) => {
-                                        const val = e.target.value;
-                                        setEditJsonTextMap((m) => ({ ...m, [key]: val }));
-                                        try {
-                                          const parsed = JSON.parse(val);
-                                          if (!Array.isArray(parsed)) throw new Error("JSON should be an array.");
-                                          setEditJsonErrorMap((m) => ({ ...m, [key]: null }));
-                                        } catch (err: any) {
-                                          setEditJsonErrorMap((m) => ({
-                                            ...m,
-                                            [key]: err?.message || "JSON invalid",
-                                          }));
-                                        }
-                                      }}
-                                      onBlur={() => applyEditJsonTextToState(key)}
-                                    />
-                                  </div>
-
-                                  {editJsonErrorMap[key] && (
-                                    <p className="mt-1 text-xs text-red-600">{editJsonErrorMap[key]}</p>
-                                  )}
-
-                                  <div className="mt-2">
-                                    <Button
-                                      variant="outline"
-                                      className="rounded-xl border border-gray-300"
-                                      onClick={() => {
-                                        const ok = applyEditJsonTextToState(key);
-                                        if (ok) toast.success("JSON applied to state.");
-                                      }}
-                                    >
-                                      Apply JSON
-                                    </Button>
-                                  </div>
-                                </>
-                              ) : (
-                                <div className="mt-2 space-y-3 max-h-[700px] overflow-y-auto">
-                                  {(editForm?.dynamicData ?? []).length === 0 && (
-                                    <p className="text-sm text-gray-500">No dynamicData available.</p>
-                                  )}
-
-                                  {(editForm?.dynamicData ?? []).map((obj: any, i: number) => {
-                                    const objId = String(obj?.id ?? `idx-${i}`);
-                                    const isOpen = !!openEditItemIds[objId];
-
-                                    const moveItem = (idx: number, dir: -1 | 1) => {
-                                      setEditForm(f => {
-                                        if (!f) return f;
-                                        const arr = [...(f.dynamicData ?? [])];
-                                        const newIdx = idx + dir;
-                                        if (newIdx < 0 || newIdx >= arr.length) return f;
-
-                                        [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
-
-                                        const reindexed = reindexDynamicData(arr);
-
-                                        const key = String(f.id);
-                                        setEditJsonTextMap(m => ({
-                                          ...m,
-                                          [key]: JSON.stringify(reindexed, null, 2),
-                                        }));
-
-                                        return { ...f, dynamicData: reindexed };
-                                      });
-                                    };
-
-                                    return (
-                                      <div
-                                        key={`${key}-card-${objId}`}
-                                        className="relative rounded-md border border-gray-200 shadow-sm overflow-hidden py-3 bg-gray-100"
-                                      >
-                                        <div className="text-white/90 absolute top-0 left-0 bg-primary/90 p-2 rounded-l-md rounded-br-full text-[12px] font-semibold">{obj.order}</div>
-
-                                        <div className="flex items-center justify-between px-3 py-2 mt-4">
-
-                                          <button
-                                            type="button"
-                                            onClick={() => toggleEditItem(objId)}
-                                            className="flex items-center gap-2 text-primary/80 hover:opacity-80"
-                                            aria-expanded={isOpen}
-                                            aria-controls={`edit-card-panel-${objId}`}
-                                          >
-                                            <span className={`transition-transform duration-200 ${isOpen ? "rotate-90" : "rotate-0"}`}>
-                                              <ChevronRight className="w-5 h-5" />
-                                            </span>
-                                            <span className="font-medium text-sm">
-                                              {obj?.id ?? `Item #${i + 1}`}
-                                            </span>
-                                          </button>
-
-                                          <div className="flex items-center gap-1">
-                                            <Button
-                                              type="button"
-                                              variant="outline"
-                                              className="h-8 w-8 p-0 rounded-lg"
-                                              onClick={() => moveItem(i, -1)}
-                                              disabled={i === 0}
-                                              title="Move up"
-                                            >
-                                              <ArrowUp className="w-4 h-4" />
-                                            </Button>
-                                            <Button
-                                              type="button"
-                                              variant="outline"
-                                              className="h-8 w-8 p-0 rounded-lg"
-                                              onClick={() => moveItem(i, +1)}
-                                              disabled={i === (editForm?.dynamicData?.length ?? 1) - 1}
-                                              title="Move down"
-                                            >
-                                              <ArrowDown className="w-4 h-4" />
-                                            </Button>
-                                          </div>
-                                        </div>
-
-                                        {isOpen && (
-                                          <div id={`edit-card-panel-${objId}`} className="px-3 pb-3">
-
-                                            {obj.input.length === 0 && (
-                                              <p className="text-sm text-gray-500">No input available.</p>
-                                            )}
-                                            {Object.entries(obj.input ?? {}).map(([fieldKey, fieldVal]) => (
-                                              <div key={`${objId}-field-${fieldKey}`} className="mb-2">
-                                                <TextInputWithClearButton
-                                                  id={`${objId}-input-${fieldKey}`}
-                                                  label={fieldKey}
-                                                  value={String(fieldVal ?? "")}
-                                                  onChangeHandler={(e) => {
-                                                    const val = e.target.value;
-                                                    setEditForm(f => {
-                                                      if (!f) return f;
-                                                      const arr = [...(f.dynamicData ?? [])];
-                                                      const objToUpdate = { ...arr[i] };
-                                                      objToUpdate.input = { ...objToUpdate.input, [fieldKey]: val };
-                                                      arr[i] = objToUpdate;
-                                                      setEditJsonTextMap(m => ({
-                                                        ...m,
-                                                        [key]: JSON.stringify(arr, null, 2),
-                                                      }));
-                                                      return { ...f, dynamicData: arr };
-                                                    });
-                                                  }}
-                                                  placeholder={`Value for ${fieldKey}`}
-                                                />
-                                              </div>
-                                            ))}
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-
-                                  <div className="flex mb-2">
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      className="rounded-xl"
-                                      onClick={() => {
-                                        setInsertAfterIndex(null);
-                                        setShowCustomDynamic(true);
-                                      }}
-                                    >
-                                      + Add item
-                                    </Button>
-                                  </div>
-                                  {showCustomDynamic && (
-                                    <AddCustomStep
-                                      setOpen={setShowCustomDynamic}
-                                      onAdd={(custom) => {
-                                        const toInsert = Array.isArray(custom) ? custom : [custom];
-                                        const docKey = String(editForm?.id ?? '');
-                                        insertCustomDynamic(toInsert, insertAfterIndex, docKey);
-                                      }}
-                                    />
-                                  )}
-
+                            {(() => {
+                              const onChangeView = handleChangeView(key, ef);
+                              const isCards = editViewMode === "cards";
+                              return (
+                                <div className="flex items-center gap-3 mb-2">
+                                  <span className={isCards ? "text-gray-500 text-sm" : "text-primary/90 text-sm border-b-2"}>JSON</span>
+                                  <Switch
+                                    checked={isCards}
+                                    onCheckedChange={(checked) => onChangeView(checked ? "cards" : "json")}
+                                  />
+                                  <span className={isCards ? "text-primary/90 text-sm border-b-2" : "text-gray-500 text-sm"}>UI</span>
                                 </div>
-                              )}
+                              );
+                            })()}
 
+                            {editViewMode === 'json' ? (
+                              <>
+                                <div className="flex items-center justify-between">
+                                  <Label className="text-primary/70">dynamicData</Label>
+                                  <span className="text-xs text-gray-500">Should be an array of objects</span>
+                                </div>
+                                <div className="max-h-[700px] flex overflow-y-auto">
+                                  <textarea
+                                    className="mt-3 w-full text-primary/90 bg-primary/5 max-h-[700px] overflow-y-auto resize-none rounded-xl border border-gray-300 px-3 py-2 font-mono text-xs"
+                                    value={editJsonTextMap[key] ?? "[]"}
+                                    rows={20}
+                                    onInput={(e) => {
+                                      const el = e.currentTarget;
+                                      el.style.height = "auto";
+                                      const newH = Math.min(el.scrollHeight, MAX_H);
+                                      el.style.height = `${newH}px`;
+                                      el.style.overflowY = el.scrollHeight > MAX_H ? "auto" : "hidden";
+                                    }}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setEditJsonTextMap((m) => ({ ...m, [key]: val }));
+                                      try {
+                                        const parsed = JSON.parse(val);
+                                        if (!Array.isArray(parsed)) throw new Error("JSON should be an array.");
+                                        setEditJsonErrorMap((m) => ({ ...m, [key]: null }));
+                                      } catch (err: any) {
+                                        setEditJsonErrorMap((m) => ({
+                                          ...m,
+                                          [key]: err?.message || "JSON invalid",
+                                        }));
+                                      }
+                                    }}
+                                    onBlur={() => applyEditJsonTextToState(key)}
+                                  />
+                                </div>
+                                {editJsonErrorMap[key] && (
+                                  <p className="mt-1 text-xs text-red-600">{editJsonErrorMap[key]}</p>
+                                )}
+                                <div className="mt-2">
+                                  <Button
+                                    variant="outline"
+                                    className="rounded-xl border border-gray-300"
+                                    onClick={() => {
+                                      const ok = applyEditJsonTextToState(key);
+                                      if (ok) toast.success("JSON applied to state.");
+                                    }}
+                                  >
+                                    Apply JSON
+                                  </Button>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="mt-2 space-y-3 max-h-[700px] overflow-y-auto">
+                                {(ef?.dynamicData ?? []).length === 0 && (
+                                  <p className="text-sm text-gray-500">No dynamicData available.</p>
+                                )}
+                                <div className="w-56 flex mb-2 gap-2 p-2 border border-dashed border-gray-300 rounded-xl">
+                                <CopyToClipboard
+                                  text={JSON.stringify(ef?.dynamicData ?? [], null, 2)}
+                                  isDarkMode={darkMode}
+                                />
+                                <p className="text-primary/70">Copy all dynamic data</p>
+                                </div>
+                                {(ef?.dynamicData ?? []).map((obj: any, i: number) => {
+                                  const objId = String(obj?.id ?? `idx-${i}`);
+                                  const open = !!openEditItemIds[objId];
 
-                              {editJsonErrorMap[key] && (
-                                <p className="mt-1 text-xs text-red-600">{editJsonErrorMap[key]}</p>
-                              )}
+                                  const moveItem = (idx: number, dir: -1 | 1) => {
+                                    setEditForms(fs => {
+                                      const f = fs[key]; if (!f) return fs;
+                                      const arr = [...(f.dynamicData ?? [])];
+                                      const newIdx = idx + dir;
+                                      if (newIdx < 0 || newIdx >= arr.length) return fs;
+                                      [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+                                      const reindexed = reindexDynamicData(arr);
+                                      setEditJsonTextMap(m => ({ ...m, [key]: JSON.stringify(reindexed, null, 2) }));
+                                      return { ...fs, [key]: { ...f, dynamicData: reindexed } };
+                                    });
+                                  };
 
-                            </div>
+                                 
+                                  const deleteItemAt = (idx: number) => {
+                                    setEditForms(fs => {
+                                      const f = fs[key]; if (!f) return fs;
+                                      const arr = [...(f.dynamicData ?? [])];
+                                      const removed = arr.splice(idx, 1);
+                                      const reindexed = reindexDynamicData(arr);
+                                      setEditJsonTextMap(m => ({ ...m, [key]: JSON.stringify(reindexed, null, 2) }));
+                                      setOpenEditItemIds(prev => {
+                                        const copy = { ...prev };
+                                        const rem = removed?.[0];
+                                        if (rem?.id) delete copy[String(rem.id)];
+                                        return copy;
+                                      });
+                                      return { ...fs, [key]: { ...f, dynamicData: reindexed } };
+                                    });
+                                  };
+
+                                  return (
+                                    <div
+                                      key={`${key}-card-${objId}`}
+                                      className="relative rounded-md border border-gray-200 shadow-sm overflow-hidden py-3 bg-gray-100"
+                                    >
+                                      <div className="text-white/90 absolute top-0 left-0 bg-primary/90 p-2 rounded-l-md rounded-br-full text-[12px] font-semibold">
+                                        {obj.order}
+                                      </div>
+
+                                      <div className="flex items-center justify-between px-3 py-2 mt-4">
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleEditItem(objId)}
+                                          className="flex items-center gap-2 text-primary/80 hover:opacity-80"
+                                          aria-expanded={open}
+                                          aria-controls={`edit-card-panel-${objId}`}
+                                        >
+                                          <span className={`transition-transform duration-200 ${open ? "rotate-90" : "rotate-0"}`}>
+                                            <ChevronRight className="w-5 h-5" />
+                                          </span>
+                                          <span className="font-medium text-sm">
+                                            {obj?.id ?? `Item #${i + 1}`}
+                                          </span>
+                                        </button>
+
+                                        <div className="flex items-center gap-1">
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="h-8 w-8 p-0 rounded-lg border-primary/50"
+                                            onClick={() => moveItem(i, -1)}
+                                            disabled={i === 0}
+                                            title="Move up"
+                                          >
+                                            <ArrowUp className="w-4 h-4" />
+                                          </Button>
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="h-8 w-8 p-0 rounded-lg border-primary/50"
+                                            onClick={() => moveItem(i, +1)}
+                                            disabled={i === (ef?.dynamicData?.length ?? 1) - 1}
+                                            title="Move down"
+                                          >
+                                            <ArrowDown className="w-4 h-4" />
+                                          </Button>
+                                          <div className="h-8 w-8 p-0 rounded-lg border border-primary/50 flex items-center justify-center" title="Copy JSON to clipboard">
+                                            <CopyToClipboard
+                                              text={JSON.stringify(obj, null, 2)}
+                                              isDarkMode={darkMode}
+
+                                            />
+                                          </div>
+
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="h-8 w-8 p-0 rounded-lg border-red-300 text-red-600 hover:border-red-400"
+                                            onClick={() => {
+                                              deleteItemAt(i);
+                                              toast.success("Item deleted.");
+                                            }}
+                                            title="Delete item"
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </Button>
+                                        </div>
+                                      </div>
+
+                                      {open && (
+                                        <div id={`edit-card-panel-${objId}`} className="px-3 pb-3">
+                                          {Object.keys(obj?.input ?? {}).length === 0 && (
+                                            <p className="text-sm text-gray-500">No input available.</p>
+                                          )}
+                                          {Object.entries(obj.input ?? {}).map(([fieldKey, fieldVal]) => (
+                                            <div key={`${objId}-field-${fieldKey}`} className="mb-2">
+                                              <TextInputWithClearButton
+                                                id={`${objId}-input-${fieldKey}`}
+                                                label={fieldKey}
+                                                value={String(fieldVal ?? "")}
+                                                onChangeHandler={(e) => {
+                                                  const val = e.target.value;
+                                                  setEditForms(fs => {
+                                                    const f = fs[key]; if (!f) return fs;
+                                                    const arr = [...(f.dynamicData ?? [])];
+                                                    const objToUpdate = { ...arr[i] };
+                                                    objToUpdate.input = { ...objToUpdate.input, [fieldKey]: val };
+                                                    arr[i] = objToUpdate;
+                                                    setEditJsonTextMap(m => ({ ...m, [key]: JSON.stringify(arr, null, 2) }));
+                                                    return { ...fs, [key]: { ...f, dynamicData: arr } };
+                                                  });
+                                                }}
+                                                placeholder={`Value for ${fieldKey}`}
+                                              />
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+
+                                <div className="flex mb-2">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="rounded-xl"
+                                    onClick={() => {
+                                      setInsertAfterIndex(null);
+                                      setShowCustomDynamic(true);
+                                    }}
+                                  >
+                                    + Add item
+                                  </Button>
+                                </div>
+                                {showCustomDynamic && (
+                                  <AddCustomStep
+                                    setOpen={setShowCustomDynamic}
+                                    onAdd={(custom) => {
+                                      const toInsert = Array.isArray(custom) ? custom : [custom];
+                                      const docKey = String(ef.id ?? "");
+                                      insertCustomDynamic(toInsert, insertAfterIndex, docKey);
+                                    }}
+                                  />
+                                )}
+                              </div>
+                            )}
 
                             <div className="flex items-center gap-2 pt-1">
                               <Button
                                 variant="outline"
                                 className="rounded-xl bg-primary/90 hover:bg-primary/80 hover:text-white text-white/95 border border-primary/80"
-                                onClick={saveEdit}
+                                onClick={() => saveEdit(key)}
                               >
                                 <Save className="w-4 h-4 mr-1" /> Save
                               </Button>
                               <Button
                                 variant="outline"
                                 className="rounded-xl border border-gray-300"
-                                onClick={cancelEdit}
+                                onClick={() => cancelEdit(key)}
                               >
                                 <X className="w-4 h-4 mr-1" /> Cancel
                               </Button>

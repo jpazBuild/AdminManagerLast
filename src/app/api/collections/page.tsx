@@ -1,24 +1,17 @@
-// src/app/api/collections/page.tsx
 "use client";
 
 import Image from "next/image";
 import TextInputWithClearButton from "@/app/components/InputClear";
 import { SearchField } from "@/app/components/SearchField";
-import { Input } from "@/components/ui/input";
 import { DashboardHeader } from "@/app/Layouts/main";
-import { ChevronRight, ChevronDown, Folder } from "lucide-react";
-import { useState } from "react";
+import { ChevronRight, ChevronDown, Folder, Trash2Icon } from "lucide-react";
+import { useEffect, useState } from "react";
 import colletEmptyState from "../../../assets/apisImages/select-collection.svg"
-import trashIcon from "../../../assets/apisImages/trash.svg"
-
-const httpMethods = [
-    { name: "GET", color: "bg-green-100 text-green-700", text: "CoreAPI" },
-    { name: "POST", color: "bg-yellow-100 text-yellow-700", text: "CoreAPI" },
-    { name: "PUT", color: "bg-blue-100 text-blue-700", text: "CoreAPI" },
-    { name: "PATCH", color: "bg-purple-100 text-purple-700", text: "CoreAPI" },
-    { name: "DEL", color: "bg-red-100 text-red-700", text: "CoreAPI" },
-    { name: "OPTIONS", color: "bg-pink-100 text-pink-700", text: "CoreAPI" },
-];
+import TooltipLocation from "@/app/components/ToolTip";
+import JSONEditor from "../components/JsonEditor";
+import { httpMethodsStyle } from "../utils/colorMethods";
+import { useFetchElementsPostman } from "./hooks/useFetchElementsPostman";
+import { useFetchCollection } from "./hooks/useFetchCollection";
 
 const listCollections = [
     { name: "Interface Mocks 1", team: "Team A", origin: "Postman" },
@@ -32,11 +25,10 @@ const CollectionsPage = () => {
     const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
     const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
     const [selectedTypeOrigin, setSelectedTypeOrigin] = useState<string | null>(null);
-
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const [openCollection, setOpenCollection] = useState<Record<string, boolean>>({});
     const [openCoreApi, setOpenCoreApi] = useState<Record<string, boolean>>({});
     const [isOpen, setIsOpen] = useState(false);
-
     const [selectedRequest, setSelectedRequest] = useState<null | {
         collection: string;
         method: string;
@@ -46,7 +38,13 @@ const CollectionsPage = () => {
     const [requestUrl, setRequestUrl] = useState<string>("");
     const [requestHeaders, setRequestHeaders] = useState<Array<{ key: string; value: string }>>([{ key: "", value: "" }]);
     const [isRequestRunning, setIsRequestRunning] = useState<boolean>(false);
+    const [collectionQuery, setCollectionQuery] = useState<string>("");           // solo para buscar por nombre
+    const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null); // ID/UID real del workspace
+    const [selectedCollectionUid, setSelectedCollectionUid] = useState<string | null>(null); // UID real de la colección
 
+    const { elements: elementsPostman } = useFetchElementsPostman();
+    const { getCollection, cache: collectionsCache, loading: loadingCollection } =
+        useFetchCollection();
 
     const teams = [{ name: "Team A" }, { name: "Team B" }, { name: "Team C" }];
     const typeOrigin = [{ name: "Postman" }, { name: "BD" }];
@@ -91,14 +89,12 @@ const CollectionsPage = () => {
                 },
             };
 
-            // setea selectedRequest con la respuesta (manteniendo collection+method)
             setSelectedRequest({
                 collection: collectionName,
                 method: methodName,
                 response: mockResponse,
             });
 
-            // abrir panel Response JSON
             setIsOpen(true);
         } catch (err) {
             console.error(err);
@@ -108,7 +104,6 @@ const CollectionsPage = () => {
     };
 
 
-    // Filtrado simple (puedes mejorar)
     const filteredCollections = listCollections.filter((col) => {
         const matchName = selectedCollection ? col.name.toLowerCase().includes(selectedCollection.toLowerCase()) : true;
         const matchTeam = selectedTeam ? col.team === selectedTeam : true;
@@ -117,120 +112,223 @@ const CollectionsPage = () => {
     });
 
 
+    const teamId = selectedTeam ? Number(selectedTeam) : 0;
+    const collectionUid = selectedCollection ?? "";
+
+    useEffect(() => {
+        const loadCollection = async () => {
+            if (selectedTypeOrigin === "Postman") {
+                console.log("Loading collection for teamId:", teamId, "collectionUid:", collectionUid);
+
+                const test = await getCollection({ teamId, collectionUid });
+                console.log("Fetched collection:", test);
+            }
+
+        };
+        loadCollection();
+
+    }, [selectedTeam, selectedCollection, selectedTypeOrigin, teamId, collectionUid, getCollection]);
+
+    useEffect(() => {
+        if (selectedTypeOrigin === "BD") {
+            setSelectedTeam(null);
+        }
+    }, [selectedTypeOrigin]);
+
+    const currentWs = elementsPostman?.teams?.[0].teamId
+
+    useEffect(() => {
+        if (selectedTypeOrigin !== "Postman") return;
+        if (!selectedWorkspaceId || !selectedCollectionUid) return;
+
+        (async () => {
+            try {
+                const teamIdForApi: string | number = /^\d+$/.test(String(selectedWorkspaceId))
+                    ? Number(selectedWorkspaceId)
+                    : String(selectedWorkspaceId);
+
+                const result = await getCollection({
+                    teamId: teamIdForApi as any,
+                    collectionUid: String(selectedCollectionUid),
+                });
+
+                console.log("Fetched collection:", result);
+            } catch (err) {
+                console.error("getCollection error:", err);
+            }
+        })();
+    }, [selectedTypeOrigin]);
+
+
     return (
-        <DashboardHeader pageType="api">
-
-            <div className="flex w-full h-full min-h-screen">
-                <div className="w-72 border-r border-primary/10 p-4 flex flex-col gap-4 bg-white h-full min-h-screen">
-                    <SearchField
-                        label="From"
-                        value={selectedTypeOrigin ?? ""}
-                        onChange={setSelectedTypeOrigin}
-                        placeholder="Search collections"
-                        options={typeOrigin.map((t) => ({ label: t.name, value: t.name }))}
-                    />
-                    <div className="relative">
+        <DashboardHeader pageType="api" callback={(mobileSidebarOpen) => {
+            setMobileSidebarOpen(mobileSidebarOpen);
+        }}>
+            <div className="flex gap-2 w-full h-full overflow-hidden">
+                <div className="w-72 border-r border-primary/10 bg-white flex-shrink-0 flex flex-col overflow-hidden">
+                    <div className="flex-shrink-0 p-4 space-y-4 bg-white border-b border-primary/10">
                         <SearchField
-                            label="Team"
-                            value={selectedTeam ?? ""}
-                            onChange={setSelectedTeam}
-                            placeholder="Search Team"
-                            options={teams.map((t) => ({ label: t.name, value: t.name }))}
-                            disabled={selectedTypeOrigin === "Postman"}
+                            label="From"
+                            value={selectedTypeOrigin ?? ""}
+                            onChange={setSelectedTypeOrigin}
+                            placeholder="Search collections"
+                            options={typeOrigin.map((t) => ({ label: t.name, value: t.name }))}
                         />
-                        {selectedTypeOrigin === "Postman" && (
-                            <div className="absolute left-0 top-full mt-1 w-full z-10">
-                                <div className="bg-slate-700 text-white text-xs rounded-md px-3 py-2 shadow-lg">
-                                    Teams only can be selected from Postman
-                                </div>
+
+                        <TooltipLocation
+                            text="Teams only can be selected from 'Postman'"
+                            position="right"
+                            active={selectedTypeOrigin === "BD"}
+                        >
+                            <div className={selectedTypeOrigin === "BD" ? "bg-gray-100 text-gray-400" : ""}>
+                                <SearchField
+                                    label="Team"
+                                    value={selectedWorkspaceId ?? ""}
+                                    onChange={setSelectedWorkspaceId}
+                                    placeholder="Search Team"
+                                    options={
+                                        (elementsPostman?.teams?.[0]?.workspaces ?? []).map((ws: any) => ({
+                                            label: ws.name,
+                                            value: String(ws.id ?? ws.uid ?? ws.workspaceId), // usa id/uid real
+                                        }))
+                                    }
+                                    disabled={selectedTypeOrigin === "BD"}
+                                    className={selectedTypeOrigin === "BD" ? "cursor-not-allowed" : ""}
+                                />
                             </div>
-                        )}
+                        </TooltipLocation>
+
+
+                        <TextInputWithClearButton
+                            id="collection-name"
+                            label="Search Collections"
+                            placeholder="Enter collection name"
+                            value={collectionQuery}
+                            onChangeHandler={(e) => setCollectionQuery(e.target.value)}
+                            isSearch={true}
+                        />
                     </div>
-                    <TextInputWithClearButton
-                        id="collection-name"
-                        label="Search Collections"
-                        placeholder="Enter collection name"
-                        value={selectedCollection ?? ""}
-                        onChangeHandler={(e) => setSelectedCollection(e.target.value)}
-                        isSearch={true}
-                    />
 
-                    <div className="overflow-y-auto mt-2">
-                        {filteredCollections.map((collection, idx) => (
-                            <div key={idx} className="mb-2">
-                                {/* Collection (no carpeta) */}
-                                <div
-                                    className="flex items-center gap-2 text-primary/80 cursor-pointer select-none"
-                                    onClick={() => toggleCollection(collection.name)}
-                                >
-                                    {openCollection[collection.name] ? (
-                                        <ChevronDown className="w-4 h-4 text-primary" />
-                                    ) : (
-                                        <ChevronRight className="w-4 h-4 text-primary" />
-                                    )}
-                                    <p className="text-sm">{collection.name}</p>
-                                </div>
+                    <div className="flex-1 p-4 overflow-y-auto">
+                        {selectedTeam &&
+                            Array.isArray(elementsPostman?.teams[0]?.workspaces?.find((t: any) => t.name === selectedTeam)?.collections) &&
+                            elementsPostman?.teams[0]?.workspaces?.find((t: any) => t.name === selectedTeam)?.collections?.length > 0 && (
+                                <>
+                                    {/* {elementsPostman?.teams[0]?.workspaces?.find((t: any) => t.name === selectedTeam)?.collections?.map((collection: any, idx: number) => (
+                                        <div key={idx} className="mb-2">
+                                            <div
+                                                className="flex items-center gap-2 text-primary/80 cursor-pointer select-none"
+                                                onClick={() => toggleCollection(collection.name)}
+                                            >
+                                                {openCollection[collection.name]
+                                                    ? <ChevronDown className="w-4 h-4 text-primary" />
+                                                    : <ChevronRight className="w-4 h-4 text-primary" />
+                                                }
+                                                <p className="text-sm">{collection.name}</p>
+                                            </div>
 
-                                {/* Subcarpeta CoreAPI */}
-                                {openCollection[collection.name] && (
-                                    <div className="ml-5 mt-1">
-                                        <div
-                                            className="flex items-center gap-2 text-primary/80 cursor-pointer"
-                                            onClick={() => toggleCoreApi(collection.name)}
-                                        >
-                                            {openCoreApi[collection.name] ? (
-                                                <ChevronDown className="w-4 h-4 text-primary" />
-                                            ) : (
-                                                <ChevronRight className="w-4 h-4 text-primary" />
-                                            )}
-                                            <Folder className="w-4 h-4 text-primary" />
-                                            <p className="text-sm">CoreAPI</p>
-                                        </div>
-
-                                        {/* Métodos dentro de CoreAPI */}
-                                        {openCoreApi[collection.name] && (
-                                            <div className="ml-6 mt-2 flex flex-col gap-2">
-                                                {httpMethods.map((method, i) => (
+                                            {openCollection[collection.name] && (
+                                                <div className="ml-5 mt-1">
                                                     <div
-                                                        key={i}
-                                                        // onClick={() => runRequest(collection.name, method.name)}
-                                                        // onClick={() => selectRequest(collection.name, method.name)}
-
-                                                        onClick={() => { selectRequest(collection.name, method.name); runRequest(collection.name, method.name); }}
-
-
-                                                        className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded-md"
+                                                        className="flex items-center gap-2 text-primary/80 cursor-pointer"
+                                                        onClick={() => toggleCoreApi(collection.name)}
                                                     >
-                                                        <span className={`px-2 py-0.5 rounded-md font-semibold text-xs ${method.color}`}>
-                                                            {method.name}
-                                                        </span>
-                                                        <span className="text-gray-700">{method.text}</span>
+                                                        {openCoreApi[collection.name]
+                                                            ? <ChevronDown className="w-4 h-4 text-primary" />
+                                                            : <ChevronRight className="w-4 h-4 text-primary" />
+                                                        }
+                                                        <Folder className="w-4 h-4 text-primary" />
+                                                        <p className="text-sm">CoreAPI</p>
+                                                    </div>
+
+                                                    {openCoreApi[collection.name] && (
+                                                        <div className="ml-6 mt-2 flex flex-col gap-2">
+                                                            {httpMethods.map((method, i) => (
+                                                                <div
+                                                                    key={i}
+                                                                    onClick={() => { selectRequest(collection.name, method.name); runRequest(collection.name, method.name); }}
+                                                                    className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded-md"
+                                                                >
+                                                                    <span className={`px-2 py-0.5 rounded-md font-semibold text-xs ${method.color}`}>
+                                                                        {method.name}
+                                                                    </span>
+                                                                    <span className="text-gray-700">{method.text}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))} */}
+
+                                    {/* {selectedWorkspaceId && Array.isArray(currentWs?.collections) && currentWs.collections.length > 0 && (
+                                        <>
+                                            {currentWs.collections
+                                                .filter((c: any) => collectionQuery ? c.name?.toLowerCase().includes(collectionQuery.toLowerCase()) : true)
+                                                .map((collection: any, idx: number) => (
+                                                    <div key={idx} className="mb-2">
+                                                        <div
+                                                            className="flex items-center gap-2 text-primary/80 cursor-pointer select-none"
+                                                            onClick={() => toggleCollection(collection.name)}
+                                                        >
+                                                            {openCollection[collection.name]
+                                                                ? <ChevronDown className="w-4 h-4 text-primary" />
+                                                                : <ChevronRight className="w-4 h-4 text-primary" />
+                                                            }
+                                                            <p className="text-sm">{collection.name}</p>
+
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setSelectedCollectionUid(String(collection.uid ?? collection.id)); // <- CLAVE
+                                                                }}
+                                                                className="ml-auto text-xs px-2 py-1 border rounded hover:bg-gray-50"
+                                                                title="Select collection"
+                                                            >
+                                                                Select
+                                                            </button>
+                                                        </div>
+
+                                                        {openCollection[collection.name] && (
+                                                            <div className="ml-5 mt-1">
+                                                                <div
+                                                                    className="flex items-center gap-2 text-primary/80 cursor-pointer"
+                                                                    onClick={() => toggleCoreApi(collection.name)}
+                                                                >
+                                                                    {openCoreApi[collection.name]
+                                                                        ? <ChevronDown className="w-4 h-4 text-primary" />
+                                                                        : <ChevronRight className="w-4 h-4 text-primary" />
+                                                                    }
+                                                                    <Folder className="w-4 h-4 text-primary" />
+                                                                    <p className="text-sm">CoreAPI</p>
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                                        </>
+                                    )} */}
+                                </>
+                            )}
                     </div>
                 </div>
 
-                <div className="relative flex  w-full p-8 flex-col gap-4 min-h-screen">
-
-                    <div className="flex border border-primary/20 rounded-md bg-white shadow-sm items-center justify-center h-full overflow-hidden">
+                <div className="flex-1 flex flex-col gap-4 overflow-hidden">
+                    <div className="flex-1 flex border border-primary/20 rounded-md bg-white shadow-sm overflow-hidden">
                         {selectedRequest ? (
-                            // FORMULARIO EDITABLE PARA LA REQUEST SELECCIONADA
-                            <div className="w-full p-6 overflow-auto">
-                                <div className="max-w-3xl mx-auto space-y-6">
-                                    <div className="flex items-center justify-between">
+                            <div className="w-full p-6 overflow-y-auto">
+                                <div className="max-w-3xl">
+                                    <div className="flex items-center justify-between mb-4">
                                         <h2 className="text-lg font-semibold">
-                                            {selectedRequest.collection} <span className="ml-2 text-xs px-2 py-1 rounded bg-slate-100">{selectedRequest.method}</span>
+                                            {selectedRequest.collection}
+                                            <span
+                                                className={`ml-2 text-xs px-2 py-1 rounded ${httpMethodsStyle(selectedRequest.method)}`}
+                                            >
+                                                {selectedRequest.method}
+                                            </span>
                                         </h2>
-                                        <div className="text-sm text-slate-500">Set the information for this request</div>
                                     </div>
-
-                                    {/* URL */}
                                     <div>
                                         <TextInputWithClearButton
                                             id="request-url"
@@ -243,53 +341,49 @@ const CollectionsPage = () => {
                                         />
                                     </div>
 
-                                    {/* Headers */}
-                                    <div>
-                                        <label className="block text-sm text-slate-600 mb-2">Headers</label>
-                                        <div className="space-y-2">
+                                    <div className="mt-4">
+                                        <h2 className="text-sm text-slate-600 mb-2">Headers</h2>
+                                        <div className="flex flex-col gap-2">
                                             {requestHeaders.map((h, i) => (
-                                                <div key={i} className="flex gap-2">
-                                                    <TextInputWithClearButton
-                                                        id={`header-key-${i}`}
-                                                        type="text"
-                                                        inputMode="text"
-                                                        value={h.key}
-                                                        onChangeHandler={(e) => {
-                                                            const arr = [...requestHeaders];
-                                                            arr[i].key = e.target.value;
-                                                            setRequestHeaders(arr);
-                                                        }}
-                                                        placeholder="Enter key"
-                                                        label="Key"
-                                                        className="flex-1"
-                                                    />
-                                                    <TextInputWithClearButton
-                                                        id={`header-value-${i}`}
-                                                        type="text"
-                                                        inputMode="text"
-                                                        value={h.value}
-                                                        onChangeHandler={(e) => {
-                                                            const arr = [...requestHeaders];
-                                                            arr[i].value = e.target.value;
-                                                            setRequestHeaders(arr);
-                                                        }}
-                                                        placeholder="Enter value"
-                                                        label="Value"
-                                                        className="flex-1"
-                                                    />
+                                                <div key={i} className="flex gap-2 w-full items-start">
+                                                    <div className="flex-1">
+                                                        <TextInputWithClearButton
+                                                            id={`header-key-${i}`}
+                                                            type="text"
+                                                            inputMode="text"
+                                                            value={h.key}
+                                                            onChangeHandler={(e) => {
+                                                                const arr = [...requestHeaders];
+                                                                arr[i].key = e.target.value;
+                                                                setRequestHeaders(arr);
+                                                            }}
+                                                            placeholder="Enter key"
+                                                            label="Key"
+                                                        />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <TextInputWithClearButton
+                                                            id={`header-value-${i}`}
+                                                            type="text"
+                                                            inputMode="text"
+                                                            value={h.value}
+                                                            onChangeHandler={(e) => {
+                                                                const arr = [...requestHeaders];
+                                                                arr[i].value = e.target.value;
+                                                                setRequestHeaders(arr);
+                                                            }}
+                                                            placeholder="Enter value"
+                                                            label="Value"
+                                                        />
+                                                    </div>
                                                     <button
                                                         onClick={() => {
                                                             const arr = requestHeaders.filter((_, idx) => idx !== i);
                                                             setRequestHeaders(arr.length ? arr : [{ key: "", value: "" }]);
                                                         }}
-                                                        className="px-2"
+                                                        className="mt-6 p-2 rounded-md hover:bg-gray-100"
                                                     >
-                                                        <Image
-                                                            src={trashIcon}
-                                                            alt="Delete"
-                                                            width={24}
-                                                            height={24}
-                                                        />
+                                                        <Trash2Icon className="w-5 h-5 text-primary/60 hover:text-red-700" />
                                                     </button>
                                                 </div>
                                             ))}
@@ -302,7 +396,6 @@ const CollectionsPage = () => {
                                         </button>
                                     </div>
 
-                                    {/* Run button */}
                                     <div className="pt-4">
                                         <button
                                             onClick={() => runRequest(selectedRequest.collection, selectedRequest.method)}
@@ -315,8 +408,7 @@ const CollectionsPage = () => {
                                 </div>
                             </div>
                         ) : (
-                            // PLACEHOLDER original (imagen)
-                            <div className="flex flex-col items-center justify-center text-center text-slate-500">
+                            <div className="flex w-full flex-col items-center justify-center text-center text-slate-500">
                                 <Image
                                     src={colletEmptyState}
                                     alt="Select a collection"
@@ -330,11 +422,10 @@ const CollectionsPage = () => {
                         )}
                     </div>
 
-
-                    <div className="border border-primary/20 rounded-md bg-white shadow-sm flex flex-col h-full">
+                    <div className="flex-1 border border-primary/20 rounded-md bg-white shadow-sm flex flex-col overflow-hidden">
                         <button
                             onClick={() => setIsOpen(!isOpen)}
-                            className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-50"
+                            className="flex-shrink-0 w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-slate-800 hover:bg-slate-50 border-b border-primary/10"
                         >
                             <span>Response · JSON</span>
                             <ChevronDown
@@ -343,46 +434,12 @@ const CollectionsPage = () => {
                         </button>
 
                         {isOpen && (
-                            <div className="flex p-4 overflow-auto text-sm max-h-[400px] w-full h-full bg-slate-100 rounded-md">
-                                {selectedRequest ? (
-                                    <div className="w-full font-mono text-xs">
-                                        <div className="mb-2 flex items-center gap-4">
-                                            <span className="text-blue-700 font-bold">{'{'}</span>
-                                            <span className="text-orange-500 font-semibold">{selectedRequest.response?.status} OK</span>
-                                            <span className="text-slate-500">|</span>
-                                            <span className="text-orange-500">timestamp: &quot;{selectedRequest.response?.timestamp}&quot;</span>
-                                        </div>
-                                        <div className="pl-4">
-                                            <span className="text-blue-700">&quot;data&quot;</span>
-                                            <span className="text-slate-500">: </span>
-                                            <span className="text-blue-700">{'{'}</span>
-                                            <div className="pl-4">
-                                                <span className="text-blue-700">&quot;message&quot;</span>
-                                                <span className="text-slate-500">: </span>
-                                                <span className="text-green-700">&quot;{selectedRequest.response?.data?.message}&quot;</span>
-                                                <span className="text-slate-500">,</span>
-                                                <br />
-                                                <span className="text-blue-700">&quot;requestUrl&quot;</span>
-                                                <span className="text-slate-500">: </span>
-                                                <span className="text-green-700">&quot;{selectedRequest.response?.data?.requestUrl}&quot;</span>
-                                                <span className="text-slate-500">,</span>
-                                                <br />
-                                                <span className="text-blue-700">&quot;headers&quot;</span>
-                                                <span className="text-slate-500">: </span>
-                                                <span className="text-green-700">{JSON.stringify(selectedRequest.response?.data?.headers, null, 2)}</span>
-                                                <span className="text-slate-500">,</span>
-                                                <br />
-                                                <span className="text-blue-700">&quot;payload&quot;</span>
-                                                <span className="text-slate-500">: </span>
-                                                <span className="text-green-700">{JSON.stringify(selectedRequest.response?.data?.payload, null, 2)}</span>
-                                            </div>
-                                            <span className="text-blue-700">{'}'}</span>
-                                        </div>
-                                        <span className="text-blue-700 font-bold">{'}'}</span>
-                                    </div>
+                            <div className="flex-1 p-4 overflow-y-auto text-sm bg-slate-50">
+                                {selectedRequest?.response ? (
+                                    <JSONEditor selectedRequest={selectedRequest} />
                                 ) : (
-                                    <div className="w-full h-full self-center flex flex-col items-center justify-center py-8 my-auto">
-                                        <span className="text-4xl">&lt;/&gt;</span>
+                                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+                                        <span className="text-4xl mb-2">&lt;/&gt;</span>
                                         <p>API response are shown here</p>
                                     </div>
                                 )}
@@ -396,3 +453,51 @@ const CollectionsPage = () => {
 };
 
 export default CollectionsPage;
+
+{/* {elementsPostman.teams[0].workspaces.filter((t:any) => t.name === selectedTeam)?.collections.map((collection:any, idx:number) => (
+                                <div key={idx} className="mb-2">
+                                    <div
+                                        className="flex items-center gap-2 text-primary/80 cursor-pointer select-none"
+                                        onClick={() => toggleCollection(collection.name)}
+                                    >
+                                        {openCollection[collection.name]
+                                            ? <ChevronDown className="w-4 h-4 text-primary" />
+                                            : <ChevronRight className="w-4 h-4 text-primary" />
+                                        }
+                                        <p className="text-sm">{collection.name}</p>
+                                    </div>
+
+                                    {openCollection[collection.name] && (
+                                        <div className="ml-5 mt-1">
+                                            <div
+                                                className="flex items-center gap-2 text-primary/80 cursor-pointer"
+                                                onClick={() => toggleCoreApi(collection.name)}
+                                            >
+                                                {openCoreApi[collection.name]
+                                                    ? <ChevronDown className="w-4 h-4 text-primary" />
+                                                    : <ChevronRight className="w-4 h-4 text-primary" />
+                                                }
+                                                <Folder className="w-4 h-4 text-primary" />
+                                                <p className="text-sm">CoreAPI</p>
+                                            </div>
+
+                                            {openCoreApi[collection.name] && (
+                                                <div className="ml-6 mt-2 flex flex-col gap-2">
+                                                    {httpMethods.map((method, i) => (
+                                                        <div
+                                                            key={i}
+                                                            onClick={() => { selectRequest(collection.name, method.name); runRequest(collection.name, method.name); }}
+                                                            className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded-md"
+                                                        >
+                                                            <span className={`px-2 py-0.5 rounded-md font-semibold text-xs ${method.color}`}>
+                                                                {method.name}
+                                                            </span>
+                                                            <span className="text-gray-700">{method.text}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ))} */}

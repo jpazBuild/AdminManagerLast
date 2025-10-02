@@ -3,9 +3,9 @@ import { URL_API_ALB } from "@/config";
 import { toast } from "sonner";
 import { fetchReportByUrl } from "@/utils/fetchReportByUrl";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import StepCard from "../components/StepCard";
-import { ImageModalWithZoom } from "../components/Report";
-import { ExecutionSummary } from "./ExecutionSummary";
+import StepCard from "../../components/StepCard";
+import { ImageModalWithZoom } from "../../components/Report";
+import { ExecutionSummary } from "../../components/ExecutionSummary";
 import { DownloadIcon } from "lucide-react";
 import { buildStandaloneHtml } from "@/utils/buildHtmlreport";
 
@@ -246,7 +246,7 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
   const [selectedImage, setSelectedImage] = useState<string>("");
 
   const containerRefs = useRef<Record<string, HTMLDivElement | null>>({});
-
+  const [isLoadingIndividualReport, setIsLoadingIndividualReport] = useState(false);
   const handleImageClick = useCallback((image: string) => {
     setSelectedImage(image);
     setIsModalOpen(true);
@@ -316,6 +316,7 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
       if (loadingByUrlRef.current[urlReport]) return;
 
       try {
+        setIsLoadingIndividualReport(true);
         loadingByUrlRef.current[urlReport] = true;
         const file = await fetchReportByUrl(urlReport);
         if (!file) {
@@ -329,6 +330,7 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
         console.error(e);
         toast.error("Error loading report");
       } finally {
+        setIsLoadingIndividualReport(false);
         loadingByUrlRef.current[urlReport] = false;
       }
     },
@@ -416,6 +418,14 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
                     containerRefs.current[it.urlReport] = el;
                   }}
                 >
+                  {/*show skeleton if is loading individual report*/}
+                  {isLoadingIndividualReport && (
+                    <div className="p-6 flex flex-col justify-center items-center gap-3">
+                      <div className="h-10 w-full animate-pulse rounded-md bg-primary/10"></div>
+                      <div className="h-12 w-full animate-pulse rounded-md bg-primary/10"></div>
+                      <div className="h-16 w-full animate-pulse rounded-md bg-primary/10"></div>
+                    </div>
+                  )}
                   {file?.events && Array.isArray(file?.events) && file?.events?.length > 0 && (
                     <div className="flex flex-col gap-4">
                       {file.events.map((ev: any, idx: number) => {

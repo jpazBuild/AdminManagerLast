@@ -7,7 +7,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { TestCase } from "../../types/types";
+import { TestCase } from "../../../types/types";
 
 interface Props {
     test: any;
