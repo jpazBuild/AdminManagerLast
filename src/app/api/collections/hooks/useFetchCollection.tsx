@@ -12,7 +12,7 @@ export const useFetchCollection = () => {
   const [cache, setCache] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const inflight = useRef<Record<string, Promise<any>>>({});
-
+  const [error, setError] = useState<string | null>(null);
   const getCollection = async ({ teamId, collectionUid }: GetParams) => {
     if (!collectionUid) return null;
 
@@ -32,12 +32,13 @@ export const useFetchCollection = () => {
       return data;
     } catch (error) {
       toast.error("Failed to fetch collection");
+      setError("Failed to fetch collection");
       throw error;
-    }finally{
+    } finally {
       setLoading((p) => ({ ...p, [collectionUid]: false }));
       delete inflight.current[collectionUid];
     }
   };
 
-  return { getCollection, cache, loading };
+  return { getCollection, cache, loading, error };
 };

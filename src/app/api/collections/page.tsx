@@ -4,18 +4,18 @@ import Image from "next/image";
 import TextInputWithClearButton from "@/app/components/InputClear";
 import { SearchField } from "@/app/components/SearchField";
 import { DashboardHeader } from "@/app/Layouts/main";
-import { ChevronRight, ChevronDown, Folder, Trash2Icon, FolderIcon, Play } from "lucide-react";
+import { ChevronRight, ChevronDown, Folder, Trash2Icon, Code2Icon, FileJson } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import colletEmptyState from "../../../assets/apisImages/select-collection.svg"
 import TooltipLocation from "@/app/components/ToolTip";
-import JSONEditor from "../components/JsonEditor";
 import { httpMethodsStyle } from "../utils/colorMethods";
 import { useFetchElementsPostman } from "./hooks/useFetchElementsPostman";
 import { useFetchCollection } from "./hooks/useFetchCollection";
 import SyntaxHighlighter from "react-syntax-highlighter";
-import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { tomorrow } from "react-syntax-highlighter/dist/esm/styles/hljs";
-import { TbBrandGraphql, TbCodeVariablePlus } from "react-icons/tb";
+import { TbBrandGraphql, TbCodeVariablePlus, TbJson } from "react-icons/tb";
+import { RiErrorWarningLine } from "react-icons/ri";
+import { stackoverflowLight, tomorrow, vs } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { VscJson } from "react-icons/vsc";
 
 const listCollections = [
     { name: "Interface Mocks 1", team: "Team A", origin: "Postman" },
@@ -33,29 +33,27 @@ type Detail = {
     data: any;
 };
 
-
 const parseMaybeJson = (val: unknown) => {
     if (val == null) return null;
     if (typeof val === "object") return val as any;
-    if (typeof val !== "string") return null;
+    if (typeof val !== "string") return val;
 
     try {
         const once = JSON.parse(val);
         if (typeof once === "string") {
-            try { return JSON.parse(once); } catch { return once; }
+            try {
+                return JSON.parse(once);
+            } catch {
+                return once;
+            }
         }
         return once;
     } catch {
-        try {
-            const normalized = val
-                .replace(/(['"])?([a-zA-Z0-9_]+)\1\s*:/g, '"$2":')
-                .replace(/'/g, '"');
-            return JSON.parse(normalized);
-        } catch {
-            return null;
-        }
+        return val;
     }
-};
+}
+
+
 const CollectionsPage = () => {
     const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
     const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
@@ -79,11 +77,10 @@ const CollectionsPage = () => {
     const [selectedCollectionUid, setSelectedCollectionUid] = useState<string | null>(null);
     const [loadingByCollection, setLoadingByCollection] = useState<Record<string, boolean>>({});
     const { elements: elementsPostman } = useFetchElementsPostman();
-    const [dataDetailCollection, setDataDetailCollection] = useState<any[]>([]);
     const [openFolder, setOpenFolder] = useState<Record<string, boolean>>({});
-    const [activeTab, setActiveTab] = useState<"request" | "header">("request");
-    const [activeTabRequest, setActiveTabRequest] = useState<"graphql" | "variables">("graphql");
-    const { getCollection, cache: collectionsCache, loading: loadingCollection } =
+    const [activeTab, setActiveTab] = useState<"request" | "header" | "test">("request");
+    const [activeTabRequest, setActiveTabRequest] = useState<"graphql" | "variables" | "headers" | "body">("headers");
+    const { getCollection, cache: collectionsCache, loading: loadingCollection, error: collectionError } =
         useFetchCollection();
 
 
@@ -132,7 +129,6 @@ const CollectionsPage = () => {
                 node: selectedRequest?.node || null,
             });
 
-            setIsOpen(true);
         } catch (err) {
             console.error(err);
         } finally {
@@ -175,8 +171,6 @@ const CollectionsPage = () => {
                     teamId: teamIdForApi as any,
                     collectionUid: String(selectedCollectionUid),
                 });
-
-                console.log("Fetched collection:", result);
             } catch (err) {
                 console.error("getCollection error:", err);
             }
@@ -364,11 +358,48 @@ const CollectionsPage = () => {
     const variablesRaw = selectedRequest?.node?.request?.body?.graphql?.variables;
     const variablesParsed = useMemo(() => parseMaybeJson(variablesRaw), [variablesRaw]);
 
+    console.log(" selectedRequest:", selectedRequest, { variablesRaw, variablesParsed });
+    console.log({ requestHeaders });
+
+
+    const memoHeaders = useMemo(
+        () =>
+            selectedRequest?.node?.request?.header?.map((h: any) => ({
+                key: String(h?.key ?? ""),
+                value: String(h?.value ?? ""),
+            })) ?? [{ key: "", value: "" }],
+        [selectedRequest]
+    );
+
+    useEffect(() => {
+        setRequestHeaders(prev => {
+            const sameLen = prev.length === memoHeaders.length;
+            const sameAll = sameLen && prev.every((p, i) =>
+                p.key === memoHeaders[i].key && p.value === memoHeaders[i].value
+            );
+            return sameAll ? prev : memoHeaders;
+        });
+    }, [memoHeaders]);
+
+
+
+
+    const rawValue = selectedRequest?.response?.data ?? selectedRequest?.response ?? selectedRequest ?? {};
+    const parsed = useMemo(() => parseMaybeJson(rawValue), [rawValue]);
+
+    const code = useMemo(() => {
+        try {
+            return typeof parsed === "string" ? parsed : JSON.stringify(parsed ?? {}, null, 2);
+        } catch {
+            return "{}";
+        }
+    }, [parsed]);
+
     return (
         <DashboardHeader pageType="api" callback={(mobileSidebarOpen) => {
             setMobileSidebarOpen(mobileSidebarOpen);
         }}>
-            <div className="flex gap-2 w-full h-full overflow-hidden">
+            <div className="flex gap-2 w-full h-full">
                 <div className="w-72 border-r border-primary/10 bg-white flex-shrink-0 flex flex-col overflow-hidden">
                     <div className="flex-shrink-0 p-4 space-y-4 bg-white border-b border-primary/10">
                         <SearchField
@@ -436,23 +467,30 @@ const CollectionsPage = () => {
                                                         : <ChevronRight className="w-4 h-4 text-primary" />
                                                     }
                                                     <p className="text-sm">{collection.name}</p>
-
-                                                    {isLoading && (
-                                                        <span className="ml-2 text-xs text-primary/70 animate-pulse">
-                                                            loading...
-                                                        </span>
-                                                    )}
                                                 </div>
 
                                                 {isOpen && (
                                                     <div className="ml-6 mt-2 text-sm text-gray-600">
-                                                        {dataDetailByUid?.[String(collection.uid)]
-                                                            ? renderCollectionTree(
+                                                        {!collectionError && dataDetailByUid?.[String(collection.uid)] && (
+                                                            renderCollectionTree(
                                                                 dataDetailByUid[String(collection.uid)],
                                                                 String(collection.uid),
                                                                 String(collection.name)
                                                             )
-                                                            : <p className="text-gray-500">Loading…</p>}
+                                                        )}
+
+                                                        {isLoading && (
+                                                            <div className="flex items-center gap-2 text-primary/70">
+                                                                <div className="h-4 w-1/2 animate-pulse rounded bg-gray-200"></div>
+                                                            </div>
+                                                        )}
+
+                                                        {!isLoading && collectionError && (
+                                                            <div className="bg-red-200 text-primary/90 p-2 rounded font-normal items-center flex gap-2">
+                                                                <RiErrorWarningLine className="w-4 h-4" />
+                                                                {String(collectionError)}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
@@ -463,11 +501,11 @@ const CollectionsPage = () => {
                     </div>
                 </div>
 
-                <div className="flex h-full w-full flex-col gap-4 overflow-hidden flex-wrap-col">
-                    <div className="flex w-full h-full border border-primary/20 rounded-md bg-white shadow-sm justify-center max-h-2/3">
+                <div className="flex h-full w-full flex-col gap-4 overflow-hidden">
+                    <div className="flex w-full h-full border border-primary/20 rounded-md bg-white shadow-sm justify-center overflow-y-auto">
                         {selectedRequest ? (
-                            <div className="flex justify-center self-center place-content-center w-full p-6 overflow-y-auto">
-                                <div className="w-2/3 py-2">
+                            <div className="flex justify-center self-center h-full w-full p-2 overflow-y-auto">
+                                <div className="w-2/3 py-2 h-full">
                                     <div className="flex flex-col gap-2 mb-4">
                                         <div className="flex items-center text-lg font-semibold text-primary/80">
                                             {selectedRequest?.node?.name}
@@ -480,13 +518,14 @@ const CollectionsPage = () => {
                                         <p className="text-gray-500">Set the information for this collection below</p>
                                     </div>
 
-                                    <div className="flex justify-center gap-2 mb-6 text-primary/85">
-                                        <button onClick={() => setActiveTab("request")} className={`px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 ${activeTab === "request" ? "font-semibold bg-gray-200" : ""}`}>
+                                    <div className="flex justify-center gap-2 mb-4 text-primary/85">
+                                        <button onClick={() => setActiveTab("request")} className={`cursor-pointer text-[16px] px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 ${activeTab === "request" ? " bg-gray-200" : ""}`}>
                                             Request
                                         </button>
-                                        <button onClick={() => setActiveTab("header")} className={`px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 ${activeTab === "header" ? "font-semibold bg-gray-200" : ""}`}>
-                                            Header
+                                        <button onClick={() => setActiveTab("test")} className={`cursor-pointer text-[16px] px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 ${activeTab === "test" ? " bg-gray-200" : ""}`}>
+                                            Test
                                         </button>
+
                                     </div>
                                     {activeTab === "request" && (
                                         <div>
@@ -501,11 +540,29 @@ const CollectionsPage = () => {
                                             />
                                             {selectedRequest?.node?.request?.body?.mode === "graphql" && (
                                                 <div className="flex items-center gap-2 mt-4">
-                                                    <div onClick={() => setActiveTabRequest("graphql")} className="flex gap-2 bg-gray-200 px-3 py-2 text-[14px] rounded-3xl"><TbBrandGraphql className="text-primary/85 w-5 h-5" /> Query/Mutation</div>
-                                                    <div onClick={() => setActiveTabRequest("variables")} className="flex gap-2 bg-gray-200 px-3 py-2 text-[14px] rounded-3xl"><TbCodeVariablePlus className="text-primary/85 w-5 h-5" /> Variables</div>
+                                                    <div onClick={() => setActiveTabRequest("headers")} className={`flex gap-2 px-3 py-2 text-[14px] rounded-3xl ${activeTabRequest === "headers" ? "bg-gray-200" : "bg-gray-100"}`}><TbBrandGraphql className="text-primary/85 w-5 h-5" /> Headers</div>
+                                                    <div onClick={() => setActiveTabRequest("graphql")} className={`flex gap-2 px-3 py-2 text-[14px] rounded-3xl ${activeTabRequest === "graphql" ? "bg-gray-200" : "bg-gray-100"}`}><TbBrandGraphql className="text-primary/85 w-5 h-5" /> Query/Mutation</div>
+                                                    <div onClick={() => setActiveTabRequest("variables")} className={`flex gap-2 px-3 py-2 text-[14px] rounded-3xl ${activeTabRequest === "variables" ? "bg-gray-200" : "bg-gray-100"}`}><TbCodeVariablePlus className="text-primary/85 w-5 h-5" /> Variables</div>
                                                 </div>
                                             )}
 
+                                            {selectedRequest?.node?.request?.body?.mode === "raw" && (
+                                                <div className="flex items-center gap-2 mt-4">
+                                                    <div onClick={() => setActiveTabRequest("headers")} className={`flex gap-2 px-3 py-2 text-[14px] rounded-3xl ${activeTabRequest === "headers" ? "bg-gray-200" : "bg-gray-100"}`}><TbBrandGraphql className="text-primary/85 w-5 h-5" /> Headers</div>
+                                                    <div onClick={() => setActiveTabRequest("body")} className={`flex gap-2 px-3 py-2 text-[14px] rounded-3xl ${activeTabRequest === "body" ? "bg-gray-200" : "bg-gray-100"}`}><VscJson className="text-primary/85 w-5 h-5" /> Body</div>
+                                                </div>
+                                            )}
+                                            {activeTabRequest === "body" && (
+                                                <div className="max-h-[400px] overflow-y-auto">
+                                                    <SyntaxHighlighter
+                                                        language="json"
+                                                        style={vs}
+                                                        customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem", backgroundColor: "#F3F6F9", marginTop: "1rem" }}
+                                                    >
+                                                        {selectedRequest?.node?.request?.body?.raw ?? "// Request body"}
+                                                    </SyntaxHighlighter>
+                                                </div>
+                                            )}
                                             {
                                                 activeTabRequest === "graphql" && (
                                                     <>
@@ -514,7 +571,7 @@ const CollectionsPage = () => {
                                                             <div className="max-h-[400px] overflow-y-auto">
                                                                 <SyntaxHighlighter
                                                                     language={selectedRequest?.node?.request?.body?.mode === "graphql" ? "graphql" : "json"}
-                                                                    style={oneLight}
+                                                                    style={selectedRequest?.node?.request?.body?.mode === "graphql" ? tomorrow : stackoverflowLight}
                                                                     customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem", backgroundColor: "#F3F6F9", marginTop: "1rem" }}
                                                                 >
                                                                     {selectedRequest?.node?.request?.body?.mode === "graphql"
@@ -533,7 +590,7 @@ const CollectionsPage = () => {
                                                     <div className="max-h-[400px] overflow-y-auto">
                                                         <SyntaxHighlighter
                                                             language="json"
-                                                            style={oneLight}
+                                                            style={vs}
                                                             customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem", backgroundColor: "#F3F6F9", marginTop: "1rem" }}
                                                         >
                                                             {
@@ -546,72 +603,81 @@ const CollectionsPage = () => {
                                                 )
                                             }
 
-                                        </div>
-
-
-
-
-                                    )}
-
-                                    {activeTab === "header" && (
-                                        <div className="mt-4 w-full">
-                                            <h2 className="text-sm text-slate-600 mb-2">Headers</h2>
-                                            <div className="flex flex-col gap-2 w-full">
-                                                {requestHeaders.map((h, i) => (
-                                                    <div key={i} className="flex gap-2 w-full items-center">
-                                                        <div className="flex w-full">
-                                                            <TextInputWithClearButton
-                                                                id={`header-key-${i}`}
-                                                                type="text"
-                                                                inputMode="text"
-                                                                value={h.key}
-                                                                onChangeHandler={(e) => {
-                                                                    const arr = [...requestHeaders];
-                                                                    arr[i].key = e.target.value;
-                                                                    setRequestHeaders(arr);
-                                                                }}
-                                                                placeholder="Enter key"
-                                                                label="Key"
-                                                            />
-                                                        </div>
-                                                        <div className="flex w-full">
-                                                            <TextInputWithClearButton
-                                                                id={`header-value-${i}`}
-                                                                type="text"
-                                                                inputMode="text"
-                                                                value={h.value}
-                                                                onChangeHandler={(e) => {
-                                                                    const arr = [...requestHeaders];
-                                                                    arr[i].value = e.target.value;
-                                                                    setRequestHeaders(arr);
-                                                                }}
-                                                                placeholder="Enter value"
-                                                                label="Value"
-                                                            />
-                                                        </div>
-                                                        <button
-                                                            onClick={() => {
-                                                                const arr = requestHeaders.filter((_, idx) => idx !== i);
-                                                                setRequestHeaders(arr.length ? arr : [{ key: "", value: "" }]);
-                                                            }}
-                                                            className="w-10 p-2 rounded-md hover:bg-gray-100"
-                                                        >
-                                                            <Trash2Icon className="w-5 h-5 text-primary/60 hover:text-red-700" />
-                                                        </button>
+                                            {activeTabRequest === "headers" && (
+                                                <div className="mt-4 w-full">
+                                                    <h2 className="text-sm text-slate-600 mb-2">Headers</h2>
+                                                    <div className="flex flex-col gap-2 w-full h-full">
+                                                        {requestHeaders.map((h, i) => (
+                                                            <div key={i} className="flex gap-2 w-full items-center">
+                                                                <div className="flex w-full">
+                                                                    <TextInputWithClearButton
+                                                                        id={`header-key-${i}`}
+                                                                        type="text"
+                                                                        inputMode="text"
+                                                                        value={h.key}
+                                                                        onChangeHandler={(e) => {
+                                                                            const arr = [...requestHeaders];
+                                                                            arr[i].key = e.target.value;
+                                                                            setRequestHeaders(arr);
+                                                                        }}
+                                                                        placeholder="Enter key"
+                                                                        label="Key"
+                                                                    />
+                                                                </div>
+                                                                <div className="flex w-full">
+                                                                    <TextInputWithClearButton
+                                                                        id={`header-value-${i}`}
+                                                                        type="text"
+                                                                        inputMode="text"
+                                                                        value={h.value}
+                                                                        onChangeHandler={(e) => {
+                                                                            const arr = [...requestHeaders];
+                                                                            arr[i].value = e.target.value;
+                                                                            setRequestHeaders(arr);
+                                                                        }}
+                                                                        placeholder="Enter value"
+                                                                        label="Value"
+                                                                    />
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const arr = requestHeaders.filter((_, idx) => idx !== i);
+                                                                        setRequestHeaders(arr.length ? arr : [{ key: "", value: "" }]);
+                                                                    }}
+                                                                    className="w-10 p-2 rounded-md hover:bg-gray-100"
+                                                                >
+                                                                    <Trash2Icon className="w-5 h-5 text-primary/60 hover:text-red-700" />
+                                                                </button>
+                                                            </div>
+                                                        ))}
                                                     </div>
-                                                ))}
-                                            </div>
-                                            <button
-                                                onClick={() => setRequestHeaders([...requestHeaders, { key: "", value: "" }])}
-                                                className="text-blue-600 text-sm mt-2"
-                                            >
-                                                + Add header
-                                            </button>
+                                                    <button
+                                                        onClick={() => setRequestHeaders([...requestHeaders, { key: "", value: "" }])}
+                                                        className="text-blue-600 text-sm mt-2"
+                                                    >
+                                                        + Add header
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
+                                    {activeTab === "test" && (
+                                        <div>
+                                            <h2 className="text-sm text-slate-600 mb-2">Test Script</h2>
+                                            <div className="max-h-[400px] overflow-y-auto">
+                                                <SyntaxHighlighter
+                                                    language="javascript"
+                                                    style={vs}
+                                                    customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem", backgroundColor: "#F3F6F9", marginTop: "1rem" }}
+                                                >
+                                                    {selectedRequest?.node?.event?.find((e: any) => e.listen === "test")?.script?.exec?.join("\n") ?? "// Test script"}
+                                                </SyntaxHighlighter>
+                                            </div>
+                                        </div>
+                                    )}
 
-                                    <div className="pt-4">
+                                    <div className="flex mt-6 pb-4">
                                         <button
                                             onClick={() => runRequest(selectedRequest.collection, selectedRequest.method)}
                                             disabled={isRequestRunning}
@@ -637,7 +703,7 @@ const CollectionsPage = () => {
                         )}
                     </div>
 
-                    <div className="flex border h-full border-primary/20 rounded-md bg-white shadow-sm flex-col overflow-hidden">
+                    <div className={`flex border border-primary/20 rounded-md bg-white shadow-sm flex-col ${isOpen ? "h-full" : ""}`}>
                         <button
                             onClick={() => setIsOpen(!isOpen)}
                             className="flex-shrink-0 w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-slate-800 hover:bg-slate-50 border-b border-primary/10"
@@ -649,9 +715,32 @@ const CollectionsPage = () => {
                         </button>
 
                         {isOpen && (
-                            <div className="flex-1 p-4 overflow-y-auto text-sm bg-slate-50">
+                            <div className="w-full h-full flex  p-4 overflow-y-auto text-sm bg-slate-50">
                                 {selectedRequest?.response ? (
-                                    <JSONEditor selectedRequest={selectedRequest} />
+                                    <SyntaxHighlighter
+                                        language="json"
+                                        style={stackoverflowLight}
+                                        showLineNumbers
+                                        wrapLongLines
+                                        customStyle={{
+                                            margin: 0,
+                                            padding: "12px 16px",
+                                            borderRadius: "0 0 0.375rem 0.375rem",
+                                            background: "#ffffff",
+                                            fontSize: "0.9rem",
+                                            width: "100%",
+                                            height: "100%",
+                                        }}
+                                        lineNumberStyle={{
+                                            minWidth: "2ch",
+                                            paddingRight: "12px",
+                                            color: "#9AA0A6",
+                                            userSelect: "none",
+                                        }}
+
+                                    >
+                                        {code}
+                                    </SyntaxHighlighter>
                                 ) : (
                                     <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
                                         <span className="text-4xl mb-2">&lt;/&gt;</span>
@@ -659,7 +748,11 @@ const CollectionsPage = () => {
                                     </div>
                                 )}
                             </div>
-                        )}
+                        )
+
+                        }
+
+
                     </div>
                 </div>
             </div>

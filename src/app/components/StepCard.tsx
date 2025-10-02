@@ -92,10 +92,10 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
     const isProcessing = status === "processing";
     const isSkipped = status === "skipped";
     const isStopped = stopped;
-    console.log("StepCard stopped:", stopped, "status:", status);
     const gqlQuery = step.apisScriptsResult?.environment?.__request?.data?.query;
     const timeInSeconds = step?.time ? (Number(step.time) / 1000).toFixed(2) : null;
-
+    const raw = step?.apisScriptsResult?.environment?.__request?.data
+    
     const reqHeadersStr = useMemo(
         () => JSON.stringify(step?.apisScriptsResult?.environment?.__request?.headers, null, 2),
         [step?.apisScriptsResult?.environment?.__request?.headers]
@@ -258,6 +258,20 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
                                                 </SyntaxHighlighter>
                                             </div>
                                         )}
+                                        {
+                                            raw && (
+                                                <div className="mt-2">
+                                                    <strong>Raw Request Body:</strong>
+                                                    <SyntaxHighlighter
+                                                        language="json"
+                                                        style={oneLight}
+                                                        customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem" }}
+                                                    >
+                                                        {JSON.stringify(raw, null, 2)}
+                                                    </SyntaxHighlighter>
+                                                </div>
+                                            )
+                                        }
 
                                         {step.apisScriptsResult?.environment?.__request?.data?.variables && (
                                             <div className="mt-2">
