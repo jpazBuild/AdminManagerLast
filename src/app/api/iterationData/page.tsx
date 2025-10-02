@@ -2,12 +2,20 @@
 
 import Image from "next/image";
 import axios from "axios";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import selectIterationDataIcon from "../../../assets/apisImages/select-iterationData.svg";
 import { DashboardHeader } from "@/app/Layouts/main";
 import { URL_API_ALB } from "@/config";
 import TextInputWithClearButton from "@/app/components/InputClear";
-import { CopyPlus, MoreVertical, Trash2Icon } from "lucide-react";
+import {
+  CopyPlus,
+  MoreVertical,
+  Trash2Icon,
+  AlertCircle,
+  X,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 
 type Row = { variable: string; value: string };
 type Pkg = { id: string; name: string; selected: boolean; rows: Row[] };
@@ -31,6 +39,34 @@ const IterationDataPage = () => {
   const [loadingNewPackage, setLoadingNewPackage] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // --- Toast success (deleted) ---
+  const [toast, setToast] = useState<{ visible: boolean; message: string }>({
+    visible: false,
+    message: "",
+  });
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showToast = (message: string, duration = 4000) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ visible: true, message });
+    toastTimerRef.current = setTimeout(() => {
+      setToast({ visible: false, message: "" });
+      toastTimerRef.current = null;
+    }, duration);
+  };
+  const closeToast = () => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ visible: false, message: "" });
+    toastTimerRef.current = null;
+  };
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
+  // Modal de confirmación de borrado
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
   // Helper de ID reutilizable y a prueba de entorno
   const genId = () =>
     typeof crypto !== "undefined" && typeof (crypto as any).randomUUID === "function"
@@ -50,7 +86,6 @@ const IterationDataPage = () => {
         }
       }
     }
-
     return rows;
   };
 
@@ -58,14 +93,11 @@ const IterationDataPage = () => {
   const handleNewPackage = async () => {
     setLoadingNewPackage(true);
     setError(null);
-
-    // Reiniciar: limpiar paquetes existentes
-    setPackages([]);
+    setPackages([]); // Reiniciar
 
     let created = false;
 
     try {
-      // Traer headers
       const { data: headers } = await axios.post<IterationHeader[]>(
         `${URL_API_ALB}getIterationDataHeaders`,
         {}
@@ -74,31 +106,23 @@ const IterationDataPage = () => {
 
       let rows: Row[] = [];
 
-      // Si hay headers, traer SOLO el primer detalle
       if (headers && headers.length > 0) {
         const firstHeader = headers[0];
-
         try {
           const { data: detail } = await axios.post<IterationDetailResponse>(
             `${URL_API_ALB}iterationData`,
             { id: firstHeader.id }
           );
-
-          // Guardar detalle
           setIterationDetails((prev) => ({ ...prev, [firstHeader.id]: detail }));
-
-          // Convertir a filas
           rows = rowsFromIterationDetails(detail);
         } catch (err) {
           console.error("Error trayendo iterationData:", err);
-          // rows queda vacío → fallback en blanco
         }
       }
 
-      // Crear package con datos o en blanco
       const newPkg: Pkg = {
         id: genId(),
-        name: `Number1`, // como reiniciamos, empieza en 1
+        name: `Number1`,
         selected: true,
         rows: rows.length ? rows : [{ variable: "", value: "" }],
       };
@@ -108,9 +132,7 @@ const IterationDataPage = () => {
     } catch (err) {
       console.error("Error trayendo headers:", err);
       setError("No se pudo cargar la información de iteraciones.");
-      // no retornamos; garantizamos fallback en finally
     } finally {
-      // Garantía: si no se creó arriba, crear uno en blanco
       if (!created) {
         setPackages([
           {
@@ -125,7 +147,7 @@ const IterationDataPage = () => {
     }
   };
 
-  // Botón gris (solo cuando ya hay packages): agrega un package vacío SIN llamar al API
+  // Botón gris (cuando ya hay packages): agrega un package vacío SIN llamar al API
   const handleAddBlankPackage = () => {
     const nextIndex = packages.length + 1;
     const blankPkg: Pkg = {
@@ -170,10 +192,41 @@ const IterationDataPage = () => {
       prev.map((p) => (p.id === pkgId ? { ...p, selected: !p.selected } : p))
     );
 
+  // --- Colapsado por card (sin tocar la estructura Pkg)
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const toggleCollapse = (pkgId: string) => {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(pkgId)) next.delete(pkgId);
+      else next.add(pkgId);
+      return next;
+    });
+  };
+
   const deletePackage = (pkgId: string) => {
     setPackages((prev) => prev.filter((p) => p.id !== pkgId));
+    // limpiar estado de colapso si existía
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      next.delete(pkgId);
+      return next;
+    });
   };
+
+  // --- Menú & Modal handlers ---
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const openDeleteModal = (pkgId: string) => {
+    setConfirmDeleteId(pkgId);
+    setOpenMenu(null); // cerrar dropdown
+  };
+  const closeDeleteModal = () => setConfirmDeleteId(null);
+  const handleConfirmDelete = () => {
+    if (confirmDeleteId) {
+      deletePackage(confirmDeleteId);
+      showToast("The data package has been deleted.");
+    }
+    setConfirmDeleteId(null);
+  };
 
   return (
     <DashboardHeader pageType="api">
@@ -197,7 +250,7 @@ const IterationDataPage = () => {
             <button
               disabled={loadingNewPackage}
               onClick={handleNewPackage}
-              className="flex items-center gap-2 bg-[#0A2342] text-white px-8 py-3 rounded-full font-semibold shadow hover:bg[#18345A] hover:bg-[#18345A] transition-all text-lg disabled:opacity-60"
+              className="flex items-center gap-2 bg-[#0A2342] text-white px-8 py-3 rounded-full font-semibold shadow hover:bg-[#18345A] transition-all text-lg disabled:opacity-60"
             >
               <span className="text-xl">+</span>
               {loadingNewPackage ? "Creating..." : "New package"}
@@ -213,112 +266,131 @@ const IterationDataPage = () => {
           <div className="space-y-6 w-full lg:w-1/2 mx-auto">
             <h1 className="text-2xl font-bold text-[#0A2342]">Data packages</h1>
             <p className="text-[#7B8CA6] mb-6">Selected sets will be used in iterations.</p>
-            {packages.map((pkg) => (
-              <div key={pkg.id} className="rounded-2xl border border-[#E1E8F0] bg-white p-6">
-                {/* Header de la card */}
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    className="mt-2 h-5 w-5 accent-[#0A2342] rounded"
-                    checked={pkg.selected}
-                    onChange={() => toggleSelected(pkg.id)}
-                  />
-                  <div className="flex-1">
-                    <TextInputWithClearButton
-                      id={`package-name-${pkg.id}`}
-                      label="Package name"
-                      placeholder="Number1"
-                      value={pkg.name}
-                      onChangeHandler={(e) => updateName(pkg.id, e.target.value)}
-                      isSearch={false}
+            {packages.map((pkg) => {
+              const isCollapsed = collapsed.has(pkg.id);
+              return (
+                <div key={pkg.id} className="rounded-2xl border border-[#E1E8F0] bg-white p-6">
+                  {/* Header de la card */}
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      className="mt-2 h-5 w-5 accent-[#0A2342] rounded"
+                      checked={pkg.selected}
+                      onChange={() => toggleSelected(pkg.id)}
                     />
-                  </div>
-                  {/* 🔹 Botón Delete package con estilo */}
-                  <div className="relative">
-                    {/* Botón ⋮ */}
+                    <div className="flex-1">
+                      <TextInputWithClearButton
+                        id={`package-name-${pkg.id}`}
+                        label="Package name"
+                        placeholder="Number1"
+                        value={pkg.name}
+                        onChangeHandler={(e) => updateName(pkg.id, e.target.value)}
+                        isSearch={false}
+                      />
+                    </div>
+
+                    {/* Botón colapsar/expandir */}
                     <button
-                      onClick={() => setOpenMenu(openMenu === pkg.id ? null : pkg.id)}
+                      onClick={() => toggleCollapse(pkg.id)}
+                      aria-expanded={!isCollapsed}
+                      aria-controls={`pkg-content-${pkg.id}`}
+                      title={isCollapsed ? "Expand" : "Collapse"}
                       className="p-2 rounded-full hover:bg-gray-100"
                     >
-                      <MoreVertical className="h-5 w-5 text-gray-600" />
+                      {isCollapsed ? (
+                        <ChevronDown className="h-5 w-5 text-gray-600" />
+                      ) : (
+                        <ChevronUp className="h-5 w-5 text-gray-600" />
+                      )}
                     </button>
 
-                    {/* Dropdown */}
-                    {openMenu === pkg.id && (
-                      <div className="absolute right-0 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg z-10">
-                        {/* Duplicate */}
-                        <button
-                          onClick={() => {
-                            const duplicate = {
-                              ...pkg,
-                              id: genId(),
-                              name: pkg.name + " Copy",
-                            };
-                            setPackages((prev) => [...prev, duplicate]);
-                            setOpenMenu(null);
-                          }}
-                          className="flex items-center gap-2 w-full px-4 py-2 text-sm text-[#0A2342] hover:bg-gray-50"
-                        >
-                          <CopyPlus className="w-4 h-4" /> Duplicate
-                        </button>
+                    {/* Menú ⋮ */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setOpenMenu(openMenu === pkg.id ? null : pkg.id)}
+                        className="p-2 rounded-full hover:bg-gray-100"
+                      >
+                        <MoreVertical className="h-5 w-5 text-gray-600" />
+                      </button>
 
-                        {/* Delete */}
-                        <button
-                          onClick={() => {
-                            deletePackage(pkg.id);
-                            setOpenMenu(null);
-                          }}
-                          className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                        >
-                          <Trash2Icon className="w-4 h-4" /> Delete
-                        </button>
-                      </div>
-                    )}
+                      {openMenu === pkg.id && (
+                        <div className="absolute right-0 mt-2 w-40 rounded-lg border border-gray-200 bg-white shadow-lg z-10">
+                          <button
+                            onClick={() => {
+                              const duplicate = {
+                                ...pkg,
+                                id: genId(),
+                                name: pkg.name + " Copy",
+                              };
+                              setPackages((prev) => [...prev, duplicate]);
+                              setOpenMenu(null);
+                            }}
+                            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-[#0A2342] hover:bg-gray-50"
+                          >
+                            <CopyPlus className="w-4 h-4" /> Duplicate
+                          </button>
+
+                          <button
+                            onClick={() => openDeleteModal(pkg.id)}
+                            className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2Icon className="w-4 h-4" /> Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Contenido colapsable */}
+                  <div
+                    id={`pkg-content-${pkg.id}`}
+                    className={`${isCollapsed ? "hidden" : "block"}`}
+                  >
+                    <div className="mt-4 flex flex-col gap-2">
+                      {pkg.rows.map((row, i) => (
+                        <div key={i} className="flex gap-2 items-center">
+                          <TextInputWithClearButton
+                            id={`row-variable-${pkg.id}-${i}`}
+                            type="text"
+                            inputMode="text"
+                            value={row.variable}
+                            onChangeHandler={(e) =>
+                              updateRow(pkg.id, i, "variable", e.target.value)
+                            }
+                            placeholder="Enter variable"
+                            label="Variable"
+                          />
+                          <TextInputWithClearButton
+                            id={`row-value-${pkg.id}-${i}`}
+                            type="text"
+                            inputMode="text"
+                            value={row.value}
+                            onChangeHandler={(e) =>
+                              updateRow(pkg.id, i, "value", e.target.value)
+                            }
+                            placeholder="Enter value"
+                            label="Value"
+                          />
+                          <button onClick={() => deleteRow(pkg.id, i)} className="px-2">
+                            <Trash2Icon className="w-5 h-5 text-primary/80" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Add row */}
+                    <button
+                      onClick={() => addRow(pkg.id)}
+                      className="inline-flex items-center gap-2 rounded-full border border-[#E1E8F0] px-4 py-2 text-[#0A2342] hover:bg-[#F5F8FB] mt-3"
+                    >
+                      <span className="text-lg">＋</span> Add row
+                    </button>
                   </div>
                 </div>
+              );
+            })}
 
-                {/* Columnas */}
-                <div className="mt-4 flex flex-col gap-2">
-                  {pkg.rows.map((row, i) => (
-                    <div key={i} className="flex gap-2 items-center">
-                      <TextInputWithClearButton
-                        id={`row-variable-${pkg.id}-${i}`}
-                        type="text"
-                        inputMode="text"
-                        value={row.variable}
-                        onChangeHandler={(e) => updateRow(pkg.id, i, "variable", e.target.value)}
-                        placeholder="Enter variable"
-                        label="Variable"
-                      />
-                      <TextInputWithClearButton
-                        id={`row-value-${pkg.id}-${i}`}
-                        type="text"
-                        inputMode="text"
-                        value={row.value}
-                        onChangeHandler={(e) => updateRow(pkg.id, i, "value", e.target.value)}
-                        placeholder="Enter value"
-                        label="Value"
-                      />
-                      <button onClick={() => deleteRow(pkg.id, i)} className="px-2">
-                        <Trash2Icon className="w-5 h-5 text-primary/80" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Add row */}
-                <button
-                  onClick={() => addRow(pkg.id)}
-                  className="inline-flex items-center gap-2 rounded-full border border-[#E1E8F0] px-4 py-2 text-[#0A2342] hover:bg-[#F5F8FB] mt-3"
-                >
-                  <span className="text-lg">＋</span> Add row
-                </button>
-              </div>
-            ))}
-
-            {/* Botones globales (cuando YA hay packages):
-                - Ocultamos el azul original
-                - Mostramos el botón gris para crear package vacío */}
+            {/* Botones globales cuando YA hay packages */}
             <div className="flex gap-4">
               <button
                 onClick={handleAddBlankPackage}
@@ -331,8 +403,83 @@ const IterationDataPage = () => {
                 Upload CSV
               </button>
             </div>
+
+            {/* Toast debajo de packages */}
+            {toast.visible && (
+              <div className="mt-4">
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="flex w-full items-center justify-between rounded-2xl border border-green-200 bg-green-50 px-5 py-3 text-green-700 shadow"
+                >
+                  <span className="text-base font-semibold">{toast.message}</span>
+                  <button
+                    onClick={closeToast}
+                    aria-label="Close notification"
+                    className="rounded-full p-1 hover:bg-green-100/70"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </>
+      )}
+
+      {/* Modal de confirmación de borrado */}
+      {confirmDeleteId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          role="dialog"
+          aria-modal="true"
+        >
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/30"
+            onClick={closeDeleteModal}
+            aria-hidden="true"
+          />
+
+          {/* Card */}
+          <div className="relative z-10 w-[min(560px,90vw)] rounded-2xl bg-white p-6 shadow-xl">
+            {/* Close (X) */}
+            <button
+              onClick={closeDeleteModal}
+              className="absolute right-4 top-4 rounded-full p-1 hover:bg-gray-100"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+
+            {/* Icono */}
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
+              <AlertCircle className="h-7 w-7 text-red-600" />
+            </div>
+
+            {/* Título y texto */}
+            <h3 className="text-center text-xl font-semibold text-[#0A2342]">
+              Are you sure you want to delete this package?
+            </h3>
+            <p className="mt-1 text-center text-[#7B8CA6]">This action cannot be undone.</p>
+
+            {/* Acciones */}
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                onClick={closeDeleteModal}
+                className="inline-flex items-center justify-center rounded-full border border-[#0A2342] px-6 py-2.5 font-semibold text-[#0A2342] hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDelete}
+                className="inline-flex items-center justify-center rounded-full bg-red-600 px-6 py-2.5 font-semibold text-white hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </DashboardHeader>
   );
