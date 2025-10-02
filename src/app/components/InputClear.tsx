@@ -89,6 +89,8 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
   const labelColorFocused = isDarkMode ? "peer-focus:text-white/90" : "peer-focus:text-[#033a5c]/90";
   const ringFocus = isDarkMode ? "focus:ring-white/90" : "focus:ring-[#033a5c]/90";
 
+  console.log("label is:", Boolean(label));
+  
   return (
     <div className={`relative w-full text-[14px] ${baseSurface} rounded-lg`}>
       <div className="relative w-full">
@@ -118,12 +120,11 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
             value={localValue}
             autoComplete="on"
             onChange={e => setLocalValue(e.target.value)}
-            className={`peer w-full ml-3 pr-10 pt-5 pb-2 placeholder:text-[16px] rounded-md ${textColor} ${ringFocus} bg-transparent focus:outline-none ${className}`}
+            className={`peer w-full ml-3 pr-10 ${Boolean(label) ? "pt-5" : "pt-2"} pb-2 placeholder:text-[16px] rounded-md ${textColor} ${ringFocus} bg-transparent focus:outline-none ${className}`}
             readOnly={readOnly}
             onBlur={onBlur}
             {...props}
           />
-
         )}
 
         {label && (

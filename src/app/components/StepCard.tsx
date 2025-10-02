@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { CheckIcon, Clock, CodeIcon } from "lucide-react";
+import { Clock, CodeIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@radix-ui/react-tabs";
 import { TabsContent } from "@/components/ui/tabs";
@@ -8,7 +8,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { httpMethodsStyle } from "../api/utils/colorMethods";
 import TextInputWithClearButton from "./InputClear";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 interface Step {
     status?: string;
@@ -27,6 +27,7 @@ interface StepData {
     action?: string;
 
 }
+
 
 interface StepCardProps {
     step: Step;
@@ -91,10 +92,10 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
     const isProcessing = status === "processing";
     const isSkipped = status === "skipped";
     const isStopped = stopped;
-    console.log("StepCard stopped:", stopped, "status:", status);
     const gqlQuery = step.apisScriptsResult?.environment?.__request?.data?.query;
     const timeInSeconds = step?.time ? (Number(step.time) / 1000).toFixed(2) : null;
-
+    const raw = step?.apisScriptsResult?.environment?.__request?.data
+    
     const reqHeadersStr = useMemo(
         () => JSON.stringify(step?.apisScriptsResult?.environment?.__request?.headers, null, 2),
         [step?.apisScriptsResult?.environment?.__request?.headers]
@@ -257,6 +258,20 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
                                                 </SyntaxHighlighter>
                                             </div>
                                         )}
+                                        {
+                                            raw && (
+                                                <div className="mt-2">
+                                                    <strong>Raw Request Body:</strong>
+                                                    <SyntaxHighlighter
+                                                        language="json"
+                                                        style={oneLight}
+                                                        customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem" }}
+                                                    >
+                                                        {JSON.stringify(raw, null, 2)}
+                                                    </SyntaxHighlighter>
+                                                </div>
+                                            )
+                                        }
 
                                         {step.apisScriptsResult?.environment?.__request?.data?.variables && (
                                             <div className="mt-2">
@@ -292,7 +307,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
                                         </SyntaxHighlighter>
                                        
                                     </TabsContent>
-
+                                                    
                                     <TabsContent value="environment" className="px-2 py-2">
                                         {Object.keys(step.apisScriptsResult?.environment?.environment || {}).length === 0 && (
                                             <p className="text-sm text-gray-500">No environment variables available.</p>

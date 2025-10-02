@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import JSONDropzone from "../../components/JSONDropzone";
 import SortableTestCasesAccordion from "./SortableItem";
 import SortableTestCaseItem from "./SortableTestCaseItem";
-import { Download } from "lucide-react";
+import { Download, DownloadIcon } from "lucide-react";
 import { toast } from "sonner";
 import { TestCase } from "@/types/TestCase";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -81,7 +81,6 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
 }) => {
     const [dynamicValues, setDynamicValues] = useState<DynamicValueEntry[]>([]);
 
-    // const [dynamicValues, setDynamicValues] = useState<{ id: string; input: Record<string, string>; order?: number; testCaseName?: string; createdByName?: string }[]>([]);
     const [viewMode, setViewMode] = useState<'data' | 'steps' | 'editLocation'>('data');
     const [testCasesData, setTestCasesData] = useState<TestCase[]>([]);
     const [openDialog, setOpenDialog] = useState(false);
@@ -583,6 +582,9 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
     }, [ddQuery, ddHeaders]);
 
 
+    console.log("uniqueDynamicFields :", uniqueDynamicFields);
+    console.log("testCasesData :", testCasesData);
+    
     return (
         <div className=" flex flex-col gap-2">
             <div className="flex flex-col gap-2 items-center justify-center w-full">
@@ -594,21 +596,21 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                     onClear={handleClearJSONData}
                     isDarkMode={isDarkMode}
                 />
+                <p className="text-sm text-gray-500">Or</p>
                 <div className="flex items-center gap-2">
-                    <Button
+                    <button
                         type="button"
-                        variant="outline"
                         onClick={openDynamicDataModal}
-                        className={isDarkMode
-                            ? "rounded-2xl border border-gray-500 text-gray-100"
-                            : "rounded-2xl border border-gray-300 bg-primary/5"}
+                        className={`cursor-pointer font-medium text-primary/80 text-[14px] px-4 py-3 ${isDarkMode
+                            ? "rounded-2xl border border-gray-200"
+                            : "rounded-2xl border border-gray-200 bg-gray-200 hover:bg-gray-200"}`}
                     >
                         Import from Dynamic Data…
-                    </Button>
+                    </button>
                 </div>
             </div>
 
-            {editMode === 'global' && uniqueDynamicFields.length > 1 && (
+            {editMode === 'global' && testCasesData.length > 1 && uniqueDynamicFields.length > 0  && (
                 <div className={styleClasses.globalFields}>
                     <div>
                         <h3 className={styleClasses.globalFieldsTitle}>
@@ -669,23 +671,16 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                 {allIds.length > 0 && (
                     <div className="flex justify-between items-center">
                         <div className="flex justify-between items-center gap-4">
-                            {allIds.length > 1 && (
-                                <ExpandToggle
-                                    isDarkMode={isDarkMode}
-                                    allExpanded={allExpanded}
-                                    onExpandAll={handleExpandAll}
-                                    onCollapseAll={handleCollapseAll}
-                                />
-                            )}
+                            
                         </div>
 
-                        <Button
+                        <button
                             onClick={handleExportAsDataObject}
-                            variant="outline"
-                            className={styleClasses.exportButton}
+                            
+                            className={`cursor-pointer text-primary/80 text-[14px] bg-gray-200 rounded-xl px-3 py-2 flex gap-2 hover:bg-gray-200`}
                         >
-                            <Download /> Export Dynamic Values
-                        </Button>
+                            <DownloadIcon className="w-5 h-5"/> Export Dynamic Values
+                        </button>
                     </div>
                 )}
             </div>
