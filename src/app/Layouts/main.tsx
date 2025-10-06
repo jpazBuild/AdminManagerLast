@@ -29,33 +29,33 @@ export const DashboardSidebar = ({
 
     if (isActive) {
       return `flex items-center ${isCollapsed ? "p-2 justify-center text-center" : "px-4 py-3"}  text-sm font-medium rounded-xl transition-all duration-300 ${darkMode
-          ? "bg-slate-500 text-white shadow-lg"
-          : "bg-primary/10 text-primary/90 border-r-2 border-primary/90 shadow-md"
+        ? "bg-slate-500 text-white shadow-lg"
+        : "bg-primary/10 text-primary/90 border-r-2 border-primary/90 shadow-md"
         }`;
     }
 
     return `flex items-center ${isCollapsed ? "p-2 justify-center text-center" : "px-4 py-3"}  text-sm font-medium rounded-xl transition-all duration-300 ${darkMode
-        ? "text-gray-300 hover:bg-gray-700 hover:text-white"
-        : "text-primary/70 hover:bg-primary/5"
+      ? "text-gray-300 hover:bg-gray-700 hover:text-white"
+      : "text-primary/70 hover:bg-primary/5"
       }`;
   };
 
   const menuItems = pageType === "api" ? [
     {
-      name:"Collections",
-      path:"/api/collections",
+      name: "Collections",
+      path: "/api/collections",
       icon: (<Image src={iconCollection} alt="Collections" className="w-5 h-5" />)
-    },{
-      name:"Environments",
-      path:"/api/environments",
+    }, {
+      name: "Environments",
+      path: "/api/environments",
       icon: (<Image src={iconEnvironment} alt="Environments" className="w-5 h-5" />)
-    },{
-      name:"Iteration data",
-      path:"/api/iterationData",
+    }, {
+      name: "Iteration data",
+      path: "/api/iterationData",
       icon: (<Image src={iconIterationData} alt="Iteration data" className="w-5 h-5" />)
-    },{
-      name:"Flows",
-      path:"/api/flows",
+    }, {
+      name: "Flows",
+      path: "/api/flows",
       icon: (<Image src={iconFlows} alt="Flows" className="w-5 h-5" />)
     }
   ] : [
@@ -110,9 +110,9 @@ export const DashboardSidebar = ({
     >
       <button
         onClick={onToggleCollapse}
-        className={`absolute -right-3 top-1/2 z-50 p-2 rounded-full transition-all duration-300 ${darkMode
-            ? "bg-gray-700 text-white hover:bg-gray-600 shadow-lg"
-            : "bg-white text-gray-700 hover:bg-gray-100 shadow-lg border border-gray-200"
+        className={`absolute -right-3 top-1/2 z-40 p-2 rounded-full transition-all duration-300 ${darkMode
+          ? "bg-gray-700 text-white hover:bg-gray-600 shadow-lg"
+          : "bg-white text-gray-700 hover:bg-gray-100 shadow-lg border border-gray-200"
           }`}
         style={{
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
@@ -207,14 +207,14 @@ export const DashboardHeader = ({
 
     if (isActive) {
       return `lg:inline-block text-md font-medium px-4 py-2 rounded-lg transition-colors duration-300 ${darkMode
-          ? "bg-primary/5 text-gray-100"
-          : "bg-primary/5 text-gray-900"
+        ? "bg-primary/5 text-gray-100"
+        : "bg-primary/5 text-gray-900"
         }`;
     }
 
     return `lg:inline-block text-md font-medium px-4 py-2 rounded-lg transition-colors duration-300 ${darkMode
-        ? "text-gray-100 hover:bg-gray-700"
-        : "text-gray-900 hover:bg-gray-200"
+      ? "text-gray-100 hover:bg-gray-700"
+      : "text-gray-900 hover:bg-gray-200"
       }`;
   };
 
@@ -243,8 +243,8 @@ export const DashboardHeader = ({
             <button
               onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
               className={`lg:hidden mr-3 p-2 rounded-lg transition-colors duration-200 ${darkMode
-                  ? "text-gray-300 hover:bg-gray-700"
-                  : "text-gray-700 hover:bg-gray-200"
+                ? "text-gray-300 hover:bg-gray-700"
+                : "text-gray-700 hover:bg-gray-200"
                 }`}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,9 +268,9 @@ export const DashboardHeader = ({
             <Link href="/dashboard" className={getLinkClasses("/dashboard")}>
               Dashboard
             </Link>
-            {/* <Link href="/api" className={getLinkClasses("/api")}>
+            <Link href="/api" className={getLinkClasses("/api")}>
               API
-            </Link> */}
+            </Link>
           </div>
 
           <div className="flex items-center space-x-4">
@@ -342,12 +342,12 @@ export const DashboardHeader = ({
                     <Link
                       href={item.path}
                       className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${isActive
-                          ? darkMode
-                            ? "bg-blue-600 text-white"
-                            : "bg-blue-50 text-blue-700 border-r-2 border-blue-600"
-                          : darkMode
-                            ? "text-gray-300 hover:bg-gray-700 hover:text-white"
-                            : "text-gray-700 hover:bg-gray-100"
+                        ? darkMode
+                          ? "bg-blue-600 text-white"
+                          : "bg-blue-50 text-blue-700 border-r-2 border-blue-600"
+                        : darkMode
+                          ? "text-gray-300 hover:bg-gray-700 hover:text-white"
+                          : "text-gray-700 hover:bg-gray-100"
                         }`}
                       onClick={() => setMobileSidebarOpen(false)}
                     >
