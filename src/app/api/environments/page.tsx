@@ -7,175 +7,11 @@ import axios from "axios";
 import { CircleAlert, Settings, Trash2Icon, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import MoreMenu from "../components/MoreMenu";
+import CreateEnvironment from "./components/create";
+import { EnvRow } from "./types/types";
+import { buildSavePayload, normalizeToRows, renameKey } from "./utils/rowsMethods";
+import EnvironmentDetails from "./components/details";
 
-type EnvRow = {
-    id: string;
-    key: string;
-    value: string;
-    enabled: boolean;
-    _orig: { key: string; value: string; enabled: boolean; type?: string };
-    _type?: string;
-};
-
-const METADATA_KEYS = new Set([
-    "name",
-    "_postman_exported_using",
-    "_postman_exported_at",
-    "id",
-    "_postman_variable_scope",
-    "values",
-]);
-
-const normalizeToRows = (
-    selectedEnvironment: any
-): { rows: EnvRow[]; source: "values" | "env" } => {
-    const root = selectedEnvironment ?? {};
-    const env = root?.env && typeof root.env === "object" ? root.env : null;
-
-    if (Array.isArray(root?.values)) {
-        const rows: EnvRow[] = root.values
-            .filter((it: any) => it && typeof it.key === "string" && it.key.length)
-            .map((it: any, idx: number) => ({
-                id: String(it.key ?? idx),
-                key: String(it.key ?? ""),
-                value:
-                    typeof it.value === "object"
-                        ? JSON.stringify(it.value)
-                        : String(it.value ?? ""),
-                enabled: Boolean(it.enabled ?? true),
-                _type: it.type ?? "default",
-                _orig: {
-                    key: String(it.key ?? ""),
-                    value:
-                        typeof it.value === "object"
-                            ? JSON.stringify(it.value)
-                            : String(it.value ?? ""),
-                    enabled: Boolean(it.enabled ?? true),
-                    type: it.type ?? "default",
-                },
-            }));
-        return { rows, source: "values" };
-    }
-
-    if (env && Array.isArray(env.values)) {
-        const rows: EnvRow[] = env.values
-            .filter((it: any) => it && typeof it.key === "string" && it.key.length)
-            .map((it: any, idx: number) => ({
-                id: String(it.key ?? idx),
-                key: String(it.key ?? ""),
-                value:
-                    typeof it.value === "object"
-                        ? JSON.stringify(it.value)
-                        : String(it.value ?? ""),
-                enabled: Boolean(it.enabled ?? true),
-                _type: it.type ?? "default",
-                _orig: {
-                    key: String(it.key ?? ""),
-                    value:
-                        typeof it.value === "object"
-                            ? JSON.stringify(it.value)
-                            : String(it.value ?? ""),
-                    enabled: Boolean(it.enabled ?? true),
-                    type: it.type ?? "default",
-                },
-            }));
-        return { rows, source: "values" };
-    }
-
-    if (env) {
-        const rows: EnvRow[] = Object.entries(env)
-            .filter(([k]) => !METADATA_KEYS.has(String(k)))
-            .map(([k, v]) => ({
-                id: String(k),
-                key: String(k),
-                value: typeof v === "object" ? JSON.stringify(v) : String(v ?? ""),
-                enabled: true,
-                _orig: {
-                    key: String(k),
-                    value: typeof v === "object" ? JSON.stringify(v) : String(v ?? ""),
-                    enabled: true,
-                },
-            }));
-        return { rows, source: "env" };
-    }
-
-    if (root && typeof root === "object") {
-        const rows: EnvRow[] = Object.entries(root)
-            .filter(([k]) => !METADATA_KEYS.has(String(k)))
-            .map(([k, v]) => ({
-                id: String(k),
-                key: String(k),
-                value: typeof v === "object" ? JSON.stringify(v) : String(v ?? ""),
-                enabled: true,
-                _orig: {
-                    key: String(k),
-                    value: typeof v === "object" ? JSON.stringify(v) : String(v ?? ""),
-                    enabled: true,
-                },
-            }));
-        return { rows, source: "env" };
-    }
-
-    return { rows: [], source: "env" };
-};
-
-const coerce = (s: string) => {
-    if (typeof s !== "string") return s as any;
-    try { return JSON.parse(s); } catch { return s; }
-};
-
-const buildSavePayload = (
-    original: any,
-    rows: Array<{ key: string; value: string; enabled: boolean; _type?: string; _orig?: any }>,
-    sourceType: "values" | "env"
-) => {
-    const clone = JSON.parse(JSON.stringify(original));
-
-    if (sourceType === "values") {
-        const valuesPayload = rows.map(r => ({
-            key: r.key,
-            value: coerce(r.value),
-            enabled: r.enabled,
-            type: r._type ?? r._orig?.type ?? "default",
-        }));
-
-        if (Array.isArray(clone?.values)) {
-            clone.values = valuesPayload;
-        } else if (clone?.env && Array.isArray(clone.env.values)) {
-            clone.env = { ...clone.env, values: valuesPayload };
-        } else {
-            clone.values = valuesPayload;
-            if (clone?.env?.values) delete clone.env.values;
-        }
-        return clone;
-    }
-
-    const envObj: Record<string, any> = {};
-    rows.forEach(r => { envObj[r.key] = coerce(r.value); });
-
-    if (clone?.env && typeof clone.env === "object") {
-        const { values: _, ...rest } = clone.env;
-        clone.env = { ...rest, ...envObj };
-    } else {
-        clone.env = envObj;
-    }
-    return clone;
-}
-
-const renameKey = <T extends object>(
-    obj: T,
-    from: string,
-    to: string,
-    valueIfMissing?: any
-) => {
-    const o = obj as Record<string, any>;
-    if (from in o) {
-        o[to] = o[from];
-        delete o[from];
-    } else if (!(to in o) && valueIfMissing !== undefined) {
-        o[to] = valueIfMissing;
-    }
-}
 
 const EnvironmentsPage = () => {
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -189,6 +25,8 @@ const EnvironmentsPage = () => {
     const [toastError, setToastError] = useState<string | null>(null);
     const [sourceType, setSourceType] = useState<"values" | "env">("env");
     const originalRowsRef = useRef<EnvRow[]>([]);
+    const [createView, setCreateView] = useState(false);
+
     const fetchEnvironments = async () => {
         const response = await axios.post(`${URL_API_ALB}envs`, {});
         setEnvironments(response.data);
@@ -246,60 +84,7 @@ const EnvironmentsPage = () => {
             )
         );
 
-    const onSave = async () => {
-        if (!selectedEnvironment) return;
-        setSaving(true);
-        try {
-            if (sourceType === "values") {
-                const payload = buildSavePayload(selectedEnvironment, rows, sourceType);
-                delete payload.createdAt;
-                delete payload.type;
-                delete payload.route;
-                renameKey(
-                    payload,
-                    "createdByName",
-                    "updatedBy"
-                );
-                const valuesPayload = rows.map(r => ({
-                    key: r.key,
-                    value: r.value,
-                    enabled: r.enabled,
-                    type: r._type ?? r._orig?.type ?? "default",
-                }));
 
-                await axios.patch(`${URL_API_ALB}envs`, payload);
-                fetchEnvironments();
-            } else {
-                const envObj: Record<string, string> = {};
-                rows.forEach(r => {
-                    envObj[r.key] = r.value;
-                });
-
-                await axios.patch(`${URL_API_ALB}envs`, {
-                    id: selectedEnvironment.id,
-                    name: selectedEnvironment?.name,
-                    tagNames: selectedEnvironment?.tagNames,
-                    description: selectedEnvironment?.description,
-                    env: envObj,
-                    updatedBy: selectedEnvironment?.createdByName,
-                    createdBy: selectedEnvironment?.createdByName,
-                    temp: false,
-                });
-                fetchEnvironments();
-            }
-
-            const snapshot: EnvRow[] = JSON.parse(JSON.stringify(rows));
-            originalRowsRef.current = snapshot;
-
-            setToastMsg("Changes saved successfully.");
-            setTimeout(() => setToastMsg(null), 4000);
-        } catch (e) {
-            setToastMsg("Error while saving changes.");
-            setTimeout(() => setToastMsg(null), 4000);
-        } finally {
-            setSaving(false);
-        }
-    };
 
     const confirmReset = () => setShowResetConfirm(true);
     const doReset = () => {
@@ -323,10 +108,181 @@ const EnvironmentsPage = () => {
         }
     };
 
+    const makeRowId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    const makeEmptyRow = (): EnvRow => ({
+        id: makeRowId(),
+        key: "",
+        value: "",
+        enabled: true,
+        _orig: { key: "", value: "", enabled: true, type: "default" },
+        _type: "default",
+    });
+
+    const addRow = () => setRows(prev => [...prev, makeEmptyRow()]);
+
+    const removeRow = (id: string) =>
+        setRows(prev => prev.filter(r => r.id !== id));
+
+
+
+    // const onSave = async () => {
+    //     if (!selectedEnvironment) return;
+    //     setSaving(true);
+    //     try {
+    //         if (sourceType === "values") {
+    //             const payload = buildSavePayload(selectedEnvironment, rows, sourceType);
+    //             delete payload.createdAt;
+    //             delete payload.type;
+    //             delete payload.route;
+    //             renameKey(
+    //                 payload,
+    //                 "createdByName",
+    //                 "updatedBy"
+    //             );
+    //             const valuesPayload = rows.map(r => ({
+    //                 key: r.key,
+    //                 value: r.value,
+    //                 enabled: r.enabled,
+    //                 type: r._type ?? r._orig?.type ?? "default",
+    //             }));
+
+    //             await axios.patch(`${URL_API_ALB}envs`, payload);
+    //             fetchEnvironments();
+    //         } else {
+    //             const envObj: Record<string, string> = {};
+    //             rows.forEach(r => {
+    //                 envObj[r.key] = r.value;
+    //             });
+
+    //             await axios.patch(`${URL_API_ALB}envs`, {
+    //                 id: selectedEnvironment.id,
+    //                 name: selectedEnvironment?.name,
+    //                 tagNames: selectedEnvironment?.tagNames,
+    //                 description: selectedEnvironment?.description,
+    //                 env: envObj,
+    //                 updatedBy: selectedEnvironment?.createdByName,
+    //                 createdBy: selectedEnvironment?.createdByName,
+    //                 temp: false,
+    //             });
+    //             fetchEnvironments();
+    //         }
+
+    //         const snapshot: EnvRow[] = JSON.parse(JSON.stringify(rows));
+    //         originalRowsRef.current = snapshot;
+
+    //         setToastMsg("Changes saved successfully.");
+    //         setTimeout(() => setToastMsg(null), 4000);
+    //     } catch (e) {
+    //         setToastMsg("Error while saving changes.");
+    //         setTimeout(() => setToastMsg(null), 4000);
+    //     } finally {
+    //         setSaving(false);
+    //     }
+    // };
+
+    const onSave = async (opts?: { nameOverride?: string }) => {
+        if (!selectedEnvironment) return;
+        setSaving(true);
+        const effectiveName = (opts?.nameOverride ?? selectedEnvironment?.name ?? "").trim();
+
+        try {
+            if (sourceType === "values") {
+                const payload = buildSavePayload(selectedEnvironment, rows, sourceType);
+                // Normaliza y aplica overrides
+                delete (payload as any).createdAt;
+                delete (payload as any).type;
+                delete (payload as any).route;
+                renameKey(payload, "createdByName", "updatedBy");
+                // <-- aplicar el nombre nuevo en el mismo PATCH
+                payload.name = effectiveName;
+
+                await axios.patch(`${URL_API_ALB}envs`, payload);
+                await fetchEnvironments();
+            } else {
+                const envObj: Record<string, string> = {};
+                rows.forEach(r => { envObj[r.key] = r.value; });
+
+                await axios.patch(`${URL_API_ALB}envs`, {
+                    id: selectedEnvironment.id,
+                    name: effectiveName, // <-- usar el nombre nuevo
+                    tagNames: selectedEnvironment?.tagNames,
+                    description: selectedEnvironment?.description,
+                    env: envObj,
+                    updatedBy: selectedEnvironment?.createdByName,
+                    createdBy: selectedEnvironment?.createdByName,
+                    temp: false,
+                });
+                await fetchEnvironments();
+            }
+
+            // Snapshot filas OK
+            const snapshot: EnvRow[] = JSON.parse(JSON.stringify(rows));
+            originalRowsRef.current = snapshot;
+
+            // Refleja el nombre nuevo localmente (evita pantalla vieja)
+            if (opts?.nameOverride) {
+                setSelectedEnvironment((prev: any) =>
+                    prev ? { ...prev, name: effectiveName } : prev
+                );
+            }
+
+            setToastMsg("Changes saved successfully.");
+            setTimeout(() => setToastMsg(null), 4000);
+        } catch (e) {
+            setToastMsg("Error while saving changes.");
+            setTimeout(() => setToastMsg(null), 4000);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const renameEnvironment = async (newName: string) => {
+        if (!selectedEnvironment) return;
+        if (!newName.trim()) {
+            setToastError("Environment name cannot be empty.");
+            setTimeout(() => setToastError(null), 3000);
+            return;
+        }
+        if (newName.trim() === selectedEnvironment.name) {
+            // No change in name
+            return;
+        }
+        if (environments.some(env => env.name === newName.trim())) {
+            setToastError("An environment with this name already exists.");
+            setTimeout(() => setToastError(null), 3000);
+            return;
+        }
+        try {
+            await axios.patch(`${URL_API_ALB}envs`, {
+                id: selectedEnvironment.id,
+                name: newName.trim(),
+                updatedBy: selectedEnvironment?.createdByName,
+                createdBy: selectedEnvironment?.createdByName,
+                tagNames: selectedEnvironment?.tagNames,
+                description: selectedEnvironment?.description,
+                env: selectedEnvironment?.env,
+                temp: false,
+            });
+
+            setSelectedEnvironment((prev: any) =>
+                prev ? { ...prev, name: newName.trim() } : prev
+            );
+
+            fetchEnvironments();
+
+            setToastMsg("Environment name updated.");
+            setTimeout(() => setToastMsg(null), 3000);
+        } catch (e) {
+            setToastError("Error updating environment name.");
+            setTimeout(() => setToastError(null), 3000);
+        }
+    };
     return (
         <DashboardHeader pageType="api" callback={setMobileSidebarOpen}>
             <div className="flex gap-2 w-full h-full overflow-hidden">
                 <div className="w-72 border-r border-primary/10 bg-white flex-shrink-0 flex flex-col overflow-hidden">
+
                     <div className="flex-shrink-0 p-4 bg-white border-b border-primary/10">
                         <TextInputWithClearButton
                             id="search-environments"
@@ -337,7 +293,11 @@ const EnvironmentsPage = () => {
                             onChangeHandler={(e) => setQuery(e.target.value)}
                         />
                     </div>
-
+                    <button className="mr-2 w-1/2 self-end px-3 py-2.5 bg-primary rounded-md  text-white font-medium hover:bg-primary/90 transition" onClick={() => {
+                        setCreateView(true);
+                    }}>
+                        + Create
+                    </button>
                     {environments.length > 0 ? (
                         <div className="flex overflow-y-auto w-full flex-col gap-1 p-2">
                             {environments.map((env) => (
@@ -345,7 +305,10 @@ const EnvironmentsPage = () => {
                                     key={env.id}
                                     className={`p-3 cursor-pointer rounded-lg hover:bg-primary/5 ${selectedEnvironment?.id === env.id ? "bg-primary/10" : ""
                                         }`}
-                                    onClick={() => setSelectedEnvironment(env)}
+                                    onClick={() => {
+                                        setSelectedEnvironment(env);
+                                        setCreateView(false);
+                                    }}
                                 >
                                     <h3 className="font-medium text-primary/80">{env.name}</h3>
                                 </div>
@@ -359,125 +322,25 @@ const EnvironmentsPage = () => {
                 </div>
 
                 <div className="flex h-full w-full flex-col overflow-hidden justify-center self-center items-center">
-                    {selectedEnvironment ? (
-                        <div className="flex flex-col h-full w-3/4 overflow-hidden justify-center">
-                            <div className="px-6 pt-6 pb-3 flex items-center justify-between">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-primary/85">
-                                        {selectedEnvironment.name}
-                                    </h2>
-                                    <p className="text-sm text-gray-500">Edit variables and values</p>
-                                </div>
+                    {selectedEnvironment && !createView ? (
+                        <EnvironmentDetails
+                            environment={selectedEnvironment}
+                            rows={filtered}
+                            allEnabled={allEnabled}
+                            toggleAll={toggleAll}
+                            updateRow={updateRow}
+                            toggleRowEnabled={toggleRowEnabled}
+                            addRow={addRow}
+                            removeRow={removeRow}
+                            isDirty={isDirty}
+                            onSave={onSave}
+                            saving={saving}
+                            confirmReset={confirmReset}
+                            onDelete={() => deleteEnvironment(selectedEnvironment.id)}
+                        />
+                    ) : null}
 
-
-
-                                <div className="flex items-center gap-4">
-                                    {isDirty && (
-                                        <button
-                                            onClick={confirmReset}
-                                            className="text-sm text-primary hover:underline"
-                                        >
-                                            Reset changes
-                                        </button>
-                                    )}
-
-                                    <button
-                                        onClick={onSave}
-                                        disabled={!isDirty || saving}
-                                        className={`px-5 py-2 rounded-lg text-white transition ${!isDirty || saving
-                                            ? "bg-primary/30 cursor-not-allowed"
-                                            : "bg-primary hover:bg-primary/90"
-                                            }`}
-                                    >
-                                        {saving ? "Saving..." : "Save"}
-                                    </button>
-
-
-                                    <MoreMenu
-                                        disabled={saving}
-                                        onDelete={() => {
-                                            if (!selectedEnvironment) return;
-                                            deleteEnvironment(selectedEnvironment.id);
-                                        }}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="px-6 pb-2">
-                                <TextInputWithClearButton
-                                    id="search-variables"
-                                    label="Search variables"
-                                    value={query}
-                                    placeholder="Search variables"
-                                    isSearch
-                                    onChangeHandler={(e) => setQuery(e.target.value)}
-                                />
-                            </div>
-                            {query.trim().length > 0 && filtered.length < rows.length && (
-                                <div className="pl-6 py-1 text-sm text-gray-500">
-                                    {filtered.length} result{filtered.length !== 1 ? "s" : ""}
-                                </div>
-                            )}
-                            <div className="flex flex-col w-full h-full overflow-y-auto px-6">
-                                <div className="grid grid-cols-[28px_1fr_1fr] gap-3 py-2 text-xs text-gray-500">
-                                    <div className="flex items-center">
-                                        <input
-                                            type="checkbox"
-                                            aria-label="Toggle all"
-                                            checked={allEnabled}
-                                            onChange={toggleAll}
-                                            className="h-4 w-4 accent-primary"
-                                        />
-                                    </div>
-                                    <div className="uppercase tracking-wider">Variable</div>
-                                    <div className="uppercase tracking-wider">Value</div>
-                                </div>
-
-                                <div className="h-full flex flex-col gap-2 overflow-y-auto overflow-x-hidden">
-
-
-                                    {filtered.map((r) => (
-                                        <div
-                                            key={r.id}
-                                            className="flex gap-1 items-center rounded-lg hover:bg-primary/5"
-                                        >
-                                            <div className="flex items-center">
-                                                <input
-                                                    type="checkbox"
-                                                    className="h-4 w-4 accent-primary"
-                                                    checked={r.enabled}
-                                                    onChange={() => toggleRowEnabled(r.id)}
-                                                />
-                                            </div>
-
-                                            <TextInputWithClearButton
-                                                id={`env-key-${r.id}`}
-                                                label=""
-                                                value={r.key}
-                                                placeholder=""
-                                                onChangeHandler={(e) => updateRow(r.id, { key: e.target.value })}
-                                                isSearch={false}
-                                            />
-                                            <TextInputWithClearButton
-                                                id={`env-value-${r.id}`}
-                                                label=""
-                                                value={r.value}
-                                                placeholder=""
-                                                onChangeHandler={(e) => updateRow(r.id, { value: e.target.value })}
-                                            />
-
-                                        </div>
-                                    ))}
-
-                                    {filtered.length === 0 && (
-                                        <div className="px-3 py-8 text-center text-sm text-gray-500">
-                                            No variables match your search.
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
+                    {!selectedEnvironment && !createView && (
                         <div className="flex w-full h-full items-center justify-center p-4 flex-col gap-2">
                             <Settings className="text-[#3956E8] w-20 h-20" />
                             <p className="text-[24px] font-semibold tracking-wider text-primary/85">
@@ -488,6 +351,18 @@ const EnvironmentsPage = () => {
                             </p>
                         </div>
                     )}
+
+
+                    {createView && (
+
+                        <CreateEnvironment
+                            setToastError={setToastError}
+                            setCreateView={setCreateView}
+                            setToastMsg={setToastMsg}
+                            setRefetchEnvironments={fetchEnvironments}
+                        />
+                    )}
+
                 </div>
             </div>
 
