@@ -548,7 +548,7 @@ const CollectionsPage = () => {
 
                                             {selectedRequest?.node?.request?.body?.mode === "raw" && (
                                                 <div className="flex items-center gap-2 mt-4">
-                                                    <div onClick={() => setActiveTabRequest("headers")} className={`flex gap-2 px-3 py-2 text-[14px] rounded-3xl ${activeTabRequest === "headers" ? "bg-gray-200" : "bg-gray-100"}`}><TbBrandGraphql className="text-primary/85 w-5 h-5" /> Headers</div>
+                                                    <div onClick={() => setActiveTabRequest("headers")} className={`flex gap-2 px-3 py-2 text-[14px] rounded-3xl ${activeTabRequest === "headers" ? "bg-gray-200" : "bg-gray-100"}`}> Headers</div>
                                                     <div onClick={() => setActiveTabRequest("body")} className={`flex gap-2 px-3 py-2 text-[14px] rounded-3xl ${activeTabRequest === "body" ? "bg-gray-200" : "bg-gray-100"}`}><VscJson className="text-primary/85 w-5 h-5" /> Body</div>
                                                 </div>
                                             )}

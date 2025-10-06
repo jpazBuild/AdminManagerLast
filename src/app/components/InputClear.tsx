@@ -23,6 +23,7 @@ interface TextInputWithClearButtonProps {
   defaultValue?: string;
   isSearch?: boolean;
   onBlur?: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
 }
 
 const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
@@ -40,6 +41,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
   readOnly = false,
   isSearch = false,
   disabled,
+  onKeyDown,
   ...props
 }) => {
   const spanRef = useRef<HTMLSpanElement>(null);
@@ -106,6 +108,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
             defaultValue={defaultValue}
             readOnly={readOnly}
             onBlur={onBlur}
+            onKeyDown={onKeyDown}
             {...props}
           />
         ) : (
@@ -123,6 +126,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
             className={`peer w-full ml-3 pr-10 ${Boolean(label) ? "pt-5" : "pt-2"} pb-2 placeholder:text-[16px] rounded-md ${textColor} ${ringFocus} bg-transparent focus:outline-none ${className}`}
             readOnly={readOnly}
             onBlur={onBlur}
+            onKeyDown={onKeyDown}
             {...props}
           />
         )}
