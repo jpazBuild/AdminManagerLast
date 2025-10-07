@@ -1,12 +1,16 @@
 import { useState } from "react";
 
 export type Row = { variable: string; value: string };
+
 export type Pkg = {
   id: string;
   name: string;
   description?: string;
   selected: boolean;
   rows: Row[];
+  tagNames: string[];
+  createdBy?: string;   // 👈 mostrado como read-only
+  tagIds?: string[];    // 👈 mostrado como read-only
 };
 
 export function usePackages() {
@@ -24,12 +28,35 @@ export function usePackages() {
     description: "",
     selected: true,
     rows: [{ variable: "", value: "" }],
+    tagNames: [],
+    createdBy: "",
+    tagIds: [],
   });
 
   const addBlank = () => setPackages((prev) => [...prev, makeBlank(prev.length + 1)]);
 
-  const addFromHeader = (id: string, name: string, description: string, rows: Row[]) =>
-    setPackages([{ id, name, description, selected: true, rows: rows.length ? rows : [{ variable: "", value: "" }] }]);
+  // ⚠️ Reemplaza la lista por un package (como venías haciendo)
+  const addFromHeader = (
+    id: string,
+    name: string,
+    description: string,
+    rows: Row[],
+    tagNames: string[] = [],
+    createdBy?: string,
+    tagIds?: string[]
+  ) =>
+    setPackages([
+      {
+        id,
+        name,
+        description,
+        selected: true,
+        rows: rows.length ? rows : [{ variable: "", value: "" }],
+        tagNames,
+        createdBy,
+        tagIds,
+      },
+    ]);
 
   const duplicate = (pkg: Pkg) =>
     setPackages((prev) => [...prev, { ...pkg, id: genId(), name: pkg.name + " Copy" }]);
@@ -79,6 +106,23 @@ export function usePackages() {
       return next;
     });
 
+  // Tags helpers (si usas SearchField)
+  const addTag = (id: string, tag: string) =>
+    setPackages((prev) =>
+      prev.map((p) =>
+        p.id === id && !p.tagNames.includes(tag)
+          ? { ...p, tagNames: [...p.tagNames, tag] }
+          : p
+      )
+    );
+
+  const removeTag = (id: string, tag: string) =>
+    setPackages((prev) =>
+      prev.map((p) =>
+        p.id === id ? { ...p, tagNames: p.tagNames.filter((t) => t !== tag) } : p
+      )
+    );
+
   return {
     packages,
     setPackages,
@@ -94,5 +138,7 @@ export function usePackages() {
     addRow,
     delRow,
     updRow,
+    addTag,
+    removeTag,
   };
 }

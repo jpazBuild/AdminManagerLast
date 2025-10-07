@@ -1,5 +1,4 @@
-// Sidebar.tsx
-import { IterationHeader } from "../../iterationData/hooks/useIterationHeaders";
+import { IterationHeader } from "../hooks/useIterationHeaders";
 
 type Props = {
   items: IterationHeader[];
@@ -8,11 +7,17 @@ type Props = {
   setQuery: (v: string) => void;
   onSelect: (h: IterationHeader) => void;
   onCreate: () => void;
-  onUploadCsv: (file: File) => void; // 👈 NUEVO
+  onUploadCsv: (file: File) => void;
 };
 
 export default function Sidebar({
-  items, loading, query, setQuery, onSelect, onCreate, onUploadCsv,
+  items,
+  loading,
+  query,
+  setQuery,
+  onSelect,
+  onCreate,
+  onUploadCsv,
 }: Props) {
   return (
     <div className="rounded-2xl border border-[#E1E8F0] bg-white p-4">
@@ -26,7 +31,6 @@ export default function Sidebar({
         className="w-full rounded-xl border border-[#E1E8F0] px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#5A6ACF]/30"
       />
 
-      {/* 👇 Botones en línea: Create + Upload CSV */}
       <div className="flex items-center gap-2 mb-4">
         <button
           onClick={onCreate}
@@ -35,7 +39,6 @@ export default function Sidebar({
           <span className="text-lg">＋</span> Create
         </button>
 
-        {/* Input oculto */}
         <input
           id="csv-upload"
           type="file"
@@ -44,11 +47,9 @@ export default function Sidebar({
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) onUploadCsv(file);
-            // opcional: reiniciar el input para permitir subir el mismo archivo otra vez:
             e.currentTarget.value = "";
           }}
         />
-        {/* Label con estilos de botón */}
         <label
           htmlFor="csv-upload"
           className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-[#0A2342] bg-white px-4 py-2 font-semibold text-[#0A2342] shadow hover:bg-[#F5F8FB] transition-all"
@@ -57,7 +58,6 @@ export default function Sidebar({
         </label>
       </div>
 
-      {/* ... resto de la lista */}
       <div className="max-h-[60vh] overflow-auto pr-1">
         {loading ? (
           <div className="text-sm text-[#7B8CA6]">Loading...</div>
@@ -65,18 +65,20 @@ export default function Sidebar({
           <div className="text-sm text-[#7B8CA6]">No results</div>
         ) : (
           <ul className="space-y-2">
-            {items.map((h) => (
+            {items.map((h, i) => (
               <li key={h.id}>
                 <button
                   onClick={() => onSelect(h)}
                   className="w-full text-left rounded-xl border px-3 py-2 transition border-[#E1E8F0] hover:bg-gray-50"
                   title={h.description || h.name}
                 >
+                  {/* 🔹 Título: Iteration N */}
                   <div className="text-sm font-medium text-[#0A2342] truncate">
-                    {h.name || h.id}
+                    {`Iteration ${i + 1}`}
                   </div>
-                  {!!h.description && (
-                    <div className="text-xs text-[#7B8CA6] truncate">{h.description}</div>
+                  {/* 🔹 Subtítulo: el name real (útil como referencia) */}
+                  {!!h.name && (
+                    <div className="text-xs text-[#7B8CA6] truncate">{h.name}</div>
                   )}
                 </button>
               </li>

@@ -1,6 +1,6 @@
 import axios from "axios";
 import { URL_API_ALB } from "@/config";
-import { Pkg, Row } from "./usePackages";
+import type { Pkg, Row } from "./usePackages";
 
 const PATCH_ENDPOINT = `${URL_API_ALB}iterationData/update`;
 const CREATED_BY = "Juan Camilo Gonzalez";
@@ -24,7 +24,7 @@ const buildBody = (pkg: Pkg) => {
   const nested = rowsToNested(pkg.rows);
   return {
     id: pkg.id,
-    tagNames: [],
+    tagNames: pkg.tagNames ?? [], // 👈 enviar tags
     name: pkg.name,
     description: pkg.description ?? "",
     iterationData: [
@@ -53,7 +53,9 @@ export async function savePackages(packages: Pkg[]) {
         console.log("Body (obj):", body);
         console.log("Body (JSON):\n", JSON.stringify(body, null, 2));
         console.groupEnd();
-        return axios.patch(PATCH_ENDPOINT, body, { headers: { "Content-Type": "application/json" } });
+        return axios.patch(PATCH_ENDPOINT, body, {
+          headers: { "Content-Type": "application/json" },
+        });
       })
     );
   } finally {
