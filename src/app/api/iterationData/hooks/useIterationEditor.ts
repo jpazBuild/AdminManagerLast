@@ -135,14 +135,36 @@ export function useIterationEditor() {
     setMenuOpen(false);
   };
 
-   const save = async (): Promise<
+  /** DELETE persistente al mismo endpoint (body: { id }) */
+  const deleteOnServer = async (): Promise<
+    | { ok: true; status: number }
+    | { ok: false; status?: number; error: string }
+  > => {
+    if (!selected) return { ok: false, error: "No package selected" };
+    try {
+      const resp = await axios.delete(apiUrl("iterationData"), {
+        data: { id: selected.id },     // <-- body con id
+        withCredentials: true,
+      });
+      return { ok: true, status: resp.status };
+    } catch (err: any) {
+      const status = err?.response?.status;
+      const data = err?.response?.data;
+      const msg =
+        data?.message ?? data?.error ?? (typeof data === "string" ? data : err?.message || "Unknown error");
+      return { ok: false, status, error: msg };
+    }
+  };
+
+  /** PATCH (save) */
+  const save = async (): Promise<
     | { ok: true; status: number; data: any }
     | { ok: false; status?: number; error: string }
   > => {
     if (!selected) return { ok: false, error: "No package selected" };
     setSaving(true);
 
-    // 1) metadatos desde filas (solo las claves permitidas)
+    // 1) metadatos desde filas
     const meta: Record<string, string> = {};
     for (const r of rows) {
       const key = r.variable.trim();
@@ -155,7 +177,7 @@ export function useIterationEditor() {
       ? meta["tagNames"].split(",").map(s => s.trim()).filter(Boolean)
       : (selected.tagNames ?? []);
 
-    // 2) reenviamos el bloque original de iterationData sin tocar
+    // 2) reenviamos el bloque original de iterationData
     const body = {
       id: pkgId,
       tagNames,
@@ -166,16 +188,12 @@ export function useIterationEditor() {
     };
 
     try {
-      // 👉 PATCH real
       const resp = await axios.patch(apiUrl("iterationData"), body, { withCredentials: true });
       console.log("[PATCH ok]", resp.status, resp.data);
 
-      // snapshot para que deje de estar “dirty”
       originalRowsRef.current = JSON.parse(JSON.stringify(rows));
-
       return { ok: true, status: resp.status, data: resp.data };
     } catch (err: any) {
-      // intenta extraer un mensaje útil del backend
       const status = err?.response?.status;
       const serverData = err?.response?.data;
       const serverMsg =
@@ -192,7 +210,6 @@ export function useIterationEditor() {
     }
   };
 
-
   return {
     // state
     selected, pkgName, setPkgName, pkgId,
@@ -205,6 +222,7 @@ export function useIterationEditor() {
     loadFromHeader,
     duplicate,
     removePackage,
+    deleteOnServer,  // <-- exportamos el delete
     save,
   };
 }

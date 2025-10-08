@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import { DashboardHeader } from "@/app/Layouts/main";
-import { Settings, RefreshCcw } from "lucide-react";
+import { RefreshCcw } from "lucide-react";
 
 import { useIterationList } from "./hooks/useIterationList";
 import { useIterationEditor } from "./hooks/useIterationEditor";
@@ -27,7 +27,7 @@ export default function IterationDataPage() {
   const pushHeader = (h: any) => setIterations(prev => [h, ...prev]);
   const removeHeaderById = (id: string) => setIterations(prev => prev.filter(x => x.id !== id));
 
-  const filteredRows = useMemo(() => editor.rows, [editor.rows]); // si quisieras filtrar por query, aquí
+  const filteredRows = useMemo(() => editor.rows, [editor.rows]);
 
   return (
     <DashboardHeader pageType="api">
@@ -41,7 +41,6 @@ export default function IterationDataPage() {
           setQuery={setQuery}
           onPick={editor.loadFromHeader}
           onCreateBlank={() => {
-            // create en el editor: reusamos loadFromHeader con un header temporal
             const temp = { id: crypto?.randomUUID?.() ?? `${Date.now()}`, name: "Number1", description: "" };
             editor.loadFromHeader(temp as any);
           }}
@@ -54,10 +53,8 @@ export default function IterationDataPage() {
             onSave={async () => {
               const res = await editor.save();
               if (res.ok) {
-                // Puedes usar res.status === 200/204 aquí si quieres mostrarlo
                 show("Saved.", "success");
               } else {
-                // Muestra el status si existe y el mensaje que vino del backend
                 const prefix = res.status ? `(${res.status}) ` : "";
                 show(`Save failed: ${prefix}${res.error}`, "error");
               }
@@ -100,6 +97,7 @@ export default function IterationDataPage() {
                 </PackageCard>
               </div>
             ) : (
+              // EMPTY STATE
               <div className="flex w-full h-full items-center justify-center p-6">
                 <div className="text-center max-w-md">
                   <RefreshCcw className="mx-auto w-16 h-16 text-[#3956E8]" />
@@ -121,16 +119,22 @@ export default function IterationDataPage() {
         </div>
       </div>
 
-      {/* Confirm Delete */}
+      {/* Confirm Delete (llama DELETE al mismo endpoint con {id}) */}
       <ConfirmModal
         open={confirmOpen}
         title="Are you sure you want to delete this package?"
         message="This action cannot be undone."
         onCancel={() => setConfirmOpen(false)}
-        onConfirm={() => {
-          editor.removePackage(removeHeaderById);
+        onConfirm={async () => {
+          const res = await editor.deleteOnServer(); // <-- DELETE real
+          if (res.ok) {
+            editor.removePackage(removeHeaderById);  // limpia UI
+            show("The data package has been deleted.", "success");
+          } else {
+            const prefix = res.status ? `(${res.status}) ` : "";
+            show(`Delete failed: ${prefix}${res.error}`, "error");
+          }
           setConfirmOpen(false);
-          show("The data package has been deleted.", "success");
         }}
       />
 
