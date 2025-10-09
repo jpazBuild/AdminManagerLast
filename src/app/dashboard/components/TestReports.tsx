@@ -11,8 +11,10 @@ import { handleDownloadPDFReport } from "@/lib/PDFReport";
 import { ExecutionSummary } from "../../components/ExecutionSummary";
 import { downloadRenderedHtml, downloadRenderedPdf } from "./ReportsHistoricTestCaseList";
 import { flushSync } from "react-dom";
+import ClipboardComponent from "@/app/components/Clipboard";
+import CopyToClipboard from "@/app/components/CopyToClipboard";
 
-const TestReports = ({ reports, setLoading, progress, selectedTest, testData, stopped, setStopped, onPlayTest,loading }: any) => {
+const TestReports = ({ reports, setLoading, progress, selectedTest, testData, stopped, setStopped, onPlayTest, loading }: any) => {
     const [expandedReports, setExpandedReports] = useState<Record<string, boolean>>({});
     const { stopTest } = useTestExecution();
     const stepMap: Record<string, { connectionId: string; steps: Record<number, any> }> = {};
@@ -179,7 +181,7 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
     };
 
     console.log("stepMap final", stepMap);
-    
+
     return (
         <div className="space-y-6 mt-6 flex flex-col overflow-y-auto">
             {totalTests > 0 && (
@@ -208,12 +210,12 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
                                 >
                                     <DownloadIcon size={16} /> HTML Report
                                 </button>
-                                <button
+                                {/* <button
                                     onClick={() => handleDownloadPDFReport(totalTests, totalSuccess, totalFailed, totalExecutionTime, reports, testData, selectedTest)}
                                     className="flex cursor-pointer items-center gap-2 text-xs border-primary/60 border-2 text-primary/60 font-semibold px-2 rounded hover:shadow-md"
                                 >
                                     <DownloadIcon size={16} /> PDF Report
-                                </button>
+                                </button> */}
                             </div>
                         )}
                     </div>
@@ -236,35 +238,35 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
                     return (
                         <div key={reportId} id={reportId} className="p-1 flex flex-col gap-2">
                             <div className="flex justify-between items-center">
-                              
+
 
                                 <div className="flex gap-2 items-center">
-                                     {(progressValue === 0 || progressValue === 100 || !!stopped[reportId]) && (
-                                    <button
-                                        disabled={!!loading[reportId]}
-                                        onClick={(e) => { e.stopPropagation(); onPlayTest?.(test); }}
-                                        className={`flex items-center gap-1 rounded-md bg-primary/80 text-white px-3 py-2 cursor-pointer ${loading[reportId] ? "opacity-50 cursor-not-allowed" : ""}`}
-                                    >
-                                       <Play className="w-4 h-4"/> Play
-                                    </button>
-                                )}
-                                {progressValue < 100 && progressValue > 0 && !stopped[reportId] && (
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleStopTest(reportId, connectionId, reports.find((p: any) => (p.testCaseId || p.id) === reportId)?.socket);
-                                            setLoading((prev: any) => ({ ...prev, [reportId]: false }));
-                                        }}
-                                        className="self-end flex items-center shadow-lg rounded-lg cursor-pointer border gap-2 px-3 py-2 hover:text-red-600 text-red-500 bg-white hover:bg-red-50 transition-all duration-200"
-                                        title="Stop Test"
-                                    >
-                                        <StopCircle className="w-5 h-5 animate-pulse" />
-                                        <span className="text-sm font-medium">Stop</span>
-                                    </button>
-                                )}
+                                    {(progressValue === 0 || progressValue === 100 || !!stopped[reportId]) && !loading[reportId] && (
+                                        <button
+                                            disabled={!!loading[reportId]}
+                                            onClick={(e) => { e.stopPropagation(); onPlayTest?.(test); }}
+                                            className={`flex items-center gap-1 rounded-md bg-primary/80 text-white px-3 py-2 cursor-pointer ${loading[reportId] ? "opacity-50 cursor-not-allowed" : ""}`}
+                                        >
+                                            <Play className="w-4 h-4" /> Play
+                                        </button>
+                                    )}
+                                    {progressValue < 100 && progressValue >= 0 && !stopped[reportId] && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleStopTest(reportId, connectionId, reports.find((p: any) => (p.testCaseId || p.id) === reportId)?.socket);
+                                                setLoading((prev: any) => ({ ...prev, [reportId]: false }));
+                                            }}
+                                            className="self-end flex items-center shadow-lg rounded-lg cursor-pointer border gap-2 px-3 py-2 hover:text-red-600 text-red-500 bg-white hover:bg-red-50 transition-all duration-200"
+                                            title="Stop Test"
+                                        >
+                                            <StopCircle className="w-5 h-5 animate-pulse" />
+                                            <span className="text-sm font-medium">Stop</span>
+                                        </button>
+                                    )}
                                 </div>
 
-                                  {progressValue === 100 && (
+                                {progressValue === 100 && (
                                     <div className="flex gap-2 items-center">
                                         <button
                                             onClick={async () => {
@@ -323,8 +325,8 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
 
                                 <div className="relative h-28 p-2">
                                     <div className="absolute top-0 left-3">
-                                        <span className="bg-gradient-to-r from-primary/90 to-primary/80 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-md">
-                                            {reportId}
+                                        <span className="bg-gradient-to-r flex items-center from-primary/90 to-primary/80 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-md">
+                                            {reportId} <CopyToClipboard text={reportId} isDarkMode={true} />
                                         </span>
                                     </div>
 

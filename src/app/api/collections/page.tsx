@@ -17,13 +17,7 @@ import { RiErrorWarningLine } from "react-icons/ri";
 import { stackoverflowLight, tomorrow, vs } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { VscJson } from "react-icons/vsc";
 
-const listCollections = [
-    { name: "Interface Mocks 1", team: "Team A", origin: "Postman" },
-    { name: "Interface Mocks 2", team: "Team B", origin: "BD" },
-    { name: "Collection 3", team: "Team C", origin: "Postman" },
-    { name: "Collection 4", team: "Team A", origin: "BD" },
-    { name: "Collection 5", team: "Team B", origin: "Postman" },
-];
+
 
 type Detail = {
     key: string;
@@ -137,12 +131,6 @@ const CollectionsPage = () => {
     };
 
 
-    const filteredCollections = listCollections.filter((col) => {
-        const matchName = selectedCollection ? col.name.toLowerCase().includes(selectedCollection.toLowerCase()) : true;
-        const matchTeam = selectedTeam ? col.team === selectedTeam : true;
-        const matchOrigin = selectedTypeOrigin ? col.origin === selectedTypeOrigin : true;
-        return matchName && matchTeam && matchOrigin;
-    });
 
 
     const teamId = selectedTeam ? Number(selectedTeam) : 0;

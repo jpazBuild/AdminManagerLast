@@ -8,6 +8,9 @@ import { ImageModalWithZoom } from "../../components/Report";
 import { ExecutionSummary } from "../../components/ExecutionSummary";
 import { DownloadIcon } from "lucide-react";
 import { buildStandaloneHtml } from "@/utils/buildHtmlreport";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import html2pdf from 'html2pdf.js';
 
 interface Props {
   visible: boolean;
@@ -85,80 +88,93 @@ export async function downloadRenderedPdf(
     return;
   }
 
-  const clone = hostEl.cloneNode(true) as HTMLElement;
-  await inlineImages(clone).catch(() => { });
+  try {
+    toast.info("Preparing PDF...");
 
-  const preprocessedHtml = preprocessStepCardHtml(clone.outerHTML);
+    const clone = hostEl.cloneNode(true) as HTMLElement;
+    await inlineImages(clone).catch(() => {});
 
-  const html = buildStandaloneHtml({
-    file,
-    bodyInnerHtml: preprocessedHtml,
-    extraHeadHtml: `
+    const preprocessedHtml = preprocessStepCardHtml(clone.outerHTML);
+    const niceName = `report-${file?.id || urlKey}.pdf`;
+
+    const html = buildStandaloneHtml({
+      file,
+      bodyInnerHtml: preprocessedHtml,
+      extraHeadHtml: `
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style> body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; } </style>
-    `,
-    header
-  });
-
-  const blob = new Blob([html], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-
-  const iframe = document.createElement("iframe");
-  iframe.style.position = "fixed";
-  iframe.style.right = "0"; iframe.style.bottom = "0";
-  iframe.style.width = "0"; iframe.style.height = "0";
-  iframe.style.border = "0";
-  iframe.src = url;
-
-  const cleanup = () => {
+<style> 
+  * {
+    color-scheme: light !important;
+  }
+  body { 
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    padding: 20px;
+    background: white;
+  }
+  @media print {
+    body { 
+      margin: 0; 
+      padding: 10mm; 
+    }
+    @page { 
+      margin: 10mm; 
+      size: A4; 
+    }
+  }
+</style>
+<script>
+  let printDialogClosed = false;
+  
+  window.onload = () => {
     setTimeout(() => {
-      try { document.body.removeChild(iframe); } catch { }
-      URL.revokeObjectURL(url);
+      document.title = '${niceName}';
+      window.print();
     }, 1000);
   };
-
-  iframe.onload = async () => {
-    try {
-      const doc = iframe.contentDocument!;
-      const win = iframe.contentWindow!;
-
-      const niceName = `report-${file?.id || urlKey}.pdf`;
-      doc.title = niceName;
-
-      if ((doc as any).fonts?.ready) {
-        try { await (doc as any).fonts.ready; } catch { }
-      }
-
-      const imgs = Array.from(doc.images || []);
-      await Promise.all(
-        imgs.map(img =>
-          img.complete
-            ? Promise.resolve()
-            : new Promise(res => {
-              img.onload = img.onerror = () => res(null);
-            })
-        )
-      );
-
-      await new Promise(r => setTimeout(r, 50));
-
-      win.focus();
-      win.print();
-      toast.success(`Opening print dialog… choose “Save as PDF” (suggested: ${niceName}).`);
-    } catch (e) {
-      console.error("Failed to print:", e);
-      toast.error("Could not open print dialog");
-    } finally {
-      cleanup();
+  
+  // Se dispara cuando se cierra el diálogo de impresión (ya sea Cancel o Save)
+  window.onafterprint = () => {
+    if (!printDialogClosed) {
+      printDialogClosed = true;
+      setTimeout(() => {
+        window.close();
+      }, 300);
     }
   };
+  
+  // Fallback: cerrar después de 30 segundos si el usuario no hace nada
+  setTimeout(() => {
+    if (!printDialogClosed) {
+      printDialogClosed = true;
+      window.close();
+    }
+  }, 30000);
+  
+  // Detectar si el usuario cierra manualmente la ventana
+  window.onbeforeunload = () => {
+    printDialogClosed = true;
+  };
+</script>
+      `,
+      header
+    });
 
-
-  document.body.appendChild(iframe);
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    
+    if (printWindow) {
+      printWindow.document.write(html);
+      printWindow.document.close();
+      toast.success(`Print dialog opened. Select "Save as PDF" and set filename to: ${niceName}`);
+    } else {
+      toast.error("Pop-up blocked. Please allow pop-ups for this site.");
+    }
+  } catch (e) {
+    console.error("Failed to prepare PDF:", e);
+    toast.error("Could not prepare PDF");
+  }
 }
-
 
 function downloadStringAsHtml(html: string, filename: string) {
   const blob = new Blob([html], { type: "text/html" });

@@ -15,6 +15,7 @@ import { URL_API_ALB } from "@/config";
 import TextInputWithClearButton from "../../components/InputClear";
 import { AiOutlineClose } from "react-icons/ai";
 import CopyToClipboard from "@/app/components/CopyToClipboard";
+import NoData from "@/app/components/NoData";
 
 interface TestStep {
     action: string;
@@ -686,12 +687,12 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
             </div>
 
             {ddModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center min-h[20vh]">
+                <div className="fixed inset-0 z-50 flex items-center justify-center min-h-[80vh]">
                     <div
                         className="absolute inset-0 bg-black/50"
                         onClick={() => setDdModalOpen(false)}
                     />
-                    <div className={`relative z-10 w-[95%] max-w-3xl rounded-2xl shadow-xl
+                    <div className={`relative min-h-[50vh] z-10 w-[95%] max-w-3xl rounded-2xl shadow-xl
       ${isDarkMode ? "bg-gray-800 text-white border border-gray-600" : "bg-white text-primary border border-gray-200"}`}>
                         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                             <h3 className="text-lg font-semibold text-primary/80">Choose Dynamic Data</h3>
@@ -722,7 +723,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                             {!ddLoading && !ddError && (
                                 <div className="max-h-[50vh] overflow-y-auto space-y-2 pr-1">
                                     {filteredHeaders.length === 0 && (
-                                        <div className="text-sm opacity-75">No results.</div>
+                                        <NoData text="No dynamic data found." />
                                     )}
                                     {filteredHeaders.map((h) => (
                                         <div
