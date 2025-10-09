@@ -7,11 +7,9 @@ import ReportUI from "../../components/Report";
 import { useTestExecution } from "../../hooks/useTestExecution";
 import { StopCircle, Download as DownloadIcon, Play } from "lucide-react";
 import { handleDownloadHTMLReport, handleDownloadHTMLReportSingle } from "../../hooks/HTMLReport";
-import { handleDownloadPDFReport } from "@/lib/PDFReport";
 import { ExecutionSummary } from "../../components/ExecutionSummary";
 import { downloadRenderedHtml, downloadRenderedPdf } from "./ReportsHistoricTestCaseList";
 import { flushSync } from "react-dom";
-import ClipboardComponent from "@/app/components/Clipboard";
 import CopyToClipboard from "@/app/components/CopyToClipboard";
 
 const TestReports = ({ reports, setLoading, progress, selectedTest, testData, stopped, setStopped, onPlayTest, loading }: any) => {
@@ -291,6 +289,8 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
                                                 const { wasExpanded } = await ensureContainer(reportId);
 
                                                 const file = buildReportFile(reportId, test);
+                                                console.log("file for pdf", file);
+                                                
                                                 const header = {
                                                     name: test?.name || test?.testCaseName || reportId,
                                                     createdBy: test?.createdBy || test?.testerName,
