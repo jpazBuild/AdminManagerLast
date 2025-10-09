@@ -3,6 +3,7 @@ import { URL_API_ALB, URL_API_RUNNER } from "../../config";
 import { logger } from "../../utils/logger";
 import axios from "axios";
 import { toast } from "sonner";
+import { resolveFakerInData } from "@/utils/fakerResolver";
 
 const sanitizeTestData = (data: any) => {
   const copy = { ...(data || {}) };
@@ -62,7 +63,7 @@ export const useTestExecution = () => {
     setStepsCountMap(prevSteps => {
       const total = prevSteps[testId];
       console.log("total steps for", testId, "is", total, "completedSteps:", completedSteps);
-      
+
       if (!total || total === 0) return prevSteps;
 
       const clamped = Math.min(completedSteps, total);
@@ -206,7 +207,7 @@ export const useTestExecution = () => {
               }
 
               console.log("updatedSteps for", id, ":", updatedSteps);
-              
+
               const completedCount = updatedSteps.filter(s => !isIgnorableProgressStep(s)).length;
               updateProgress(id, completedCount);
 
@@ -378,10 +379,15 @@ export const useTestExecution = () => {
   ) => {
     console.log(`🔍 Batch de ${selectedCases.length} tests con máximo ${max} navegadores`);
     resetAllState(headless);
+    console.log("testDataInput received:", testDataInput);
+
     // reset reports if there reports
     setReports([]);
     maxBrowsersRef.current = max;
-    queueAddTests(selectedCases, testDataInput, headless, false);
+    const testDataResolved = resolveFakerInData(testDataInput);
+    console.log("testDataResolved:", testDataResolved);
+
+    queueAddTests(selectedCases, testDataResolved, headless, false);
   };
 
   const runSingleTest = async (
@@ -390,9 +396,11 @@ export const useTestExecution = () => {
     headlessOverride?: boolean
   ) => {
     const testId = String(testCase?.id);
-    console.log(`▶️ Run single test ${testId}`);
-    const perTest = testDataForThisTest ? { [testId]: testDataForThisTest } : undefined;
-    console.log("reports before single test:", reports);
+    const perTest = testDataForThisTest
+      ? { [testId]: resolveFakerInData(testDataForThisTest) }
+      : undefined;
+    console.log(`▶️ Ejecutando single test ${testId}`, { perTest, headlessOverride });
+    
     setReports(prev => prev.filter(r => r.testCaseId !== testId));
     queueAddTests([testCase], perTest, headlessOverride, true);
   };

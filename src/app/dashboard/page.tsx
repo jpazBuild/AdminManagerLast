@@ -413,8 +413,7 @@ const DashboardPage = () => {
     );
 
     const handlePlaySingle = useCallback((test: any) => {
-        const perTestData = testData?.data?.[test.id] ?? undefined;
-
+        const perTestData = testData?.data?.[test.id] ?? undefined;        
         setExecuteRun(true);
 
         runSingleTest(test, perTestData, isHeadless);

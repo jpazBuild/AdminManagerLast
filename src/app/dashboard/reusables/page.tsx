@@ -64,7 +64,7 @@ const Reusables = () => {
     const [details, setDetails] = useState<Record<string, ReusableDetail | undefined>>({});
     const [loadingById, setLoadingById] = useState<Record<string, boolean>>({});
     const [errorById, setErrorById] = useState<Record<string, string | undefined>>({});
-    
+
     const [tags, setTags] = useState<any[]>([]);
     const [selectedTag, setSelectedTag] = useState<string>("");
     const [isLoadingTags, setIsLoadingTags] = useState<boolean>(false);
@@ -85,7 +85,8 @@ const Reusables = () => {
         () => [{ label: "All", value: "" }, ...tags.map((t: any) => ({ label: t.name, value: t.id }))],
         [tags]
     );
-
+    const [allReusables, setAllReusables] = useState<any[]>([]);
+    const [searchQuery, setSearchQuery] = useState("");
     const selectedTagName = useMemo(
         () => tags.find((t: any) => t.id === selectedTag)?.name ?? "",
         [selectedTag, tags]
@@ -129,6 +130,11 @@ const Reusables = () => {
             if (reusableRes.data?.error) throw new Error(reusableRes.data.error);
             const data = Array.isArray(reusableRes.data) ? reusableRes.data : [];
             setReusables(data);
+            setAllReusables(data);
+            const v = searchQuery.trim().toLowerCase();
+            setReusables(
+                v ? data.filter(r => (r.name ?? "").toLowerCase().includes(v)) : data
+            );
         } catch (error: any) {
             console.error("Error fetching reusables:", error);
             toast.error(error?.message ?? "Error fetching reusables");
@@ -137,6 +143,18 @@ const Reusables = () => {
             setIsLoadingReusables(false);
         }
     };
+
+    const applyNameFilter = (val: string) => {
+        const v = (val || "").trim().toLowerCase();
+        setSearchQuery(val);
+        if (!v) {
+            setReusables(allReusables);
+            return;
+        }
+        setReusables(
+            allReusables.filter(r => (r.name ?? "").toLowerCase().includes(v))
+        );
+    }
 
     useEffect(() => { fetchReusables(); }, []);
 
@@ -504,7 +522,21 @@ const Reusables = () => {
                         <div className="text-center text-sm opacity-70 py-10">No reusables found.</div>
                     ) : (
                         <div className="space-y-3 min-h-screen">
-                            {reusables.map((reusable) => {
+
+                            <div className="mb-4">
+                                <TextInputWithClearButton
+                                    id="filter-name"
+                                    label="Filter by name"
+                                    value={searchQuery}
+                                    onChangeHandler={(e) => applyNameFilter(e.target.value)}
+                                    placeholder="Type to filter by name..."
+                                    isDarkMode={isDarkMode}
+                                />
+                            </div>
+                            <p className="text-xs opacity-70">
+                                Showing {filteredReusables.length} of {allReusables.length}
+                            </p>
+                            {filteredReusables.map((reusable) => {
                                 const isOpen = !!expanded[reusable.id];
                                 const isLoading = !!loadingById[reusable.id];
                                 const error = errorById[reusable.id];
@@ -615,7 +647,7 @@ const Reusables = () => {
                                                                         value={form.name}
                                                                         onChangeHandler={e => setFormById(p => ({ ...p, [reusable.id]: { ...p[reusable.id], name: e.target.value } }))}
                                                                         placeholder="Reusable Step Name"
-                                                                        
+
                                                                         isDarkMode={isDarkMode}
                                                                     />
                                                                 </div>
