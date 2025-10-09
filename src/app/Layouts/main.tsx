@@ -268,9 +268,9 @@ export const DashboardHeader = ({
             <Link href="/dashboard" className={getLinkClasses("/dashboard")}>
               Dashboard
             </Link>
-            <Link href="/api" className={getLinkClasses("/api")}>
+            {/* <Link href="/api" className={getLinkClasses("/api")}>
               API
-            </Link>
+            </Link> */}
           </div>
 
           <div className="flex items-center space-x-4">

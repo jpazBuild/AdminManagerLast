@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 
-export default function Toast({
+const Toast = ({
   visible,
   message,
   variant = "success",
@@ -10,7 +10,7 @@ export default function Toast({
   message: string;
   variant?: "success" | "error";
   onClose: () => void;
-}) {
+}) => {
   if (!visible) return null;
   return (
     <div className="mt-4">
@@ -32,3 +32,6 @@ export default function Toast({
     </div>
   );
 }
+
+
+export default Toast;

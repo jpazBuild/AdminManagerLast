@@ -27,7 +27,7 @@ export default function VariablesList({ rows, onUpdate, onRemove, onAdd }: Props
       </div>
 
       {/* Filas: inputs en 2 columnas + botón Delete a la derecha (fuera del input) */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 overflow-auto max-h-[700px]">
         {rows.map((r) => (
           <div key={r.id} className="flex items-center gap-2">
             {/* Dos columnas para los inputs */}

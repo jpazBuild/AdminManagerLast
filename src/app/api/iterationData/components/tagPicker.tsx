@@ -6,7 +6,7 @@ import { SearchField } from "@/app/components/SearchField";
 type Props = {
   label?: string;
   selected?: string[];   // <- opcional con default
-  options?: string[];    // <- opcional con default
+  options?: any;    // <- opcional con default
   onAdd: (tag: string) => void;
   onRemove: (tag: string) => void;
 };

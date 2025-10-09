@@ -13,6 +13,8 @@ import { useIterationEditor } from "./hooks/useIterationEditor";
 import { useToast } from "./hooks/useToast";
 import { Row } from "./types";
 import selectIterationDataIcon from "../../../assets/apisImages/select-iterationData.svg";
+import { SearchField } from "@/app/components/SearchField";
+import useTags, { Tag } from "../hooks/useTags";
 
 const newLocalId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -32,12 +34,17 @@ export default function IterationDataPage() {
   const editor = useIterationEditor();
   const { toast, show, hide } = useToast();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const { tags, isLoadingTags, error, refresh: refreshTags } = useTags();
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedTag, setSelectedTag] = useState<string>("");
+  const availableTags = tags
+    .filter((t: string | Tag) => !selectedTags.includes(t.toString()))
+    .map(tag => ({
+      label: typeof tag === "string" ? tag : tag.name ?? "",
+      value: typeof tag === "string" ? tag : tag.name ?? ""
+    }))
 
-  const availableTags = useMemo(() => {
-    const set = new Set<string>();
-    iterations.forEach((it) => (it.tagNames || []).forEach((t) => set.add(String(t))));
-    return Array.from(set);
-  }, [iterations]);
+
 
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const addDraftFromMain = () => {
@@ -73,7 +80,7 @@ export default function IterationDataPage() {
 
   return (
     <DashboardHeader pageType="api">
-      <div className="flex gap-2 w-full">
+      <div className="flex gap-2 w-full h-full overflow-hidden ">
         {/* Sidebar */}
         <SidebarList
           iterations={iterations}
@@ -97,7 +104,7 @@ export default function IterationDataPage() {
         />
 
         {/* Panel derecho */}
-        <div className="flex-1 flex flex-col">
+        <div className=" flex flex-col w-full h-full">
           {editor.selected && (
             <div className="px-6 pt-6 pb-2">
               <div className="flex items-start justify-between">
@@ -142,7 +149,7 @@ export default function IterationDataPage() {
             </div>
           )}
 
-          <div className="px-6 pb-8 flex flex-col gap-6">
+          <div className="px-6 pb-8 flex flex-col gap-6 w-full h-full">
             {editor.selected ? (
               <PackageCard
                 pkgName={editor.pkgName}
@@ -157,13 +164,34 @@ export default function IterationDataPage() {
                 onDuplicate={addDraftFromMain}
                 onDelete={() => setConfirmOpen(true)}
               >
-                <div className="mb-4">
-                  <TagPicker
+                <div className="mb-4 overflow-x-hiden">
+
+                  {/* <TagPicker
                     label="Search tags"
                     selected={editor.selectedTags ?? []}
                     options={availableTags ?? []}
                     onAdd={editor.addTag}
                     onRemove={editor.removeTag}
+                  /> */}
+                  <SearchField
+                    label="Search tags"
+                    placeholder="Search tags"
+                    value={selectedTag}
+                    className="z-30"
+                    onChange={(val: string) => {
+                      const v = (val || "").trim();
+                      setSelectedTag(v);
+                      if (!v) return;
+                      // evita duplicados y fuera de catálogo
+                      if (!selectedTags.includes(v) && (availableTags.length === 0 || availableTags.map(t => t.value).includes(v))) {
+                        setSelectedTags(prev => [...prev, v]);
+                        editor.addTag(v);
+                        setSelectedTag("");
+                      }
+                    }}
+                    options={availableTags
+                      .filter((o) => !selectedTags.includes(o.value))
+                      .map((o) => ({ label: o.label, value: o.value }))}
                   />
                 </div>
 
@@ -247,11 +275,11 @@ export default function IterationDataPage() {
                         prev.map((x) =>
                           x.id === d.id
                             ? {
-                                ...x,
-                                tagNames: x.tagNames.includes(t)
-                                  ? x.tagNames
-                                  : [...x.tagNames, t],
-                              }
+                              ...x,
+                              tagNames: x.tagNames.includes(t)
+                                ? x.tagNames
+                                : [...x.tagNames, t],
+                            }
                             : x
                         )
                       )
@@ -275,11 +303,11 @@ export default function IterationDataPage() {
                       prev.map((x) =>
                         x.id === d.id
                           ? {
-                              ...x,
-                              rows: x.rows.map((r) =>
-                                r.id === rowId ? { ...r, ...patch } : r
-                              ),
-                            }
+                            ...x,
+                            rows: x.rows.map((r) =>
+                              r.id === rowId ? { ...r, ...patch } : r
+                            ),
+                          }
                           : x
                       )
                     )
@@ -298,12 +326,12 @@ export default function IterationDataPage() {
                       prev.map((x) =>
                         x.id === d.id
                           ? {
-                              ...x,
-                              rows: [
-                                ...x.rows,
-                                { id: newLocalId(), variable: "", value: "" },
-                              ],
-                            }
+                            ...x,
+                            rows: [
+                              ...x.rows,
+                              { id: newLocalId(), variable: "", value: "" },
+                            ],
+                          }
                           : x
                       )
                     )
@@ -337,11 +365,10 @@ export default function IterationDataPage() {
         <div className="fixed lg:w-1/2 bottom-4 left-1/2 -translate-x-1/2 z-40">
           <div
             className={`rounded-lg px-4 py-2 shadow flex justify-between items-center border
-            ${
-              toast.variant === "success"
+            ${toast.variant === "success"
                 ? "border-green-200 bg-green-50 text-green-700"
                 : "border-red-200 bg-red-50 text-red-700"
-            }`}
+              }`}
           >
             {toast.msg}
             <button className="ml-2" onClick={hide}>

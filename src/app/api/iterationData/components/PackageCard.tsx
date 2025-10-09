@@ -41,7 +41,7 @@ export default function PackageCard({
 }: Props) {
   return (
     // Scroll en TODA la card (incluye name, id, tags y variables)
-    <div className="relative rounded-xl border border-primary/10 bg-white p-4 pb-6 max-h-[65vh] overflow-y-auto">
+    <div className="w-full h-full rounded-xl border border-primary/10 bg-white p-4 pb-6 overflow-y-auto overflow-x-hidden">
       {/* HEADER: una sola fila (checkbox | Package name | chevron | more) */}
       <div className="flex items-center gap-3 mb-3">
         {/* checkbox */}
@@ -122,14 +122,14 @@ export default function PackageCard({
       {/* Package ID (mismo estilo visual, SOLO LECTURA) */}
       <div className="mb-4">
         {/* Opción preferida: readOnly (mantiene el estilo, permite seleccionar/copiar) */}
-        <TextInputWithClearButton
+        {/* <TextInputWithClearButton
                   id="pkg-id"
                   label="Package ID"
                   value={pkgId}
                   isSearch={false}
                   onChangeHandler={() => { } }
                   readOnly
-                  aria-readonly="true" placeholder={""}        />
+                  aria-readonly="true" placeholder={""}        /> */}
         {/* Fallback si tu InputClear NO soporta readOnly:
         <TextInputWithClearButton
           id="pkg-id"
@@ -146,7 +146,7 @@ export default function PackageCard({
       </div>
 
       {/* CONTENIDO (Search tags + Variables, etc.) */}
-      <div id="vars-panel" className={`${isCollapsed ? "hidden" : "block"} pr-1`}>
+      <div id="vars-panel" className={`${isCollapsed ? "" : ""} pr-1`}>
         {children}
       </div>
     </div>
