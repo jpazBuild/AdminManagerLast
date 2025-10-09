@@ -671,7 +671,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                     open={isOpen}
     
                 >
-                    <DialogContent showCloseButton={false} className="sm:max-w-3xl max-w-lg max-h-[90vh] overflow-y-auto bg-white">
+                    <DialogContent showCloseButton={false} className="sm:max-w-3xl max-w-lg max-h-[90vh] min-h-[70vh] overflow-y-auto bg-white">
                         <div className="h-full rounded-lg shadow-2xl flex flex-col z-10">
 
                             <div className="flex items-center justify-between px-6 py-4 bg-gray-50 border-b border-gray-200 rounded-t-lg flex-shrink-0">

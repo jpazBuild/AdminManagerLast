@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Clock, Wand2, Layers, Edit, Save, ArrowLeft } from "lucide-react";
 import { FaXmark } from "react-icons/fa6";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import InteractionItem from "./Interaction";
 import { URL_API_ALB } from "@/config";
 import { checkConnection } from "@/utils/DBBUtils";
+import { SearchField } from "./SearchField";
 
 interface StepActionsProps {
     index: number;
@@ -59,6 +60,7 @@ const StepActions: React.FC<StepActionsProps> = ({
     const [loading, setLoading] = useState(false);
     const [reusable, setReusable] = useState<any>({});
     const [isEditingReusable, setIsEditingReusable] = useState(false);
+    const [nameFilter, setNameFilter] = useState("");
 
     const insertStep = (newSteps: any[]) => {
         const reindexed = newSteps.map((step, idx) => {
@@ -135,6 +137,14 @@ const StepActions: React.FC<StepActionsProps> = ({
             setLoading(false);
         }
     };
+
+    const filteredReusable = useMemo(
+        () =>
+            reusableList.filter((item) =>
+                (item?.name ?? "").toLowerCase().includes(nameFilter.toLowerCase())
+            ),
+        [reusableList, nameFilter]
+    );
 
     const saveReusableChanges = async () => {
         if (!selectedReusable) return;
@@ -356,11 +366,11 @@ const StepActions: React.FC<StepActionsProps> = ({
             )}
 
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent size="2xl" className="w-full max-h-[85vh] overflow-hidden bg-white flex flex-col">
+                <DialogContent size="2xl" className="w-full max-h-[85vh] min-h-[40vh] overflow-hidden bg-white flex flex-col">
                     <div className="relative">
                         {selectedReusable && (
 
-                            <button className="absolute -top-2.5 flex gap-2 text-primary/80 items-center" onClick={() => setSelectedReusable(null)}>
+                            <button className="absolute -top-1 flex gap-2 text-primary/80 items-center" onClick={() => setSelectedReusable(null)}>
                                 <ArrowLeft className="h-5 w-5 text-primary/80 hover:text-primary/90 cursor-pointer" /> Back
                             </button>
 
@@ -374,27 +384,44 @@ const StepActions: React.FC<StepActionsProps> = ({
                             : "Select a Reusable Step"}
                     </h2>
 
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    <div className="flex flex-col overflow-y-auto p-4 space-y-4 min-h-[80vh]">
                         {!selectedReusable ? (
                             <>
+
+                                <div className="flex items-center gap-2">
+                                    <TextInputWithClearButton 
+                                        id="filter-reusable"
+                                        type="text"
+                                        label="Filter by name"
+                                        value={nameFilter}
+                                        onChangeHandler={(e) => setNameFilter(e.target.value)}
+                                        placeholder="Filter by name…"
+                                    />
+                                  
+                                </div>
                                 {loading && (
                                     <div className="text-center text-gray-400">Loading...</div>
                                 )}
-                                {reusableList.map((item) => (
-                                    <div
-                                        key={item.id}
-                                        className="p-3 border rounded cursor-pointer hover:bg-gray-50"
-                                        onClick={() => {
-                                            setSelectedReusable(item);
-                                            fetchReusableSteps(item.id);
-                                        }}
-                                    >
-                                        <div className="font-medium">{item.name}</div>
-                                        <div className="text-xs text-gray-500">
-                                            {item.description || "No description"}
+
+                                {filteredReusable.length === 0 && !loading ? (
+                                    <div className="text-sm text-gray-500">No matches.</div>
+                                ) : (
+                                    filteredReusable.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            className="p-3 border rounded cursor-pointer hover:bg-gray-50"
+                                            onClick={() => {
+                                                setSelectedReusable(item);
+                                                fetchReusableSteps(item.id);
+                                            }}
+                                        >
+                                            <div className="font-medium">{item.name}</div>
+                                            <div className="text-xs text-gray-500">
+                                                {item.description || "No description"}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))
+                                )}
                             </>
                         ) : (
                             <>

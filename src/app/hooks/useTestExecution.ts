@@ -13,6 +13,15 @@ const sanitizeTestData = (data: any) => {
   return copy;
 };
 
+const IGNORE_PROGRESS_RE = /^(Browser started|Browser closed|Test execution completed)$/i;
+
+const isIgnorableProgressStep = (step: any) => {
+  const status = String(step?.status ?? step?.state ?? "").toLowerCase();
+  const msg = String(step?.message ?? step?.action ?? "").trim();
+  if (status === "in_progress" || status === "processing") return true;
+  return IGNORE_PROGRESS_RE.test(msg);
+};
+
 export const useTestExecution = () => {
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState<Record<string, boolean>>({});
@@ -52,7 +61,10 @@ export const useTestExecution = () => {
   const updateProgress = useCallback((testId: string, completedSteps: number) => {
     setStepsCountMap(prevSteps => {
       const total = prevSteps[testId];
+      console.log("total steps for", testId, "is", total, "completedSteps:", completedSteps);
+      
       if (!total || total === 0) return prevSteps;
+
       const clamped = Math.min(completedSteps, total);
       const percent = Math.round((clamped / total) * 100);
       setProgress(prev => {
@@ -93,7 +105,7 @@ export const useTestExecution = () => {
       const testId = String(testCase?.id);
 
       if (!isSingleExecution && (invalidTests[testId] || runningTestsRef.current.has(testId))) {
-        console.log(`⏭️ Test ${testId} ya está corriendo o es inválido`);
+        console.log(`⏭️ Test ${testId} just running or invalid, skipping`);
         return;
       }
 
@@ -193,7 +205,11 @@ export const useTestExecution = () => {
                 updatedSteps.push(stepData);
               }
 
-              updateProgress(id, updatedSteps.length);
+              console.log("updatedSteps for", id, ":", updatedSteps);
+              
+              const completedCount = updatedSteps.filter(s => !isIgnorableProgressStep(s)).length;
+              updateProgress(id, completedCount);
+
               const updatedReport = { testCaseId: id, connectionId, data: updatedSteps, socket };
               const updated = [...prev];
 
@@ -227,6 +243,7 @@ export const useTestExecution = () => {
                 ...(report || { testCaseId: id, connectionId, data: [], socket }),
                 data: [...((report?.data as any[]) || []), { finalStatus, message: msg }],
               };
+
 
               if (idx >= 0) {
                 updated[idx] = newEntry;
@@ -315,7 +332,7 @@ export const useTestExecution = () => {
         Object.entries(testDataInput || {}).map(([k, v]) => [String(k), v])
       );
 
-      setTestData((prev:any) => ({ ...prev, ...normalized }));
+      setTestData((prev: any) => ({ ...prev, ...normalized }));
       testDataRef.current = { ...testDataRef.current, ...normalized };
 
       const newLoading: Record<string, boolean> = {};
