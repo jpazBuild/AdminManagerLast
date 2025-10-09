@@ -75,7 +75,6 @@ export const useTagsModules = () => {
         }
     };
 
-    // Sincronización
     useEffect(() => {
         fetchInitialData();
     }, []);

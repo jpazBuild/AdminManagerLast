@@ -17,6 +17,8 @@ interface TagSelectorProps {
   disabled?: boolean;
   textColorLabel?: string;
   darkMode?: boolean;
+  widthComponent?: string;
+  showSearch?: boolean;
 }
 
 export const SearchField = ({
@@ -29,6 +31,8 @@ export const SearchField = ({
   disabled = false,
   textColorLabel = "text-primary/90",
   darkMode = false,
+  widthComponent = "w-full",
+  showSearch = true,
 }: TagSelectorProps) => {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -97,7 +101,7 @@ export const SearchField = ({
 
   return (
     <>
-      <div className="flex flex-col gap-2 w-full relative" ref={wrapperRef}>
+      <div className={`flex flex-col gap-2 ${widthComponent} relative`} ref={wrapperRef}>
         <div
           onClick={() => !disabled && setOpen(true)}
           className={`
@@ -151,7 +155,8 @@ export const SearchField = ({
     `}
             onClick={(e) => e.stopPropagation()}
           >
-            <div
+            {showSearch &&(
+  <div
               className={`flex items-center border-b top-0 z-20 rounded-md
         ${darkMode ? "border-white/10 bg-[#021d3d]" : "bg-primary/10 border-transparent"}`}
             >
@@ -169,6 +174,8 @@ export const SearchField = ({
         `}
               />
             </div>
+            )}
+          
 
             <div
               className={`

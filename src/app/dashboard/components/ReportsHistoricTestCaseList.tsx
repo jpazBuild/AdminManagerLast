@@ -418,7 +418,6 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
                     containerRefs.current[it.urlReport] = el;
                   }}
                 >
-                  {/*show skeleton if is loading individual report*/}
                   {isLoadingIndividualReport && (
                     <div className="p-6 flex flex-col justify-center items-center gap-3">
                       <div className="h-10 w-full animate-pulse rounded-md bg-primary/10"></div>
