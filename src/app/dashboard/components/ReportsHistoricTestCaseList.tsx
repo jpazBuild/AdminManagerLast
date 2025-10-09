@@ -93,9 +93,10 @@ export async function downloadRenderedPdf(
 
     const clone = hostEl.cloneNode(true) as HTMLElement;
     await inlineImages(clone).catch(() => {});
-
+    console.log("header for pdf", header);
+    
     const preprocessedHtml = preprocessStepCardHtml(clone.outerHTML);
-    const niceName = `report-${file?.id || urlKey}.pdf`;
+    const niceName = header?.name ? `${header?.name}.pdf` : `report-${file?.id || urlKey}.pdf`;
 
     const html = buildStandaloneHtml({
       file,
