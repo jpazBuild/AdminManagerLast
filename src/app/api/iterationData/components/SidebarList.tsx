@@ -1,6 +1,8 @@
 "use client";
+
 import TextInputWithClearButton from "@/app/components/InputClear";
 import { IterationHeader } from "../types";
+import { useRef } from "react";
 
 type Props = {
   iterations: IterationHeader[];
@@ -10,14 +12,25 @@ type Props = {
   setQuery: (v: string) => void;
   onPick: (h: IterationHeader) => void;
   onCreateBlank: () => void;
+  onUploadCsv: (file: File) => void;
   selectedId?: string;
 };
 
 export default function SidebarList({
-  iterations, loading, error, query, setQuery, onPick, onCreateBlank, selectedId
+  iterations, loading, error, query, setQuery, onPick, onCreateBlank, onUploadCsv, selectedId
 }: Props) {
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
+  const triggerUpload = () => fileRef.current?.click();
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) onUploadCsv(f);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
   return (
     <div className="w-72 border-r border-primary/10 bg-white flex-shrink-0 flex flex-col overflow-hidden">
+      {/* Search */}
       <div className="flex-shrink-0 p-4 bg-white border-b border-primary/10">
         <TextInputWithClearButton
           id="search-iterations"
@@ -29,7 +42,32 @@ export default function SidebarList({
         />
       </div>
 
-      <div className="max-h-[calc(100vh-200px)] overflow-y-auto">
+      {/* Acciones (arriba, sin separadores extra) */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-primary/10 bg-white">
+        <button
+          className="px-4 py-2.5 rounded-full bg-[#0A2342] text-white font-semibold shadow hover:bg-[#18345A] transition"
+          onClick={onCreateBlank}
+        >
+          + Create
+        </button>
+        <button
+          className="px-4 py-2.5 rounded-full border border-[#0A2342] text-[#0A2342] font-semibold hover:bg-[#F5F8FB] transition"
+          onClick={triggerUpload}
+          title="Upload CSV"
+        >
+          Upload CSV
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".csv"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+      </div>
+
+      {/* Lista */}
+      <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="p-4 text-sm text-gray-500">Loading...</div>
         ) : iterations.length > 0 ? (
@@ -52,13 +90,6 @@ export default function SidebarList({
           </div>
         )}
       </div>
-
-      <button
-        className="m-3 px-3 py-2.5 bg-primary rounded-md text-white font-medium hover:bg-primary/90 transition"
-        onClick={onCreateBlank}
-      >
-        + Create
-      </button>
     </div>
   );
 }

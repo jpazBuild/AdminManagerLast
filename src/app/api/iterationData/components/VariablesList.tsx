@@ -1,4 +1,7 @@
+// app/api/iterationData/components/VariablesList.tsx
 "use client";
+
+import React from "react";
 import { Trash2Icon } from "lucide-react";
 import TextInputWithClearButton from "@/app/components/InputClear";
 import { Row } from "../types";
@@ -12,42 +15,57 @@ type Props = {
 
 export default function VariablesList({ rows, onUpdate, onRemove, onAdd }: Props) {
   return (
-    <div className="rounded-xl border border-primary/10 bg-white p-4">
-      <h3 className="text-base font-medium text-primary/80 mb-3">Variables</h3>
-
-      <div className="max-h-[60vh] overflow-y-auto pr-2">
-        <div className="flex flex-col gap-2">
-          {rows.map((r) => (
-            <div key={r.id} className="flex items-center gap-2">
-              <TextInputWithClearButton
-                id={`row-var-${r.id}`}
-                label="Variable"
-                value={r.variable}
-                placeholder="description / tagNames / createdByName ..."
-                isSearch={false}
-                onChangeHandler={(e) => onUpdate(r.id, { variable: e.target.value })}
-              />
-              <TextInputWithClearButton
-                id={`row-val-${r.id}`}
-                label="Value"
-                value={r.value}
-                placeholder="value"
-                isSearch={false}
-                onChangeHandler={(e) => onUpdate(r.id, { value: e.target.value })}
-              />
-              <button className="px-2" onClick={() => onRemove(r.id)} title="Delete row">
-                <Trash2Icon className="w-5 h-5 text-primary/80" />
-              </button>
-            </div>
-          ))}
+    <div>
+      {/* Encabezado: dos columnas (Variable | Value) */}
+      <div className="grid grid-cols-2 gap-3 mb-2 sticky top-0 bg-white z-10">
+        <div className="text-xs font-semibold text-[#7B8CA6] uppercase tracking-wide">
+          Variable
+        </div>
+        <div className="text-xs font-semibold text-[#7B8CA6] uppercase tracking-wide">
+          Value
         </div>
       </div>
 
-      {/* botón al final */}
-      <div className="flex justify-start mt-4">
+      {/* Filas: inputs en 2 columnas + botón Delete a la derecha (fuera del input) */}
+      <div className="flex flex-col gap-2">
+        {rows.map((r) => (
+          <div key={r.id} className="flex items-center gap-2">
+            {/* Dos columnas para los inputs */}
+            <div className="grid grid-cols-2 gap-3 flex-1">
+              <TextInputWithClearButton
+                        id={`row-var-${r.id}`}
+                        label="" // sin label/placeholder visibles
+                        value={r.variable}
+                        isSearch={false}
+                        onChangeHandler={(e) => onUpdate(r.id, { variable: e.target.value })} placeholder={""}              />
+              <TextInputWithClearButton
+                        id={`row-val-${r.id}`}
+                        label="" // sin label/placeholder visibles
+                        value={r.value}
+                        isSearch={false}
+                        onChangeHandler={(e) => onUpdate(r.id, { value: e.target.value })} placeholder={""}              />
+            </div>
+
+            {/* Botón Delete fuera del input de Value */}
+            <button
+              type="button"
+              title="Delete row"
+              aria-label="Delete row"
+              onClick={() => onRemove(r.id)}
+              className="p-2 rounded hover:bg-gray-100 shrink-0"
+            >
+              <Trash2Icon className="w-5 h-5 text-primary/80" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Botón al final (dentro del área scrolleable) */}
+      <div className="mt-4">
         <button
-          className="px-4 py-2 rounded-full border border-[#E1E8F0] text-[#0A2342] hover:bg-[#F5F8FB] text-sm"
+          type="button"
           onClick={onAdd}
+          className="px-4 py-2 rounded-full border border-[#E1E8F0] text-[#0A2342] hover:bg-[#F5F8FB] text-sm"
         >
           + add row
         </button>
