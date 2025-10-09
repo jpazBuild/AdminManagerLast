@@ -1,176 +1,232 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { URL_API_ALB } from "@/config";
-import type { Row, IterationHeader, DetailResponse } from "../types";
+import { Row } from "../types";
 
-const apiUrl = (p: string) => new URL(p, URL_API_ALB).toString();
+export type IterationHeader = {
+  id: string;
+  name: string;
+  description?: string;
+  tagNames?: string[];
+  tagIds?: string[];
+  createdAt?: number | string;
+  createdBy?: string;
+  createdByName?: string;
+  type?: string;
+  route?: string;
+};
+
+type DetailResponse = {
+  id?: string;
+  name?: string;
+  description?: string;
+  tagNames?: string[];
+  tagIds?: string[];
+  createdAt?: number | string;
+  createdBy?: string;
+  createdByName?: string;
+  type?: string;
+  route?: string;
+  iterationData?: Array<{
+    id?: string;
+    apisScriptsName?: string;
+    iterationCount?: number;
+    iterationData: Record<string, unknown>;
+    order?: number;
+    createdBy?: string;
+  }>;
+};
+
+const apiUrl = (path: string) => new URL(path, URL_API_ALB).toString();
 const makeRowId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-// --- Helpers para filas meta (description, createdBy, etc.) ---
-const metaRowsFrom = (
-  detail?: Partial<DetailResponse> | Partial<IterationHeader> | null
-): Row[] => {
+const META_KEYS = new Set([
+  "description",
+  "createdAt",
+  "createdBy",
+  "createdByName",
+  "tagIds",
+  "tagNames",
+  "type",
+  "route",
+  "id",
+  "name",
+]);
+
+const rowsFromIterationData = (detail?: DetailResponse | null): Row[] => {
+  if (!detail || !Array.isArray(detail.iterationData)) return [];
+  const out: Row[] = [];
+  for (const item of detail.iterationData) {
+    const bag = item?.iterationData || {};
+    for (const [key, val] of Object.entries(bag)) {
+      if (val && typeof val === "object") {
+        for (const [subKey, subVal] of Object.entries(val as Record<string, unknown>)) {
+          out.push({ id: makeRowId(), variable: `${key}.${subKey}`, value: String(subVal) });
+        }
+      } else {
+        out.push({ id: makeRowId(), variable: key, value: String(val) });
+      }
+    }
+  }
+  return out;
+};
+
+const metaRowsFromDetail = (detail?: Partial<DetailResponse> | null): Row[] => {
   if (!detail) return [];
-  const items: Array<[string, any]> = [
-    ["description", (detail as any).description],
-    ["createdAt", (detail as any).createdAt],
-    ["createdBy", (detail as any).createdBy],
-    ["createdByName", (detail as any).createdByName],
-    ["type", (detail as any).type],
-    ["route", (detail as any).route],
+  const items: Array<[string, string | number | string[] | undefined]> = [
+    ["description", detail.description],
+    ["createdAt", detail.createdAt as any],
+    ["createdBy", detail.createdBy],
+    ["createdByName", detail.createdByName],
+    ["tagIds", detail.tagIds],
+    ["tagNames", detail.tagNames],
+    ["type", detail.type],
+    ["route", detail.route],
   ];
   return items
     .filter(([, v]) => v !== undefined && v !== null)
-    .map(([k, v]) => ({
-      id: makeRowId(),
-      variable: k,
-      value: Array.isArray(v) ? v.join(", ") : String(v),
-    }));
+    .map(([k, v]) => {
+      let value = "";
+      if (Array.isArray(v)) value = v.join(", ");
+      else value = String(v);
+      return { id: makeRowId(), variable: k, value };
+    });
 };
 
-const mergeRowsByKey = (base: Row[], inc: Row[]): Row[] => {
-  const map = new Map<string, Row>();
-  base.forEach((r) => map.set(r.variable, { ...r }));
-  inc.forEach((r) =>
-    map.set(r.variable, { id: makeRowId(), variable: r.variable, value: r.value })
-  );
-  return [...map.values()];
-};
+// Convierte rows flat a un objeto nested por root (iteration1, iteration2, etc.)
+const buildNestedFromRows = (rows: Row[], onlyRoot?: string) => {
+  const out: Record<string, any> = {};
+  for (const r of rows) {
+    const key = (r.variable || "").trim();
+    if (!key || META_KEYS.has(key)) continue;
+    const parts = key.split(".");
+    const root = parts[0];
+    if (onlyRoot && root !== onlyRoot) continue;
 
-export type LocalSnapshot = {
-  pkgId: string;
-  pkgName: string;
-  checked: boolean;
-  tagNames: string[];
-  rows: Row[];
+    if (parts.length === 1) {
+      out[root] = r.value;
+      continue;
+    }
+
+    out[root] = out[root] || {};
+    let cursor = out[root];
+    for (let i = 1; i < parts.length - 1; i++) {
+      const p = parts[i];
+      cursor[p] = cursor[p] || {};
+      cursor = cursor[p];
+    }
+    cursor[parts[parts.length - 1]] = r.value;
+  }
+  return onlyRoot ? out[onlyRoot] || {} : out;
 };
 
 export type IterationEditorAPI = {
+  // selección/identidad
   selected: IterationHeader | null;
-
-  pkgId: string;
-  pkgName: string;
-  setPkgName: (v: string) => void;
-
-  pkgChecked: boolean;
-  toggleChecked: () => void;
-
-  rows: Row[];
-  addRow: () => void;
-  removeRow: (id: string) => void;
-  updateRow: (id: string, patch: Partial<Row>) => void;
-
-  selectedTags: string[];
-  addTag: (t: string) => void;
-  removeTag: (t: string) => void;
-
-  isCollapsed: boolean;
-  setIsCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
-  menuOpen: boolean;
-  setMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  isDirty: boolean;
+  isNew: boolean; // true si es borrador local (PUT en save)
   saving: boolean;
+  isDirty: boolean;
 
-  /** NUEVO: indica si es un borrador local (no existe en backend aún) */
-  isNew: boolean;
+  // UI state
+  pkgName: string;
+  pkgId: string;
+  pkgChecked: boolean;
+  isCollapsed: boolean;
+  menuOpen: boolean;
 
+  // datos
+  rows: Row[];
+  selectedTags: string[];
+
+  // acciones UI
+  setPkgName: (v: string) => void;
+  toggleChecked: () => void;
+  setIsCollapsed: (fn: (v: boolean) => boolean) => void;
+  setMenuOpen: (v: boolean) => void;
+
+  // filas
+  addRow: () => void;
+  removeRow: (rowId: string) => void;
+  updateRow: (rowId: string, patch: Partial<Row>) => void;
+
+  // tags
+  addTag: (tag: string) => void;
+  removeTag: (tag: string) => void;
+
+  // flujo
   loadFromHeader: (h: IterationHeader) => Promise<void>;
-
-  /** NUEVO: crea un borrador local totalmente en blanco (sin API) */
-  createLocalBlankDraft: (createdBy?: string) => void;
-
-  /** Save: PUT si isNew, PATCH si es existente */
-  save: () => Promise<
-    | { ok: true; status: number; data?: any }
-    | { ok: false; status?: number; error: string }
-  >;
-
-  deleteOnServer: () => Promise<
-    | { ok: true; status: number }
-    | { ok: false; status?: number; error: string }
-  >;
-
+  createLocalBlankDraft: (meta?: Partial<Record<string, string>>) => void;
   reset: () => void;
+  save: () => Promise<{ ok: true; status: number } | { ok: false; status?: number; error: string }>;
+  deleteOnServer: () => Promise<{ ok: true; status: number } | { ok: false; status?: number; error: string }>;
 
-  duplicateLocalSnapshot: () => LocalSnapshot;
+  // NUEVO: duplicar como nuevo (PUT con "Copy")
+  duplicateAsNew: () => Promise<
+    | { ok: true; status: number; newId: string }
+    | { ok: false; status?: number; error: string }
+  >;
+
+  // util
+  duplicateLocalSnapshot: () => {
+    pkgId: string;
+    pkgName: string;
+    checked: boolean;
+    tagNames: string[];
+    rows: Row[];
+  };
 };
 
 export function useIterationEditor(): IterationEditorAPI {
   const [selected, setSelected] = useState<IterationHeader | null>(null);
-
-  const [pkgId, setPkgId] = useState<string>("");
-  const [pkgName, setPkgName] = useState<string>("");
-  const [pkgChecked, setPkgChecked] = useState<boolean>(true);
-  const toggleChecked = () => setPkgChecked((v) => !v);
+  const [pkgName, setPkgName] = useState("");
+  const [pkgId, setPkgId] = useState("");
+  const [pkgChecked, setPkgChecked] = useState(true);
 
   const [rows, setRows] = useState<Row[]>([]);
   const originalRowsRef = useRef<Row[]>([]);
-  const originalIterationBlockRef = useRef<DetailResponse["iterationData"] | null>(null);
 
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const addTag = (t: string) =>
-    setSelectedTags((prev) => (prev.includes(t) ? prev : [...prev, t]));
-  const removeTag = (t: string) =>
-    setSelectedTags((prev) => prev.filter((x) => x !== t));
+
+  const [isNew, setIsNew] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
 
-  /** NUEVO: modo borrador local (no existe en backend) */
-  const [isNew, setIsNew] = useState(false);
+  const addRow = () =>
+    setRows((prev) => [...prev, { id: makeRowId(), variable: "", value: "" }]);
+  const removeRow = (rowId: string) =>
+    setRows((prev) => prev.filter((r) => r.id !== rowId));
+  const updateRow = (rowId: string, patch: Partial<Row>) =>
+    setRows((prev) => prev.map((r) => (r.id === rowId ? { ...r, ...patch } : r)));
 
-  // helpers nested
-  const setNested = (obj: any, path: string[], value: any) => {
-    if (path.length === 0) return;
-    let cursor = obj;
-    for (let i = 0; i < path.length - 1; i++) {
-      const k = path[i];
-      if (cursor[k] == null || typeof cursor[k] !== "object") cursor[k] = {};
-      cursor = cursor[k];
+  const addTag = (tag: string) =>
+    setSelectedTags((prev) => (prev.includes(tag) ? prev : [...prev, tag]));
+  const removeTag = (tag: string) =>
+    setSelectedTags((prev) => prev.filter((t) => t !== tag));
+
+  const toggleChecked = () => setPkgChecked((v) => !v);
+
+  const isDirty = useMemo(() => {
+    // nombre
+    if ((selected?.name || "") !== pkgName) return true;
+    // filas
+    const a = rows;
+    const b = originalRowsRef.current;
+    if (a.length !== b.length) return true;
+    for (let i = 0; i < a.length; i++) {
+      if (a[i].variable !== b[i].variable || a[i].value !== b[i].value) return true;
     }
-    cursor[path[path.length - 1]] = value;
-  };
+    return false;
+  }, [rows, selected, pkgName]);
 
-  const buildNestedFromRows = (allRows: Row[], iterationKey: string) => {
-    const out: Record<string, any> = {};
-    for (const r of allRows) {
-      const v = r.variable.trim();
-      if (!v.startsWith(iterationKey + ".")) continue;
-      const parts = v.split(".").slice(1);
-      if (parts.length === 0) continue;
-      setNested(out, parts, r.value);
-    }
-    return out;
-  };
-
-  // Cargar existente → PATCH
-  const loadFromHeader = async (h: IterationHeader) => {
-    if (!h?.id) {
-      console.warn("[loadFromHeader] missing id, abort.");
-      return;
-    }
-
-    setIsNew(false); // ← EXISTENTE
+  const loadFromHeader = useCallback(async (h: IterationHeader) => {
+    setIsNew(false);
     setSelected(h);
-    setIsCollapsed(false);
-    setMenuOpen(false);
-
-    setPkgId(h.id);
     setPkgName(h.name || "");
-    setPkgChecked(true);
-    setSelectedTags(h.tagNames ?? []);
-
-    const headerMeta = metaRowsFrom(h);
-    setRows(
-      headerMeta.length
-        ? headerMeta
-        : [{ id: makeRowId(), variable: "description", value: h.description ?? "" }]
-    );
-    originalRowsRef.current = JSON.parse(JSON.stringify(headerMeta));
-    originalIterationBlockRef.current = [];
+    setPkgId(h.id || "");
 
     try {
       const { data } = await axios.post<DetailResponse>(
@@ -178,95 +234,148 @@ export function useIterationEditor(): IterationEditorAPI {
         { id: h.id },
         { withCredentials: true }
       );
-      originalIterationBlockRef.current = data?.iterationData ?? [];
-
-      setPkgId(String(data?.id ?? h.id));
-      setPkgName(String(data?.name ?? h.name));
-      setSelectedTags(data?.tagNames ?? h.tagNames ?? []);
-
-      const detailMeta = metaRowsFrom(data);
-      const merged = mergeRowsByKey(headerMeta, detailMeta);
-
-      setRows(
-        merged.length ? merged : [{ id: makeRowId(), variable: "description", value: "" }]
-      );
+      const metaRows = metaRowsFromDetail(data);
+      const iterRows = rowsFromIterationData(data);
+      const merged = [...metaRows, ...iterRows];
+      setRows(merged.length ? merged : [{ id: makeRowId(), variable: "", value: "" }]);
       originalRowsRef.current = JSON.parse(JSON.stringify(merged));
-    } catch {
-      originalIterationBlockRef.current = [];
+
+      const tags = (data?.tagNames ?? h.tagNames ?? []).map(String).filter(Boolean);
+      setSelectedTags(tags);
+    } catch (e) {
+      // fallback: solo header
+      const metaRows = metaRowsFromDetail(h as any);
+      const merged = metaRows.length ? metaRows : [{ id: makeRowId(), variable: "", value: "" }];
+      setRows(merged);
+      originalRowsRef.current = JSON.parse(JSON.stringify(merged));
+      setSelectedTags((h.tagNames ?? []).map(String).filter(Boolean));
     }
-  };
+  }, []);
 
-  // NUEVO: crear borrador local totalmente en blanco (sin API)
-  const createLocalBlankDraft = (createdBy = "") => {
-    const localId =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `${Date.now()}`;
-
+  const createLocalBlankDraft = useCallback((meta?: Partial<Record<string, string>>) => {
     setIsNew(true);
-    setSelected({
-      id: localId,
-      name: "",
-      description: "",
-      tagNames: [],
-    } as any);
+    const newId =
+      (typeof crypto !== "undefined" && "randomUUID" in crypto && (crypto as any).randomUUID()) ||
+      `${Date.now()}`;
 
-    setPkgId(localId);
+    const baseRows: Row[] = [
+      { id: makeRowId(), variable: "description", value: meta?.description ?? "testcreate" },
+      { id: makeRowId(), variable: "createdAt", value: meta?.createdAt ?? String(Date.now()) },
+      { id: makeRowId(), variable: "createdBy", value: meta?.createdBy ?? "" },
+      { id: makeRowId(), variable: "createdByName", value: meta?.createdByName ?? "" },
+      { id: makeRowId(), variable: "type", value: meta?.type ?? "ITERATIONDATA" },
+      { id: makeRowId(), variable: "route", value: meta?.route ?? `ITERATIONDATA#${newId}` },
+      // ejemplo de variables
+      { id: makeRowId(), variable: "iteration1.urlSite", value: "" },
+      { id: makeRowId(), variable: "iteration1.UsernameInput", value: "" },
+      { id: makeRowId(), variable: "iteration1.PasswordInput", value: "" },
+      { id: makeRowId(), variable: "iteration2.urlSite", value: "" },
+      { id: makeRowId(), variable: "iteration2.UsernameInput", value: "" },
+      { id: makeRowId(), variable: "iteration2.PasswordInput", value: "" },
+    ];
+
+    setSelected({
+      id: newId,
+      name: "",
+      description: meta?.description ?? "testcreate",
+      createdAt: meta?.createdAt ?? String(Date.now()),
+      createdBy: meta?.createdBy ?? "",
+      createdByName: meta?.createdByName ?? "",
+      type: meta?.type ?? "ITERATIONDATA",
+      route: meta?.route ?? `ITERATIONDATA#${newId}`,
+    });
+    setPkgId(newId);
     setPkgName("");
     setPkgChecked(true);
-    setSelectedTags([]);
+    setSelectedTags(["tag1"]);
+    setRows(baseRows);
+    originalRowsRef.current = JSON.parse(JSON.stringify(baseRows));
+  }, []);
 
-    // Una sola fila vacía para arrancar
-    const startRows: Row[] = [{ id: makeRowId(), variable: "", value: "" }];
-    setRows(startRows);
-
-    // baseline para que Save quede deshabilitado hasta que cambien algo
-    originalRowsRef.current = JSON.parse(JSON.stringify(startRows));
-    originalIterationBlockRef.current = [];
-    setIsCollapsed(false);
-    setMenuOpen(false);
-  };
-
-  // Acciones de filas
-  const addRow = () =>
-    setRows((prev) => [...prev, { id: makeRowId(), variable: "", value: "" }]);
-  const removeRow = (id: string) => setRows((prev) => prev.filter((r) => r.id !== id));
-  const updateRow = (id: string, patch: Partial<Row>) =>
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
-
-  // Dirty: compara filas, nombre, id, tags y checkbox contra baseline
-  const isDirty = useMemo(() => {
-    const a = rows;
-    const b = originalRowsRef.current;
-    if (a.length !== b.length) return true;
-    for (let i = 0; i < a.length; i++) {
-      if (a[i].variable !== b[i].variable || a[i].value !== b[i].value) return true;
-    }
-    if ((selected?.name || "") !== pkgName) return true;
-    if ((selected?.id || "") !== pkgId) return true;
-
-    const baselineTags = selected?.tagNames ?? [];
-    if (baselineTags.length !== selectedTags.length) return true;
-    const aSet = new Set(selectedTags);
-    for (const t of baselineTags) if (!aSet.has(t)) return true;
-
-    if (pkgChecked !== true) return true;
-
-    return false;
-  }, [rows, pkgName, pkgId, selected, selectedTags, pkgChecked]);
-
-  const reset = () => {
+  const reset = useCallback(() => {
     const snap = JSON.parse(JSON.stringify(originalRowsRef.current)) as Row[];
-    setRows(snap.length ? snap : [{ id: makeRowId(), variable: "description", value: "" }]);
+    setRows(snap.length ? snap : [{ id: makeRowId(), variable: "", value: "" }]);
     setPkgName(selected?.name || "");
-    setPkgId(selected?.id || "");
-    setPkgChecked(true);
-    setSelectedTags(selected?.tagNames ?? []);
-  };
+  }, [selected]);
 
-  // Delete (DELETE) — solo id
-  const deleteOnServer = async () => {
+  const save = useCallback(async () => {
     if (!selected) return { ok: false as const, error: "No package selected" };
+    setSaving(true);
+
+    // meta
+    const meta: Record<string, string> = {};
+    for (const r of rows) {
+      const k = (r.variable || "").trim();
+      if (k && META_KEYS.has(k)) meta[k] = r.value;
+    }
+    const description = (meta["description"] || "").trim();
+    const creator =
+      (meta["createdByName"] || meta["createdBy"] || selected.createdByName || selected.createdBy || "").trim();
+    const tagNames = (selectedTags ?? []).map(String).filter(Boolean);
+
+    // nested vars
+    const iteration1Block = buildNestedFromRows(rows, "iteration1");
+    const iteration2Block = buildNestedFromRows(rows, "iteration2");
+    const defaultBlock = { urlSite: "", UsernameInput: "", PasswordInput: "" };
+    const iter1 = Object.keys(iteration1Block).length ? iteration1Block : defaultBlock;
+    const iter2 = Object.keys(iteration2Block).length ? iteration2Block : defaultBlock;
+
+    if (!pkgName.trim()) return { ok: false as const, error: "name is required" };
+    if (!description) return { ok: false as const, error: "description is required" };
+    if (!creator) return { ok: false as const, error: "createdBy is required" };
+    if (!tagNames.length) return { ok: false as const, error: "tagNames is required" };
+
+    const body = {
+      id: pkgId,
+      name: pkgName.trim(),
+      description,
+      tagNames,
+      iterationData: [
+        {
+          id: pkgId,
+          iterationCount: 2,
+          iterationData: { iteration1: iter1 },
+          order: 0,
+          apisScriptsName: "",
+          createdBy: creator,
+        },
+        {
+          id: pkgId,
+          iterationCount: 3,
+          iterationData: { iteration1: iter1, iteration2: iter2 },
+          order: 1,
+          apisScriptsName: "",
+          createdBy: creator,
+        },
+      ],
+      updatedBy: creator,
+      createdBy: creator,
+    };
+
+    try {
+      const method = isNew ? "put" : "patch";
+      const url = apiUrl("iterationData");
+      const resp = await axios[method](url, body, { withCredentials: true });
+
+      // sync snapshot
+      originalRowsRef.current = JSON.parse(JSON.stringify(rows));
+      setIsNew(false);
+      return { ok: true as const, status: resp.status };
+    } catch (err: any) {
+      const status = err?.response?.status;
+      const data = err?.response?.data;
+      const msg =
+        data?.message ??
+        data?.error ??
+        (typeof data === "string" ? data : err?.message || "Unknown error");
+      return { ok: false as const, status, error: msg };
+    } finally {
+      setSaving(false);
+    }
+  }, [selected, rows, pkgName, pkgId, selectedTags, isNew]);
+
+  const deleteOnServer = useCallback(async () => {
+    if (!selected?.id) return { ok: false as const, error: "No package selected" };
     try {
       const resp = await axios.delete(apiUrl("iterationData"), {
         data: { id: selected.id },
@@ -282,141 +391,88 @@ export function useIterationEditor(): IterationEditorAPI {
         (typeof data === "string" ? data : err?.message || "Unknown error");
       return { ok: false as const, status, error: msg };
     }
-  };
+  }, [selected]);
 
-  // Save:
-  // - isNew = true  -> PUT (crear con estructura completa)
-  // - isNew = false -> PATCH (actualizar existente)
-  const save = async () => {
+  // === NUEVO: Duplicar como nuevo (PUT con “Copy”) ==========================
+  const duplicateAsNew = useCallback(async () => {
     if (!selected) return { ok: false as const, error: "No package selected" };
-    setSaving(true);
 
-    const META_KEYS = new Set([
-      "description",
-      "createdAt",
-      "createdBy",
-      "createdByName",
-      "tagIds",
-      "type",
-      "route",
-      "id",
-      "name",
-    ]);
+    const newId =
+      (typeof crypto !== "undefined" && "randomUUID" in crypto && (crypto as any).randomUUID()) ||
+      `${Date.now()}`;
 
+    // meta
     const meta: Record<string, string> = {};
     for (const r of rows) {
-      const key = r.variable.trim();
-      if (!key) continue;
-      if (META_KEYS.has(key)) meta[key] = r.value;
+      const k = (r.variable || "").trim();
+      if (k && META_KEYS.has(k)) meta[k] = r.value;
     }
 
-    const description = meta["description"] ?? "";
-    const tagNames = (selectedTags?.length ? selectedTags : []) as string[];
+    const baseName = (pkgName || selected.name || "Number").trim();
+    const copyName = `${baseName} Copy`;
+    const description = (meta["description"] || "").trim();
+    const creator =
+      (selected.createdByName || selected.createdBy || meta["createdBy"] || "").trim();
+    const tagNames = (selectedTags ?? []).map(String).filter(Boolean);
 
-    // Nested a partir de rows
-    const iter1 = buildNestedFromRows(rows, "iteration1");
-    const iter2 = buildNestedFromRows(rows, "iteration2");
+    const iteration1Block = buildNestedFromRows(rows, "iteration1");
+    const iteration2Block = buildNestedFromRows(rows, "iteration2");
+    const defaultBlock = { urlSite: "", UsernameInput: "", PasswordInput: "" };
+    const iter1 = Object.keys(iteration1Block).length ? iteration1Block : defaultBlock;
+    const iter2 = Object.keys(iteration2Block).length ? iteration2Block : defaultBlock;
 
-    const defaultBlock = {
-      urlSite: "",
-      UsernameInput: "",
-      PasswordInput: "",
+    if (!copyName) return { ok: false as const, error: "Package name is required" };
+    if (!description) return { ok: false as const, error: "Description is required" };
+    if (!creator) return { ok: false as const, error: "createdBy is required" };
+    if (!tagNames.length) return { ok: false as const, error: "At least one tag is required" };
+
+    const body = {
+      name: copyName,
+      description,
+      tagNames,
+      iterationData: [
+        {
+          id: newId,
+          iterationCount: 2,
+          iterationData: { iteration1: iter1 },
+          order: 0,
+          apisScriptsName: "",
+          createdBy: creator,
+        },
+        {
+          id: newId,
+          iterationCount: 3,
+          iterationData: { iteration1: iter1, iteration2: iter2 },
+          order: 1,
+          apisScriptsName: "",
+          createdBy: creator,
+        },
+      ],
+      createdBy: creator,
     };
 
-    const iteration1Block = Object.keys(iter1).length ? iter1 : defaultBlock;
-    const iteration2Block = Object.keys(iter2).length ? iter2 : defaultBlock;
-
-    const creator = selected?.createdByName || selected?.createdBy || "";
-
     try {
-      if (isNew) {
-        // === PUT (crear) ===
-        const body = {
-          name: pkgName.trim(),
-          description,
-          tagNames: tagNames.length ? tagNames : ["tag1"], // default si no eligieron tags
-          iterationData: [
-            {
-              id: pkgId, // usamos el id local como id de bloque
-              iterationCount: 2,
-              iterationData: {
-                iteration1: iteration1Block,
-              },
-              order: 0,
-              apisScriptsName: "",
-              createdBy: creator,
-            },
-            {
-              id: pkgId,
-              iterationCount: 3,
-              iterationData: {
-                iteration1: iteration1Block,
-                iteration2: iteration2Block,
-              },
-              order: 1,
-              apisScriptsName: "",
-              createdBy: creator,
-            },
-          ],
-          createdBy: creator,
-        };
+      const resp = await axios.put(apiUrl("iterationData"), body, { withCredentials: true });
+      const serverId =
+        resp?.data?.id ||
+        resp?.data?.header?.id ||
+        resp?.data?.data?.id ||
+        resp?.data?.resourceId ||
+        newId;
 
-        const resp = await axios.put(apiUrl("iterationData"), body, {
-          withCredentials: true,
-        });
-
-        // Después de crear, ya no es "nuevo"
-        setIsNew(false);
-
-        // Si el backend devuelve id de header, úsalo
-        const newId =
-          resp?.data?.id ||
-          resp?.data?.header?.id ||
-          resp?.data?.data?.id ||
-          resp?.data?.resourceId ||
-          pkgId;
-        setPkgId(String(newId));
-        setSelected((prev) =>
-          prev ? { ...prev, id: String(newId), name: pkgName.trim(), tagNames } : prev
-        );
-
-        originalRowsRef.current = JSON.parse(JSON.stringify(rows));
-        return { ok: true as const, status: resp.status, data: resp.data };
-      } else {
-        // === PATCH (actualizar existente) ===
-        const body = {
-          id: pkgId,
-          tagNames,
-          name: pkgName.trim(),
-          description,
-          // mantenemos iterationData original (salvo que tengas otra lógica de edición por filas)
-          iterationData: originalIterationBlockRef.current ?? [],
-          updatedBy: creator,
-        };
-
-        const resp = await axios.patch(apiUrl("iterationData"), body, {
-          withCredentials: true,
-        });
-
-        originalRowsRef.current = JSON.parse(JSON.stringify(rows));
-        return { ok: true as const, status: resp.status, data: resp.data };
-      }
+      return { ok: true as const, status: resp.status, newId: String(serverId) };
     } catch (err: any) {
       const status = err?.response?.status;
-      const serverData = err?.response?.data;
-      const serverMsg =
-        serverData?.message ??
-        serverData?.error ??
-        (typeof serverData === "string" ? serverData : JSON.stringify(serverData));
-      const fallback = err?.message || "Unknown error";
-      const errorMsg = serverMsg || fallback;
-      return { ok: false as const, status, error: errorMsg };
-    } finally {
-      setSaving(false);
+      const data = err?.response?.data;
+      const msg =
+        data?.message ??
+        data?.error ??
+        (typeof data === "string" ? data : err?.message || "Unknown error");
+      return { ok: false as const, status, error: msg };
     }
-  };
+  }, [selected, rows, pkgName, selectedTags]);
 
-  const duplicateLocalSnapshot = (): LocalSnapshot => ({
+  const duplicateLocalSnapshot = () => ({
     pkgId,
     pkgName,
     checked: pkgChecked,
@@ -425,39 +481,49 @@ export function useIterationEditor(): IterationEditorAPI {
   });
 
   return {
+    // selección
     selected,
+    isNew,
+    saving,
+    isDirty,
 
-    pkgId,
+    // ui
     pkgName,
-    setPkgName,
-
+    pkgId,
     pkgChecked,
-    toggleChecked,
+    isCollapsed,
+    menuOpen,
 
+    // datos
     rows,
+    selectedTags,
+
+    // acciones ui
+    setPkgName,
+    toggleChecked,
+    setIsCollapsed,
+    setMenuOpen,
+
+    // filas
     addRow,
     removeRow,
     updateRow,
 
-    selectedTags,
+    // tags
     addTag,
     removeTag,
 
-    isCollapsed,
-    setIsCollapsed,
-    menuOpen,
-    setMenuOpen,
-    isDirty,
-    saving,
-
-    isNew,
-
+    // flujo
     loadFromHeader,
     createLocalBlankDraft,
+    reset,
     save,
     deleteOnServer,
-    reset,
 
+    // nuevo
+    duplicateAsNew,
+
+    // util
     duplicateLocalSnapshot,
   };
 }

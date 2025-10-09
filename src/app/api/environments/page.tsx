@@ -432,7 +432,3 @@ const EnvironmentsPage = () => {
 };
 
 export default EnvironmentsPage;
-<<<<<<< HEAD
-=======
-
->>>>>>> 092e7ae

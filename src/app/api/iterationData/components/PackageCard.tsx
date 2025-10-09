@@ -1,9 +1,8 @@
-// app/api/iterationData/components/PackageCard.tsx
 "use client";
 
-import { ChevronDown, ChevronUp, MoreVertical, CopyPlus, Trash2 } from "lucide-react";
+import React from "react";
+import { CopyPlus, MoreVertical, Trash2Icon, ChevronUp } from "lucide-react";
 import TextInputWithClearButton from "@/app/components/InputClear";
-import { ReactNode } from "react";
 
 type Props = {
   pkgName: string;
@@ -22,7 +21,9 @@ type Props = {
   onDuplicate: () => void;
   onDelete: () => void;
 
-  children: ReactNode; // TagPicker + VariablesList
+  showPackageId?: boolean; // opcional (default true)
+
+  children?: React.ReactNode;
 };
 
 export default function PackageCard({
@@ -37,118 +38,113 @@ export default function PackageCard({
   setMenuOpen,
   onDuplicate,
   onDelete,
+  showPackageId = true,
   children,
 }: Props) {
   return (
-    // Scroll en TODA la card (incluye name, id, tags y variables)
-    <div className="w-full h-full rounded-xl border border-primary/10 bg-white p-4 pb-6 overflow-y-auto overflow-x-hidden">
-      {/* HEADER: una sola fila (checkbox | Package name | chevron | more) */}
-      <div className="flex items-center gap-3 mb-3">
-        {/* checkbox */}
+    <div className="rounded-2xl border border-[#E1E8F0] bg-white p-4">
+      {/* Header: checkbox + Package name + acciones */}
+      <div className="flex items-center gap-3">
         <input
           type="checkbox"
-          className="h-5 w-5 accent-[#0A2342] rounded shrink-0"
+          className="h-5 w-5 accent-[#0A2342] rounded"
           checked={checked}
           onChange={onToggleChecked}
-          aria-label="Select package"
-          title="Select package"
         />
 
-        {/* Package name (ocupa todo el ancho disponible) */}
-        <div className="flex-1">
+        {/* ⬇️ Limitar el ancho del Package name en md+ */}
+        <div className="flex-1 w-full md:max-w-[560px]">
           <TextInputWithClearButton
-                      id="pkg-name"
-                      label="Package name"
-                      value={pkgName}
-                      isSearch={false}
-                      onChangeHandler={(e) => onChangeName(e.target.value)} placeholder={""}          />
+            id="pkg-name"
+            label="Package name"
+            value={pkgName}
+            placeholder="Number1"
+            isSearch={false}
+            onChangeHandler={(e) => onChangeName(e.target.value)}
+          />
         </div>
 
-        {/* chevron */}
+        {/* Chevron */}
         <button
           onClick={toggleCollapse}
-          className="inline-flex items-center justify-center rounded-md border border-primary/10 w-9 h-9 text-primary/80 hover:bg-primary/5 transition shrink-0"
-          aria-expanded={!isCollapsed}
-          aria-controls="vars-panel"
-          aria-label={isCollapsed ? "Expand" : "Collapse"}
-          title={isCollapsed ? "Expand" : "Collapse"}
-          type="button"
+          className="p-2 rounded-lg border border-[#E1E8F0] hover:bg-gray-50"
+          aria-label="Collapse"
         >
-          {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          <ChevronUp
+            className={`w-5 h-5 text-primary/80 transition-transform ${
+              isCollapsed ? "rotate-180" : ""
+            }`}
+          />
         </button>
 
-        {/* more options */}
-        <div className="relative shrink-0">
+        {/* More options a la derecha */}
+        <div className="relative">
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setMenuOpen(!menuOpen);
-            }}
-            className="inline-flex items-center justify-center rounded-md border border-primary/10 w-9 h-9 text-primary/80 hover:bg-primary/5 transition"
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-            title="More options"
-            type="button"
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="p-2 rounded-lg border border-[#E1E8F0] hover:bg-gray-50"
+            aria-label="More options"
           >
-            <MoreVertical className="w-4 h-4" />
+            <MoreVertical className="w-5 h-5 text-primary/80" />
           </button>
 
           {menuOpen && (
             <div
-              className="absolute right-0 mt-2 w-44 rounded-lg border border-gray-200 bg-white shadow-lg z-10"
-              role="menu"
+              className="
+                absolute left-full ml-2 top-0
+                z-50 w-48 rounded-lg border border-gray-200 bg-white shadow-lg
+              "
             >
               <button
-                onClick={onDuplicate}
-                className="w-full px-4 py-2 text-left text-sm text-[#0A2342] hover:bg-gray-50 flex items-center gap-2"
-                role="menuitem"
-                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onDuplicate();
+                }}
+                className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-gray-50"
               >
-                <CopyPlus className="w-4 h-4" /> Duplicate
+                <CopyPlus className="w-4 h-4 text-primary/80" />
+                <span>Duplicate</span>
               </button>
+
               <button
-                onClick={onDelete}
-                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                role="menuitem"
-                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onDelete();
+                }}
+                className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
               >
-                <Trash2 className="w-4 h-4" /> Delete
+                <Trash2Icon className="w-4 h-4" />
+                <span>Delete</span>
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* Package ID (mismo estilo visual, SOLO LECTURA) */}
-      <div className="mb-4">
-        {/* Opción preferida: readOnly (mantiene el estilo, permite seleccionar/copiar) */}
-        {/* <TextInputWithClearButton
-                  id="pkg-id"
-                  label="Package ID"
-                  value={pkgId}
-                  isSearch={false}
-                  onChangeHandler={() => { } }
-                  readOnly
-                  aria-readonly="true" placeholder={""}        /> */}
-        {/* Fallback si tu InputClear NO soporta readOnly:
-        <TextInputWithClearButton
-          id="pkg-id"
-          label="Package ID"
-          value={pkgId}
-          isSearch={false}
-          onChangeHandler={() => {}}
-          disabled
-          aria-readonly="true"
-          readOnly
-          aria-readonly="true"
-        />
-        */}
-      </div>
+      {/* Body scrolleable */}
+      {!isCollapsed && (
+        <div className="mt-4 max-h-[calc(100vh-280px)] overflow-y-auto pr-2">
+          {/* Package ID opcional */}
+          {showPackageId && (
+            <div className="mb-4">
+              <label className="mb-1 block text-sm font-medium text-gray-600">
+                Package ID
+              </label>
+              <input
+                className="w-full rounded-xl border border-[#E1E8F0] bg-gray-50 px-3 py-2 text-[#0A2342] shadow-sm"
+                value={pkgId}
+                readOnly
+                aria-readonly="true"
+              />
+            </div>
+          )}
 
-      {/* CONTENIDO (Search tags + Variables, etc.) */}
-      <div id="vars-panel" className={`${isCollapsed ? "" : ""} pr-1`}>
-        {children}
-      </div>
+          {/* Slot para Search tags + Variables */}
+          {children}
+
+          {/* Espaciador para que no se corte lo último */}
+          <div className="h-4" />
+        </div>
+      )}
     </div>
   );
 }
