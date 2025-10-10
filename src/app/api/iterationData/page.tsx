@@ -1,71 +1,77 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { DashboardHeader } from "@/app/Layouts/main";
+import selectIterationDataIcon from "../../../assets/apisImages/select-iterationData.svg";
 import SidebarList from "./components/SidebarList";
 import PackageCard from "./components/PackageCard";
 import VariablesList from "./components/VariablesList";
+import TagChips from "./components/tagChips";
 import ConfirmModal from "./components/ConfirmModal";
 import { useIterationList } from "./hooks/useIterationList";
 import { useIterationEditor } from "./hooks/useIterationEditor";
 import { useToast } from "./hooks/useToast";
-import selectIterationDataIcon from "../../../assets/apisImages/select-iterationData.svg";
 import useTags, { Tag } from "../hooks/useTags";
 import {SearchField} from "@/app/components/SearchField";
+import { Row } from "./types";
 
-/** Pills para tags seleccionados */
-function TagChips({
-  tags,
-  onRemove,
-}: {
-  tags: string[];
-  onRemove: (tag: string) => void;
-}) {
-  if (!tags?.length) return null;
-  return (
-    <div className="mt-2 flex flex-wrap gap-2">
-      {tags.map((t) => (
-        <span
-          key={t}
-          className="inline-flex items-center gap-2 rounded-full bg-[#EEF3F8] text-[#0A2342] px-3 py-1 text-sm"
-        >
-          {t}
-          <button
-            type="button"
-            aria-label={`Remove ${t}`}
-            onClick={() => onRemove(t)}
-            className="text-[#0A2342]/70 hover:text-[#0A2342]"
-          >
-            ×
-          </button>
-        </span>
-      ))}
-    </div>
-  );
+// --- Utils CSV simple ---
+function parseCsvToRows(text: string): Row[] {
+  // Espera un CSV con cabecera: variable,value
+  // Soporta separador coma; líneas vacías ignoradas
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (lines.length === 0) return [];
+
+  const header = lines[0].split(",").map(s => s.trim().toLowerCase());
+  const varIdx = header.indexOf("variable");
+  const valIdx = header.indexOf("value");
+
+  const hasHeader = varIdx !== -1 && valIdx !== -1;
+
+  const start = hasHeader ? 1 : 0;
+  const rows: Row[] = [];
+  for (let i = start; i < lines.length; i++) {
+    const parts = lines[i].split(",");
+    const variable = (hasHeader ? parts[varIdx] : parts[0])?.trim?.() ?? "";
+    const value = (hasHeader ? parts[valIdx] : parts[1])?.trim?.() ?? "";
+    if (!variable) continue;
+    rows.push({
+      id: `${Date.now()}-${i}-${Math.random().toString(36).slice(2,6)}`,
+      variable,
+      value,
+    });
+  }
+  return rows;
 }
 
 export default function IterationDataPage() {
-  const { iterations, loadingList, listError, query, setQuery, refresh } = useIterationList();
+  const { iterations, loadingList, listError, query, setQuery, refresh } =
+    useIterationList();
   const editor = useIterationEditor();
   const { toast, show, hide } = useToast();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  // Tags disponibles (normalizados a label/value)
-  const { tags, isLoadingTags } = useTags();
-  const [searchTagText, setSearchTagText] = useState<string>("");
-
-  const availableTagOptions = (tags || [])
-    .map((t: string | Tag) => (typeof t === "string" ? t : (t?.name ?? "")))
-    .filter(Boolean)
-    .filter((t) => !editor.selectedTags.includes(t))
-    .map((t) => ({ label: t, value: t }));
+  // Catálogo de tags -> opciones del SearchField
+  const { tags } = useTags();
+  const [searchTagText, setSearchTagText] = useState("");
+  const availableTagOptions =
+    (tags || []).map((t: string | Tag) => {
+      const name = typeof t === "string" ? t : t?.name ?? "";
+      return { label: name, value: name };
+    }) || [];
 
   const actionsDisabled = !editor.isDirty || editor.saving;
 
+  // === Auto-seleccionar el recién creado tras refresh ===
+  useEffect(() => {
+    // si ya hay seleccionado, no tocar
+    // esto se usa justo después de crear desde CSV
+  }, [iterations]);
+
   return (
     <DashboardHeader pageType="api">
-      <div className="flex gap-2 w-full h-full overflow-hidden ">
+      <div className="flex gap-2 w-full h-full overflow-hidden">
         {/* Sidebar */}
         <SidebarList
           iterations={iterations}
@@ -74,30 +80,76 @@ export default function IterationDataPage() {
           query={query}
           setQuery={setQuery}
           onPick={async (h) => {
-            await editor.loadFromHeader(h); // existente → PATCH
+            await editor.loadFromHeader(h); // cargar existente -> PATCH
           }}
           onCreateBlank={() => {
-            // nuevo borrador local → Save hará PUT
-            editor.createLocalBlankDraft({
-              description: "testcreate",
-              createdAt: "1759529804491",
-              createdBy: "92a4a7a4-8721-47b0-8666-ad551284cd46",
-              createdByName: "Jose Camacho",
-              type: "ITERATIONDATA",
-              route: `ITERATIONDATA#${crypto?.randomUUID?.() ?? Date.now()}`,
-            });
+            editor.createLocalBlankDraft(""); // crear local en blanco -> PUT en Save
             show("Blank package ready to edit.", "success", 1200);
           }}
           onUploadCsv={(file) => {
-            console.log("CSV uploaded:", file.name, file.size, file.type);
-            show(`Uploaded ${file.name}`, "success", 2500);
+            // === NUEVO: crear y guardar automáticamente desde CSV ===
+            const baseName = (file?.name || "New Package").replace(/\.[^/.]+$/, "");
+
+            const reader = new FileReader();
+            reader.onload = async () => {
+              try {
+                const text = String(reader.result || "");
+                // 1) Parsear CSV a filas variable/value
+                const parsedRows = parseCsvToRows(text);
+
+                // 2) Asegurar metadatos mínimos obligatorios para PUT si faltan
+                // - description, createdBy, tagNames (usamos 'imported')
+                const ensuredMeta: Row[] = [];
+                const has = (key: string) => parsedRows.some(r => r.variable.trim().toLowerCase() === key);
+
+                if (!has("description")) ensuredMeta.push({
+                  id: `${Date.now()}-md-1`,
+                  variable: "description",
+                  value: `Imported from ${file.name}`,
+                });
+                if (!has("createdBy")) ensuredMeta.push({
+                  id: `${Date.now()}-md-2`,
+                  variable: "createdBy",
+                  value: "Uploader",
+                });
+                // tagNames como fila no es estrictamente necesario porque usamos editor.addTag,
+                // pero si quieres dejarla visible como fila:
+                // if (!has("tagNames")) ensuredMeta.push({ id: ..., variable:"tagNames", value: "imported" });
+
+                // 3) Crear borrador local con ese nombre
+                editor.createLocalBlankDraft(baseName);
+
+                // 4) Reemplazar filas con meta + CSV
+                editor.replaceRows([...ensuredMeta, ...parsedRows]);
+
+                // 6) Guardar (PUT, porque isNew=true en createLocalBlankDraft)
+                const res = await editor.save();
+                if (res.ok) {
+                  show(`Created: ${baseName}`, "success", 2200);
+                  // 7) Refrescar sidebar y auto-seleccionar la creada (por nombre)
+                  await refresh();
+                  const just = (iterations || []).find(it => it.name === baseName);
+                  if (just) {
+                    await editor.loadFromHeader(just);
+                  }
+                } else {
+                  const prefix = res.status ? `(${res.status}) ` : "";
+                  show(`Save failed: ${prefix}${res.error}`, "error");
+                }
+              } catch (err: any) {
+                show(`CSV error: ${err?.message || "Invalid CSV"}`, "error");
+              }
+            };
+            reader.onerror = () => {
+              show("Failed to read CSV file.", "error");
+            };
+            reader.readAsText(file);
           }}
           selectedId={editor.selected?.id}
         />
 
         {/* Panel derecho */}
         <div className="flex flex-col w-full h-full">
-          {/* Título + acciones solo si hay algo seleccionado */}
           {editor.selected && (
             <div className="px-6 pt-6 pb-2">
               <div className="flex items-start justify-between">
@@ -145,8 +197,8 @@ export default function IterationDataPage() {
           <div className="px-6 pb-8 flex flex-col gap-6 w-full h-full">
             {editor.selected ? (
               <PackageCard
+                showPackageId={false}
                 pkgName={editor.pkgName}
-                pkgId={editor.pkgId}
                 onChangeName={editor.setPkgName}
                 checked={editor.pkgChecked}
                 onToggleChecked={editor.toggleChecked}
@@ -154,45 +206,51 @@ export default function IterationDataPage() {
                 toggleCollapse={() => editor.setIsCollapsed((v) => !v)}
                 menuOpen={editor.menuOpen}
                 setMenuOpen={editor.setMenuOpen}
+                // DUPLICAR: PUT en servidor y refresh; NO crea card local
                 onDuplicate={async () => {
-                  const res = await editor.duplicateAsNew(); // crea copia vía PUT
+                  const res = await editor.duplicateAsNew();
                   if (res.ok) {
-                    show("Package duplicated.", "success");
-                    await refresh(); // refresca el sidebar
+                    show("Duplicated.", "success");
+                    await refresh();
                   } else {
                     const prefix = res.status ? `(${res.status}) ` : "";
                     show(`Duplicate failed: ${prefix}${res.error}`, "error");
                   }
                 }}
                 onDelete={() => setConfirmOpen(true)}
-                /** 👇 ocultamos el Package ID */
-                showPackageId={false}
+                // Search tags en el header (alineado con ⋮)
+                headerExtras={
+                  <div className="w-80">
+                    <SearchField
+                      label="Search tags"
+                      placeholder="Search tags"
+                      value={searchTagText}
+                      onChange={(val: string) => {
+                        const v = (val || "").trim();
+                        setSearchTagText(v);
+                        if (!v) return;
+                        const inCatalog = availableTagOptions.some(
+                          (o) => o.value === v
+                        );
+                        if (inCatalog && !editor.selectedTags.includes(v)) {
+                          editor.addTag(v);
+                          setSearchTagText("");
+                        }
+                      }}
+                      options={availableTagOptions.filter(
+                        (o) => !editor.selectedTags.includes(o.value)
+                      )}
+                      // onClear={() => setSearchTagText("")}
+                    />
+                  </div>
+                }
               >
-                {/* Search + Pills */}
-                <div className="mb-4">
-                  <SearchField
-                    label="Search tags"
-                    placeholder="Search tags"
-                    value={searchTagText}
-                    className="z-30"
-                    options={availableTagOptions}
-                    disabled={isLoadingTags || availableTagOptions.length === 0}
-                    onChange={(val: string) => {
-                      const v = (val || "").trim();
-                      setSearchTagText(v);
-                      if (!v) return;
-                      const found = availableTagOptions.find(
-                        (o) => o.value.toLowerCase() === v.toLowerCase()
-                      );
-                      if (found && !editor.selectedTags.includes(found.value)) {
-                        editor.addTag(found.value);
-                        setSearchTagText(""); // limpiar input al añadir
-                      }
-                    }}
+                {/* Chips de tags debajo del header */}
+                <div className="mb-3">
+                  <TagChips
+                    tags={editor.selectedTags}
+                    onRemove={editor.removeTag}
                   />
-
-                  {/* Pills visibles */}
-                  <TagChips tags={editor.selectedTags} onRemove={editor.removeTag} />
                 </div>
 
                 {/* Variables */}
@@ -204,7 +262,7 @@ export default function IterationDataPage() {
                 />
               </PackageCard>
             ) : (
-              <div className="flex flex-col items-center justify-center min-h-[50vh] w/full text-center rounded-2xl border border-[#E1E8F0] bg-white p-8">
+              <div className="flex flex-col items-center justify-center min-h-[50vh] w-full text-center rounded-2xl border border-[#E1E8F0] bg-white p-8">
                 <Image
                   src={selectIterationDataIcon}
                   alt="Select a collection"
@@ -222,7 +280,7 @@ export default function IterationDataPage() {
         </div>
       </div>
 
-      {/* Confirm delete */}
+      {/* Confirm Delete */}
       <ConfirmModal
         open={confirmOpen}
         title="Are you sure you want to delete this package?"
@@ -231,7 +289,8 @@ export default function IterationDataPage() {
         onConfirm={async () => {
           const res = await editor.deleteOnServer();
           if (res.ok) {
-            await refresh();
+            await refresh();     // refresca listado del sidebar
+            editor.deselect();   // limpia selección -> empty state
             show("The data package has been deleted.", "success");
           } else {
             const prefix = res.status ? `(${res.status}) ` : "";
@@ -246,10 +305,11 @@ export default function IterationDataPage() {
         <div className="fixed lg:w-1/2 bottom-4 left-1/2 -translate-x-1/2 z-40">
           <div
             className={`rounded-lg px-4 py-2 shadow flex justify-between items-center border
-            ${toast.variant === "success"
+            ${
+              toast.variant === "success"
                 ? "border-green-200 bg-green-50 text-green-700"
                 : "border-red-200 bg-red-50 text-red-700"
-              }`}
+            }`}
           >
             {toast.msg}
             <button className="ml-2" onClick={hide}>
