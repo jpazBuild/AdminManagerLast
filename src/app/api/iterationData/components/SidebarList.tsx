@@ -42,7 +42,6 @@ export default function SidebarList({
         />
       </div>
 
-      {/* Acciones (arriba, sin separadores extra) */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-primary/10 bg-white">
         <button
           className="px-4 py-2.5 rounded-full bg-[#0A2342] text-white font-semibold shadow hover:bg-[#18345A] transition"
@@ -66,7 +65,6 @@ export default function SidebarList({
         />
       </div>
 
-      {/* Lista */}
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="p-4 text-sm text-gray-500">Loading...</div>

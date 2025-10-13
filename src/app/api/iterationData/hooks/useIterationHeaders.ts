@@ -21,7 +21,6 @@ export function useIterationHeaders() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
 
-  // ✅ SIEMPRE arma la URL con new URL(...)
   const HEADERS_ENDPOINT = new URL("getIterationDataHeaders", URL_API_ALB).toString();
 
   useEffect(() => {

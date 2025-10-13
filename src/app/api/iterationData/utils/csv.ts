@@ -1,4 +1,3 @@
-// src/app/api/iterationData/utils/csv.ts
 export type CsvRow = { variable: string; value: string };
 
 function parseCsvLine(line: string): string[] {
@@ -34,10 +33,7 @@ export async function fileToText(file: File): Promise<string> {
   });
 }
 
-/** Convierte CSV en filas {variable,value}. Soporta:
- *  - Con cabecera: variable,value
- *  - Sin cabecera: <var>,<value>
- */
+
 export function csvTextToRows(text: string): CsvRow[] {
   const lines = text
     .replace(/\r/g, "")
@@ -54,7 +50,7 @@ export function csvTextToRows(text: string): CsvRow[] {
     (cells0[0] === "variable" || cells0[0] === "key") &&
     (cells0[1] === "value" || cells0[1] === "val")
   ) {
-    startIdx = 1; // tiene cabecera
+    startIdx = 1; 
   }
 
   const rows: CsvRow[] = [];

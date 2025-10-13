@@ -5,16 +5,16 @@ import { SearchField } from "@/app/components/SearchField";
 
 type Props = {
   label?: string;
-  selected?: string[];   // <- opcional con default
-  options?: any;    // <- opcional con default
+  selected?: string[];   
+  options?: any;    
   onAdd: (tag: string) => void;
   onRemove: (tag: string) => void;
 };
 
 export default function TagPicker({
   label = "Search tags",
-  selected = [],        // <- default para evitar undefined.includes
-  options = [],         // <- default para evitar map sobre undefined
+  selected = [],        
+  options = [],         
   onAdd,
   onRemove,
 }: Props) {
@@ -30,7 +30,6 @@ export default function TagPicker({
           onChange={(val: string) => {
             const v = (val || "").trim();
             if (!v) return;
-            // evita duplicados y fuera de catálogo
             if (!selected.includes(v) && (options.length === 0 || options.includes(v))) {
               onAdd(v);
             }
@@ -40,7 +39,6 @@ export default function TagPicker({
             .map((o) => ({ label: o, value: o }))}
         />
 
-        {/* Chips */}
         <div className="flex flex-wrap gap-2 mt-2">
           {selected.map((t) => (
             <span

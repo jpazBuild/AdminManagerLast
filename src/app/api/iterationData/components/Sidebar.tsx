@@ -72,11 +72,9 @@ export default function Sidebar({
                   className="w-full text-left rounded-xl border px-3 py-2 transition border-[#E1E8F0] hover:bg-gray-50"
                   title={h.description || h.name}
                 >
-                  {/* 🔹 Título: Iteration N */}
                   <div className="text-sm font-medium text-[#0A2342] truncate">
                     {`Iteration ${i + 1}`}
                   </div>
-                  {/* 🔹 Subtítulo: el name real (útil como referencia) */}
                   {!!h.name && (
                     <div className="text-xs text-[#7B8CA6] truncate">{h.name}</div>
                   )}

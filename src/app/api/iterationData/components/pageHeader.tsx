@@ -4,8 +4,8 @@ type Props = {
   onSave: () => void | Promise<void>;
   onReset: () => void | Promise<void>;
   disabled?: boolean;
-  showControls?: boolean; // controla visibilidad de Reset/Save
-  className?: string;     // permite alinear con la card desde el page
+  showControls?: boolean; 
+  className?: string;     
 };
 
 export default function PageHeader({

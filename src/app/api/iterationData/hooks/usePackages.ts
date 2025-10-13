@@ -9,8 +9,8 @@ export type Pkg = {
   selected: boolean;
   rows: Row[];
   tagNames: string[];
-  createdBy?: string;   // 👈 mostrado como read-only
-  tagIds?: string[];    // 👈 mostrado como read-only
+  createdBy?: string;   
+  tagIds?: string[];    
 };
 
 export function usePackages() {
@@ -35,7 +35,6 @@ export function usePackages() {
 
   const addBlank = () => setPackages((prev) => [...prev, makeBlank(prev.length + 1)]);
 
-  // ⚠️ Reemplaza la lista por un package (como venías haciendo)
   const addFromHeader = (
     id: string,
     name: string,
@@ -106,7 +105,6 @@ export function usePackages() {
       return next;
     });
 
-  // Tags helpers (si usas SearchField)
   const addTag = (id: string, tag: string) =>
     setPackages((prev) =>
       prev.map((p) =>
