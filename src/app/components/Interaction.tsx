@@ -232,7 +232,7 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
         [value, onChange]
     );
 
-    const FieldEditor = React.useMemo(
+    const FieldEditor = useMemo(
         () =>
             function FieldEditorInner({
                 label,
@@ -334,8 +334,8 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
         : "rounded-lg shadow-lg bg-white overflow-hidden px-2";
 
     const actualData = value.stepData || value;
-    const apis = useMemo(() => Array.isArray(actualData?.apisData?.apis) ? actualData.apisData.apis : [], [actualData]);
-    const env = useMemo(() => actualData?.apisData?.env ?? {}, [actualData]);
+    const apis = Array.isArray(actualData?.apisData?.apis) ? actualData.apisData.apis : [];
+    const env = (actualData?.apisData?.env ?? {}) as Record<string, unknown>;
     const pretty = (v: unknown) => {
         try { return JSON.stringify(typeof v === "string" ? JSON.parse(v) : v, null, 2); }
         catch { return typeof v === "string" ? v : JSON.stringify(v, null, 2); }
@@ -419,7 +419,7 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
     const setTestScript = (idx: number, code: string) => {
         const api = apis[idx] ?? {};
         const evIdx = getTestEventIndex(api);
-        let nextEvents = Array.isArray(api.event) ? [...api.event] : [];
+        const nextEvents = Array.isArray(api.event) ? [...api.event] : [];
         if (evIdx === -1) {
             nextEvents.push({
                 listen: "test",
@@ -729,7 +729,6 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
                                                                 <div className="flex flex-col md:flex-row gap-2 items-start md:items-center">
                                                                     <div className={`method-chip ${String(method).toUpperCase()}`}>
                                                                         <SearchField
-                                                                            id={`method-${String(i)}`}
                                                                             value={method}
                                                                             onChange={(val) =>
                                                                                 setRequestMethod(i, (val || "GET").toUpperCase())
