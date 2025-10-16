@@ -28,7 +28,6 @@ interface StepData {
 
 }
 
-
 interface StepCardProps {
     step: Step;
     stepData: StepData;
@@ -95,7 +94,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
     const gqlQuery = step.apisScriptsResult?.environment?.__request?.data?.query;
     const timeInSeconds = step?.time ? (Number(step.time) / 1000).toFixed(2) : null;
     const raw = step?.apisScriptsResult?.environment?.__request?.data
-    
+
     const reqHeadersStr = useMemo(
         () => JSON.stringify(step?.apisScriptsResult?.environment?.__request?.headers, null, 2),
         [step?.apisScriptsResult?.environment?.__request?.headers]
@@ -124,9 +123,6 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
                 Step {index}
             </div>
 
-
-
-
             <p className="text-md text-primary mt-6 font-semibold break-words max-w-full">
                 {step?.action ?? stepData?.action}
             </p>
@@ -135,10 +131,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
                 <button onClick={() => setOpenModalApi(true)} className="self-center text-primary bg-primary/10 px-4 py-2 rounded-md mt-4 w-fit flex items-center gap-2">
                     <CodeIcon className="w-4 h-4" /> View API/Script details
                 </button>
-            )
-
-
-            }
+            )}
 
             {openModalApi && step?.apisScriptsResult && (
                 <Dialog open={openModalApi}>
@@ -258,7 +251,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
                                                 </SyntaxHighlighter>
                                             </div>
                                         )}
-                                        {
+                                        {!gqlQuery &&
                                             raw && (
                                                 <div className="mt-2">
                                                     <strong>Raw Request Body:</strong>
@@ -287,7 +280,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
                                                         2
                                                     )}
                                                 </SyntaxHighlighter>
-                                               
+
                                             </div>
                                         )}
                                     </TabsContent>
@@ -295,19 +288,19 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
                                     <TabsContent value="response">
 
                                         <SyntaxHighlighter
-                                                    language="json"
-                                                    style={oneLight}
-                                                    customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem" }}
-                                                >
-                                                    {JSON.stringify(
-                                                        step.apisScriptsResult?.environment?.__response?.json,
-                                                        null,
-                                                        2
-                                                    )}
+                                            language="json"
+                                            style={oneLight}
+                                            customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem" }}
+                                        >
+                                            {JSON.stringify(
+                                                step.apisScriptsResult?.environment?.__response?.json,
+                                                null,
+                                                2
+                                            )}
                                         </SyntaxHighlighter>
-                                       
+
                                     </TabsContent>
-                                                    
+
                                     <TabsContent value="environment" className="px-2 py-2">
                                         {Object.keys(step.apisScriptsResult?.environment?.environment || {}).length === 0 && (
                                             <p className="text-sm text-gray-500">No environment variables available.</p>
@@ -339,9 +332,6 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
                     </DialogContent>
                 </Dialog>
             )}
-
-
-
 
             {step?.result && (
                 <p className="text-sm break-words">

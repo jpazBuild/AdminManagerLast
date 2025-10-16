@@ -38,7 +38,6 @@ const ReusableStepModal: React.FC<ReusableStepModalProps> = ({
     const [newTags, setNewTags] = useState('');
     const [createdBy, setCreatedBy] = useState(responseTest?.createdByName || 'jpaz');
     const [reusableStep, setReusableStep] = useState<any>(null);
-    const [users, setUsers] = useState<any>([]);
     const [loadingUsers, setLoadingUsers] = useState(false);
     const [usernames, setUsernames] = useState<string[]>([]);
     const userOptions = useMemo(
@@ -213,7 +212,6 @@ const ReusableStepModal: React.FC<ReusableStepModalProps> = ({
                                 if (e?.value) return setCreatedBy(e.value);
                                 if (e?.label && !e?.value) return setCreatedBy(e.label);
                                 if (e?.target?.value) return setCreatedBy(e.target.value);
-                                // último recurso, intenta name
                                 if (e?.target?.name) return setCreatedBy(e.target.name);
                                 if (e?.name) return setCreatedBy(e.name);
                             }}

@@ -5,6 +5,8 @@ import { Save, Trash2 } from "lucide-react";
 import { FaXmark } from "react-icons/fa6";
 import CopyToClipboard from "./CopyToClipboard";
 import TextInputWithClearButton from "./InputClear";
+import SyntaxHighlighter from "react-syntax-highlighter";
+import { atomOneDark, atomOneLight } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
 interface InteractionItemData {
     id: string;
@@ -132,14 +134,14 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
     const getDropdownHeaderClasses = () =>
         isDarkMode
             ? "flex justify-between items-center bg-slate-800/90 cursor-pointer rounded-md border-l-4 border-slate-500 p-2 hover:bg-slate-700/90 transition-colors duration-200"
-            : "flex justify-between items-center bg-white cursor-pointer rounded-md border-l-6 border-1 border-primary p-2 hover:bg-primary/10 transition-colors";
+            : "w-full h-full flex justify-between items-center bg-white cursor-pointer rounded-md border-l-6 border-1 border-primary p-2 hover:bg-primary/10 transition-colors";
 
     const getDropdownHeaderTextClasses = () => (isDarkMode ? "text-white/90 font-semibold" : "text-primary/80 font-semibold");
 
     const getDropdownHeaderIconClasses = () => (isDarkMode ? "text-white/90" : "text-primary");
 
     const getPanelContainerClasses = () =>
-        isDarkMode ? "bg-slate-800/50 border border-slate-600 rounded-lg overflow-hidden" : "border border-gray-200 rounded-lg overflow-hidden";
+        isDarkMode ? "bg-slate-800/50 border border-slate-600 rounded-lg overflow-hidden" : "border border-gray-200 rounded-lg overflow-hidden w-full h-full";
 
     const getFieldEditorContainerClasses = () =>
         isDarkMode
@@ -154,31 +156,21 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
             : "text-xs cursor-pointer text-primary/70 px-2 py-1 rounded transition-colors";
 
     const getJSONPreviewClasses = () =>
-        isDarkMode ? "bg-slate-800 border border-white/60 text-white/80 p-2 rounded-md overflow-auto text-xs font-mono max-h-64" : "bg-primary/20 text-primary p-2 rounded-md overflow-auto text-xs font-mono max-h-64";
+        isDarkMode ? "bg-slate-800 border border-white/60 text-white/80 p-2 rounded-md overflow-auto text-xs font-mono max-h-64" : "bg-gray-100 text-primary p-2 rounded-md overflow-auto text-xs font-mono max-h-64";
 
     const getEditButtonClasses = () =>
-        isDarkMode ? "flex items-center gap-1 mt-2 px-3 py-1 rounded bg-white/60 text-white text-md hover:bg-white/70 transition-colors duration-200" : "flex items-center gap-1 mt-2 px-3 py-1 rounded bg-primary/10 text-primary text-md hover:bg-primary/20";
+        isDarkMode ? "flex items-center gap-1 mt-2 px-3 py-1 rounded bg-white/60 text-white text-md hover:bg-white/70 transition-colors duration-200" : "absolute top-0 right-4 flex w-32 items-center gap-2 justify-start gap-1 mt-2 px-3 py-1 rounded bg-primary/10 text-primary text-md hover:bg-primary/20";
 
     const getTextareaClasses = () =>
         isDarkMode
             ? "focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-primary/50 w-full p-3 rounded-md bg-white/80 border border-slate-600 font-mono text-xs text-slate-200 placeholder-slate-400 min-h[180px] max-h-64 transition-colors"
-            : "focus:outline-none focus:ring-0 focus:border-primary w-full p-3 rounded-md bg-primary/20 border border-primary/20 font-mono text-xs text-primary min-h[180px] max-h-64";
+            : "focus:outline-none focus:ring-0 focus:border-primary w-full p-3 rounded-md bg-primary/20 border border-primary/20 font-mono text-xs text-primary min-h-[180px] break-words";
 
     const getSaveButtonClasses = () => (isDarkMode ? "flex items-center gap-1 px-3 py-1 text-md rounded bg-green-600 text-white hover:bg-green-700 transition-colors duration-200" : "flex items-center gap-1 px-3 py-1 text-md rounded bg-primary text-white hover:bg-primary/90");
 
     const getCancelButtonClasses = () => (isDarkMode ? "flex items-center gap-1 px-3 py-1 text-md rounded bg-slate-600 text-white hover:bg-slate-700 transition-colors duration-200" : "flex items-center gap-1 px-3 py-1 text-md rounded bg-gray-200 text-primary hover:bg-gray-300");
 
     const getErrorTextClasses = () => (isDarkMode ? "text-red-400 text-md mt-1" : "text-red-600 text-md mt-1");
-
-    //   const DropdownHeader = useCallback(
-    //     ({ label, panelKey }: { label: string; panelKey: string }) => (
-    //       <div className={getDropdownHeaderClasses() + `${isDarkMode ? " !text-slate-500 bg-gray-900" : " text-primary/70 bg-gray-900"}`} onClick={() => togglePanel(panelKey)}>
-    //         <span className={getDropdownHeaderTextClasses()}>{label}</span>
-    //         {openPanels[panelKey] ? <FaChevronUp className={getDropdownHeaderIconClasses()} /> : <FaChevronDown className={getDropdownHeaderIconClasses()} />}
-    //       </div>
-    //     ),
-    //     [openPanels, togglePanel, isDarkMode]
-    //   );
 
     const updateNestedData = useCallback(
         (path: string[], newValue: any) => {
@@ -563,33 +555,44 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
                             {openPanels.jsonPreview ? <FaChevronUp className={getDropdownHeaderIconClasses()} /> : <FaChevronDown className={getDropdownHeaderIconClasses()} />}
                         </div>
                         {openPanels.jsonPreview && (
-                            <div className="pt-2">
+                            <div className="pt-2 w-full h-full flex flex-col items-start break-words min-h-0">
                                 {!editingJson ? (
-                                    <div key={"preview"}>
-                                        <pre className={getJSONPreviewClasses()}>
-                                            <code>{jsonValue}</code>
-                                        </pre>
+                                    <div key="preview" className="w-full flex flex-col min-h-0 bg-gray-100 gap-2 relative">
+                                        <SyntaxHighlighter
+                                            language="json"
+                                            style={isDarkMode ? atomOneDark : atomOneLight}
+                                            className={`${getJSONPreviewClasses()} max-h-[50vh] overflow-auto w-full rounded-md`}
+                                            customStyle={{ padding: "1rem", fontSize: "12px", lineHeight: "1.4", backgroundColor: isDarkMode ? "transparent" : "inherit" }}
+                                        >
+                                            {jsonValue}
+                                        </SyntaxHighlighter>
                                         <button className={getEditButtonClasses()} onClick={() => setEditingJson(true)}>
                                             <FaEdit className="w-4 h-4" /> Edit JSON
                                         </button>
                                     </div>
                                 ) : (
-                                    <div key={"editor"}>
+                                    <div key={"editor"} className="w-full h-full flex flex-col break-words overflow-y-auto">
+
                                         <textarea
                                             rows={25}
-                                            className={getTextareaClasses()}
+                                            className={`
+                                            w-full h-full resize-none p-4 font-mono text-xs rounded-md
+                                            border border-transparent focus:outline-none focus:ring-0
+                                            ${isDarkMode ? "bg-[#282c34] text-[#abb2bf]" : "bg-gray-200 text-primary/90"}
+                                            `}
                                             value={jsonValue}
                                             onChange={(e) => setJsonValue(e.target.value)}
-                                            onFocus={() => setEditingJson(true)}
                                             autoFocus
                                             spellCheck={false}
                                             style={{
-                                                whiteSpace: "pre-wrap",
-                                                overflowX: "hidden",
+                                                whiteSpace: "pre",
                                                 wordWrap: "break-word",
-                                                fontFamily: "monospace",
+                                                lineHeight: "1.4",
+                                                fontFamily: "'Fira Code', 'Source Code Pro', monospace",
+                                                caretColor: isDarkMode ? "#61dafb" : "#005cc5",
                                             }}
                                         />
+
                                         {jsonError && <div className={getErrorTextClasses()}>{jsonError}</div>}
                                         <div className="flex gap-2 mt-2">
                                             <button className={getSaveButtonClasses()} onClick={handleSave}>
@@ -668,7 +671,6 @@ const ReusableStepsBlock = ({
             <div className={getReusableHeaderClasses()}>🔄 Reusable: {data.name || "Unnamed Step"}</div>
 
 
-            {/* dropdown with title Show steps and inside all the steps like show options */}
             <div className={getDropdownHeaderClasses() + `${isDarkMode ? " !text-slate-500 bg-gray-900" : " text-primary/70 bg-gray-900"}`} onClick={() => setOpenPanels((p) => ({ ...p, showOptions: !p.showOptions }))}>
                 <span className={getDropdownHeaderTextClasses()}>Show Steps ({data.stepsData?.length || 0})</span>
                 {openPanels.showOptions ? <FaChevronUp className={getDropdownHeaderIconClasses()} /> : <FaChevronDown className={getDropdownHeaderIconClasses()} />}
@@ -728,7 +730,7 @@ const InteractionItem: React.FC<InteractionItemProps> = React.memo(({ data, inde
             : "relative flex flex-col gap-2 py-2 px-1 text-primary rounded-md border-l-4 border-1 border-primary shadow-lg transition-all duration-300";
 
     const getStepNumberClasses = () =>
-        isDarkMode ? "absolute top-0 left-0 bg-slate-600 text-white px-3 py-1 text-sm font-semibold rounded-tl-xl rounded-br-full shadow-md" : "absolute top-0 left-0 bg-primary text-white px-3 py-1 text-sm font-semibold rounded-tl-xl rounded-br-full shadow-md";
+        isDarkMode ? "absolute top-0 left-0 bg-slate-600 text-white px-3 py-1 text-sm font-semibold rounded-tl-xl rounded-br-full shadow-md" : "absolute top-0 left-0 bg-primary text-white px-3 py-1 text-sm font-semibold rounded-tl-xl rounded-br-full shadow-md font-bold";
 
     const getPageIndexClasses = () => (isDarkMode ? "text-xs text-white/60" : "text-xs text-primary/80");
 

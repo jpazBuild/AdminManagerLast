@@ -379,14 +379,10 @@ export const useTestExecution = () => {
   ) => {
     console.log(`🔍 Batch de ${selectedCases.length} tests con máximo ${max} navegadores`);
     resetAllState(headless);
-    console.log("testDataInput received:", testDataInput);
 
-    // reset reports if there reports
     setReports([]);
     maxBrowsersRef.current = max;
     const testDataResolved = resolveFakerInData(testDataInput);
-    console.log("testDataResolved:", testDataResolved);
-
     queueAddTests(selectedCases, testDataResolved, headless, false);
   };
 
@@ -400,7 +396,7 @@ export const useTestExecution = () => {
       ? { [testId]: resolveFakerInData(testDataForThisTest) }
       : undefined;
     console.log(`▶️ Ejecutando single test ${testId}`, { perTest, headlessOverride });
-    
+
     setReports(prev => prev.filter(r => r.testCaseId !== testId));
     queueAddTests([testCase], perTest, headlessOverride, true);
   };

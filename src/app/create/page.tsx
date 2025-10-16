@@ -6,12 +6,10 @@ import { toast } from "sonner";
 import { SearchField } from "@/app/components/SearchField";
 import { URL_API_ALB } from "@/config";
 import { DashboardHeader } from "../Layouts/main";
-import NoData from "../components/NoData";
 import { User } from "@/types/types";
-import { Edit3, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PaginatedTableReusable from "./components/PaginateTable";
-import PaginatedTable from "./components/PaginatedTable";
+import ButtonTab from "../components/ButtonTab";
 
 type Group = { id: string; name: string; createdByName?: string; createdAt?: number };
 type Tag = { id: string; name: string; createdByName?: string; createdAt?: number };
@@ -35,29 +33,6 @@ type Submodule = {
 
 type Tab = "group" | "tag" | "module" | "submodule";
 
-const TabButton = ({
-    active,
-    onClick,
-    children,
-}: {
-    active: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-}) => (
-    <div className="flex flex-col justify-center">
-        <button
-        onClick={onClick}
-        className={`px-4 cursor-pointer bg-primary/10 py-2 rounded-xl transition text-sm md:text-base font-medium text-primary/90`}
-    >
-        {children}
-    </button>
-    <span>
-        {active && <div className="h-1 bg-primary/70 mt-1 rounded-full animate-fadeIn w-8 text-center mx-auto" />}
-        {!active && <div className="h-1 bg-transparent mt-1 rounded-full animate-fadeIn w-8 text-center mx-auto" />}
-
-    </span>
-    </div>
-);
 
 const fmtDate = (ts?: number) =>
     ts
@@ -541,26 +516,35 @@ const CreateForm = () => {
     return (
         <DashboardHeader>
             <div className="w-full lg:w-2/3 mx-auto">
-                <h2 className=" text-2xl font-bold mb-2 text-primary/80 text-center">
+                <h2 className=" text-2xl font-semibold mb-2 text-primary/80 text-center">
                     Location Information
                 </h2>
 
                 <div className="flex gap-2 justify-center mb-2">
-                    <TabButton active={activeTab === "tag"} onClick={() => setActiveTab("tag")}>
-                        Tag
-                    </TabButton>
-                    <TabButton active={activeTab === "group"} onClick={() => setActiveTab("group")}>
-                        Group
-                    </TabButton>
-                    <TabButton active={activeTab === "module"} onClick={() => setActiveTab("module")}>
-                        Module
-                    </TabButton>
-                    <TabButton
-                        active={activeTab === "submodule"}
+                    <ButtonTab 
+                        label="Tag"
+                        value="tag"
+                        isActive={activeTab === "tag"}
+                        onClick={() => setActiveTab("tag")}
+                    />
+                    <ButtonTab 
+                        label="Group"
+                        value="group"
+                        isActive={activeTab === "group"}
+                        onClick={() => setActiveTab("group")}
+                    />
+                    <ButtonTab 
+                        label="Module"
+                        value="module"
+                        isActive={activeTab === "module"}
+                        onClick={() => setActiveTab("module")}
+                    />
+                    <ButtonTab 
+                        label="Submodule"
+                        value="submodule"
+                        isActive={activeTab === "submodule"}
                         onClick={() => setActiveTab("submodule")}
-                    >
-                        Submodule
-                    </TabButton>
+                    />
                 </div>
 
                 <Dialog open={openDeleteDialog} onOpenChange={setOpenDeleteDialog}>

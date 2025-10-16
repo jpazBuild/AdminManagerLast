@@ -386,7 +386,7 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
 
   return (
     <>
-      <div className="w-full flex flex-col max-h-[680px] overflow-y-auto gap-2">
+      <div className="w-full h-full flex flex-col overflow-y-auto gap-2">
         <div className="px-4 pt-4">
           <ExecutionSummary
             totalSuccess={items.filter((it) => it.status === "passed").length}

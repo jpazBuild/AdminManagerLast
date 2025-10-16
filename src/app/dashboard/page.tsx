@@ -5,7 +5,7 @@ import { DashboardHeader } from "../Layouts/main";
 import { Filter, Loader } from "lucide-react";
 import { SearchField } from "../components/SearchField";
 import axios from "axios";
-import { FaSearch } from "react-icons/fa";
+import { FaChrome, FaSearch } from "react-icons/fa";
 import { toast } from "sonner";
 import { FiPlay } from "react-icons/fi";
 import TestCaseList from "./components/TestCaseList";
@@ -17,6 +17,8 @@ import { URL_API_ALB } from "@/config";
 import { checkConnection } from "@/utils/DBBUtils";
 import TextInputWithClearButton from "../components/InputClear";
 import { User } from "@/types/types";
+import { TbWorld } from "react-icons/tb";
+import ButtonTab from "../components/ButtonTab";
 
 interface TestCase {
     id: string;
@@ -43,7 +45,6 @@ const DashboardPage = () => {
     const [isLoadingSearch, setIsLoadingSearch] = useState<boolean>(false);
     const [isLoadingSubmodules, setIsLoadingSubmodules] = useState<boolean>(false);
     const [dataTestCases, setDataTestCases] = useState<TestCase[]>([]);
-    const [availableCreators, setAvailableCreators] = useState<string[]>([]);
     const [selectedCreatedBy, setSelectedCreatedBy] = useState<string>("All");
     const [searchTestCaseName, setSearchTestCaseName] = useState<string>("");
     const [searchTestCaseId, setSearchTestCaseId] = useState<string>("");
@@ -62,6 +63,7 @@ const DashboardPage = () => {
     const [isLoadingTags, setIsLoadingTags] = useState<boolean>(false);
     const [loadingUsers, setLoadingUsers] = useState<boolean>(false);
     const [users, setUsers] = useState<any[]>([]);
+    const [viewMode, setViewMode] = useState<'list' | 'reports'>('list');
 
     const {
         reports,
@@ -320,7 +322,7 @@ const DashboardPage = () => {
             if (searchTestCaseName) searchParams.partialName = await searchTestCaseName;
             if (selectedCreatedBy && selectedCreatedBy !== "All") searchParams.createdBy = await getUserIdByName(selectedCreatedBy);
 
-            
+
             const response = await axios.post(`${URL_API_ALB}getTestHeaders`, await searchParams);
 
             await setDataTestCases(response.data || []);
@@ -413,7 +415,7 @@ const DashboardPage = () => {
     );
 
     const handlePlaySingle = useCallback((test: any) => {
-        const perTestData = testData?.data?.[test.id] ?? undefined;        
+        const perTestData = testData?.data?.[test.id] ?? undefined;
         setExecuteRun(true);
 
         runSingleTest(test, perTestData, isHeadless);
@@ -554,63 +556,103 @@ const DashboardPage = () => {
                 </div>
 
 
-                <div className="w-full flex flex-col gap-4 justify-center items-center">
-                    {dataTestCases.length > 0 ? (
-                        <div className="lg:w-2/3">
-                            <TestCaseList
-                                testCases={dataTestCases}
-                                selectedCases={selectedCases}
-                                toggleSelect={toggleSelect}
-                                onDataChange={onDataChangeRead}
-                                onTestCasesDataChange={onTestCasesDataChange}
-                                onRefreshAfterUpdateOrDelete={fetchInitialData}
-                                editMode={editMode}
-                                setEditMode={setEditMode}
-                                isDarkMode={isDarkMode}
-                            />
+                <div className="flex gap-2">
+                    {/* <div className="flex flex-col items-center gap-1">
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`cursor-pointer px-4 py-2 font-semibold tracking-wide mt-4 rounded-lg ${isDarkMode
+                                ? "bg-white text-[#021d3d] hover:bg-gray-200"
+                                : "bg-gray-200 text-primary hover:bg-gray-200"}`}
+                        >
+                            View Test Cases
+                        </button>
+                        <span className={`w-10 h-2 rounded-md ${viewMode === "list" ? "bg-primary" : "bg-gray-200"}`}></span>
+                    </div> */}
+                    <ButtonTab
+                        label="View Test Cases"
+                        value="list"
+                        isActive={viewMode === "list"}
+                        onClick={() => setViewMode("list")}
+                        isDarkMode={isDarkMode}
+                    />
+                    <ButtonTab
+                        label="View Reports"
+                        value="reports"
+                        isActive={viewMode === "reports"}
+                        onClick={() => setViewMode("reports")}
+                        isDarkMode={isDarkMode}
+                    />
 
-                            <TestSettings
-                                onBrowserLimitChange={handleBrowserLimitChange}
-                                onHeadlessChange={handleHeadlessChange}
-                                isDarkMode={isDarkMode}
-                            />
 
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={handleRunTests}
-                                    disabled={selectedCases.length === 0 || isLoadingSearch || anyLoading}
-                                    className={`cursor-pointer px-4 py-2 font-semibold tracking-wide mt-4 rounded-lg transition-all duration-300 ${isDarkMode
-                                        ? "bg-white text-[#021d3d] hover:bg-gray-200"
-                                        : "bg-[#021d3d] text-white hover:bg-[rgb(2,29,61)]"}
-                                        ${isSearchButtonDisabled ? "!bg-primary/10 !cursor-not-allowed" : ""}
-                                        ${(isLoadingSearch || anyLoading) || selectedCases.length === 0 ? "opacity-50 !cursor-not-allowed" : ""}`}
-                                >
-                                    {(isLoadingSearch || anyLoading) ? "Executing..." : (
-                                        <span className="flex items-center gap-2"><FiPlay /> Run Tests</span>
-                                    )}
-                                </button>
-                            </div>
+                </div>
 
-                            {(executeRun || anyLoading || reports.length > 0) && (
-                                <TestReports
-                                    stopped={stopped}
-                                    setStopped={setStopped}
-                                    setLoading={setLoading}
-                                    loading={loading}
-                                    testData={testData}
-                                    reports={reports}
-                                    idReports={idReports}
-                                    progress={progress}
+                <div className="w-full lg:w-2/3 flex flex-col gap-4 justify-center items-center">
+                    <div
+                        className={viewMode === 'list' ? 'block w-full' : 'hidden w-full'}
+                        aria-hidden={viewMode !== 'list'}
+                    >
+                        {dataTestCases.length > 0 ? (
+                            <div className="w-full">
+                                <TestCaseList
+                                    testCases={dataTestCases}
                                     selectedCases={selectedCases}
-                                    selectedTest={selectedTests}
-                                    darkMode={isDarkMode}
-                                    onPlayTest={handlePlaySingle} 
+                                    toggleSelect={toggleSelect}
+                                    onDataChange={onDataChangeRead}
+                                    onTestCasesDataChange={onTestCasesDataChange}
+                                    onRefreshAfterUpdateOrDelete={fetchInitialData}
+                                    editMode={editMode}
+                                    setEditMode={setEditMode}
+                                    isDarkMode={isDarkMode}
                                 />
-                            )}
-                        </div>
-                    ) : (
-                        <NoData />
-                    )}
+
+                            </div>
+                        ) : (
+                            <NoData />
+                        )}
+                    </div>
+
+                    <div
+                        className={viewMode === 'reports' ? 'block w-full' : 'hidden w-full'}
+                        aria-hidden={viewMode !== 'reports'}
+                    >
+                        {
+                            dataTestCases.length > 0 && (
+                                <div className="w-full flex justify-end items-center">
+                                    <FaChrome className="w-6 h-6 text-primary mr-2" title="Chrome Browser" />
+                                    <TestSettings
+                                        onBrowserLimitChange={handleBrowserLimitChange}
+                                        onHeadlessChange={handleHeadlessChange}
+                                        isDarkMode={isDarkMode}
+
+                                    />
+                                </div>
+                            )
+                        }
+                        {dataTestCases.length === 0 && (
+                            <div className="w-full h-full p-10 flex flex-col gap-4 justify-center items-center mb-4">
+                                <TbWorld className="w-8 h-8 text-blue-500 mr-2" title="No test cases available" />
+                                <span className="text-primary/80">Select test cases for execute</span>
+                                <button onClick={() => setViewMode("list")} className="bg-primary/80 font-bold text-white px-4 py-2 rounded-lg">View test cases</button>
+                            </div>
+                        )}
+
+
+                        <TestReports
+                            stopped={stopped}
+                            setStopped={setStopped}
+                            setLoading={setLoading}
+                            loading={loading}
+                            testData={testData}
+                            reports={reports}
+                            idReports={idReports}
+                            progress={progress}
+                            selectedCases={selectedCases}
+                            selectedTest={selectedTests}
+                            darkMode={isDarkMode}
+                            onPlayTest={handlePlaySingle}
+                            onRunAll={handleRunTests}
+                        />
+                    </div>
                 </div>
             </div>
         </DashboardHeader>

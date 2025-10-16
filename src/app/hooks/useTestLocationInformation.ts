@@ -166,7 +166,6 @@ export const useTestLocationInformation = () => {
         }
     }, [selectedGroup, selectedModule, getSelectedGroupId, getSelectedModuleId]);
 
-    // disparadores
     useEffect(() => { fetchTags(); }, [fetchTags]);
     useEffect(() => { fetchGroups(); }, [fetchGroups]);
     useEffect(() => { fetchModules(); }, [fetchModules]);
