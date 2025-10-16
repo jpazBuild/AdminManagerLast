@@ -35,8 +35,8 @@ export default function TagPicker({
             }
           }}
           options={options
-            .filter((o) => !selected.includes(o))
-            .map((o) => ({ label: o, value: o }))}
+            .filter((o:string) => !selected.includes(o))
+            .map((o:string) => ({ label: o, value: o }))}
         />
 
         <div className="flex flex-wrap gap-2 mt-2">

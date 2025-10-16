@@ -8,6 +8,7 @@ interface SelectOption {
 }
 
 interface TagSelectorProps {
+  id?: string;
   label?: string;
   value: string;
   onChange: (value: string) => void;
@@ -22,6 +23,7 @@ interface TagSelectorProps {
 }
 
 export const SearchField = ({
+  id,
   label,
   value,
   onChange,
