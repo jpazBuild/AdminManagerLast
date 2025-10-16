@@ -24,6 +24,7 @@ import EditLocationPanel from "./EditLocationPanel";
 import { createPortal } from "react-dom";
 import { AiOutlineClose } from "react-icons/ai";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import ButtonTab from "@/app/components/ButtonTab";
 
 const useScrollPosition = (dependencies: any[]) => {
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -691,22 +692,20 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
                             <div className="sticky top-0 gap-2 mb-4 flex-shrink-0 w-full flex justify-center ">
                                 {['data', 'steps', 'Historic reports', 'editLocation'].map(mode => (
-                                    <button
+                                    <ButtonTab
+                                        value={mode}
                                         key={mode}
-                                        className={getViewModeButtonClasses(mode)}
+                                        isActive={viewMode === mode}
                                         onClick={() => setViewMode(mode as any)}
-                                    >
-                                        {mode === 'editLocation' ? <Locate className="ml-1 h-5 w-5" /> :
+                                        Icon={mode === 'editLocation' ? <Locate className="ml-1 h-5 w-5" /> :
                                             mode === 'data' ? <File className="ml-1 h-5 w-5" /> :
                                                 mode === 'Historic reports' ? <FileChartColumn className="h-5 w-5" /> :
                                                     <Eye className="ml-1 h-5 w-5" />}
-                                        <span className="ml-1">
-                                            {mode === 'editLocation' ? 'Edit Location' :
-                                                mode === 'data' ? 'Data' :
-                                                    mode === 'Historic reports' ? 'Historic reports' :
-                                                        'Steps'}
-                                        </span>
-                                    </button>
+                                        label={mode === 'editLocation' ? 'Edit Location' :
+                                            mode === 'data' ? 'Data' :
+                                                mode === 'Historic reports' ? 'Historic reports' :
+                                                    'Steps'}
+                                    />
                                 ))}
                             </div>
                             <div className="flex flex-col w-full h-full overflow-y-auto px-6 pb-6 pt-2">
@@ -948,7 +947,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
                                 {viewMode === 'editLocation' && (
                                     <div className="w-full p-1 pt-2 min-h-[480px] flex flex-col gap-2">
-                                        <h3 className="text-center text-lg text-primary/90 mb-4">Edit test case Information</h3>
+                                        <h3 className="text-center font-semibold text-lg text-primary/90 mb-4">Edit test case Information</h3>
                                         <EditLocationPanel
                                             test={test}
                                             responseTest={responseTest}

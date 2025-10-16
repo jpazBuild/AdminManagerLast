@@ -366,7 +366,7 @@ const StepActions: React.FC<StepActionsProps> = ({
             )}
 
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent size="2xl" className="w-full max-h-[85vh] min-h-[40vh] overflow-hidden bg-white flex flex-col">
+                <DialogContent className="w-full max-h-[85vh] min-h-[40vh] overflow-hidden bg-white flex flex-col">
                     <div className="relative">
                         {selectedReusable && (
 
