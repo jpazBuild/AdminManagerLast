@@ -1,9 +1,12 @@
 @import 'tailwindcss';
 
 /* Base font family */
-body {
+/* body {
   font-family: 'Inter', sans-serif;
-}
+} */
+
+:root { font-family: var(--font-greycliff), system-ui, sans-serif; }
+
 
 /* Custom scrollbar styles */
 ::-webkit-scrollbar {

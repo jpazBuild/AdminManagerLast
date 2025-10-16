@@ -597,7 +597,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                     onClear={handleClearJSONData}
                     isDarkMode={isDarkMode}
                 />
-                <p className="text-sm text-gray-500">Or</p>
+                <p className="text-sm text-gray-500 font-bold">Or</p>
                 <div className="flex items-center gap-2">
                     <button
                         type="button"

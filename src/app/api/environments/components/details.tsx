@@ -4,6 +4,8 @@ import React, { useEffect, useRef, useState } from "react";
 import TextInputWithClearButton from "@/app/components/InputClear";
 import MoreMenu from "../../components/MoreMenu";
 import { EnvRow } from "../types/types";
+import { PlusIcon, Trash2Icon } from "lucide-react";
+import { FaXmark } from "react-icons/fa6";
 
 interface EnvironmentDetailsProps {
     environment: {
@@ -187,12 +189,12 @@ const EnvironmentDetails: React.FC<EnvironmentDetailsProps> = ({
                                 />
 
                                 <button
-                                    className="p-2 rounded hover:bg-gray-100"
+                                    className="p-2 rounded text-primary/60 hover:bg-gray-100"
                                     aria-label="Remove row"
                                     title="Remove"
                                     onClick={() => removeRow(r.id)}
                                 >
-                                    ×
+                                    <Trash2Icon className="w-4 h-4"/>
                                 </button>
                             </div>
                         ))
@@ -204,10 +206,10 @@ const EnvironmentDetails: React.FC<EnvironmentDetailsProps> = ({
 
                     <div className="mt-2 flex justify-between items-center">
                         <button
-                            className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50"
+                            className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50 flex gap-1 items-center"
                             onClick={addRow}
                         >
-                            + Add variable
+                            <PlusIcon className="w-4 h-4"/> Add variable
                         </button>
                     </div>
                 </div>

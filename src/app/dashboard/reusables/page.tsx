@@ -9,7 +9,6 @@ import { checkConnection } from "@/utils/DBBUtils";
 import InteractionItem from "@/app/components/Interaction";
 import { Button } from "@/components/ui/button";
 import TextInputWithClearButton from "@/app/components/InputClear";
-import { SearchCombobox } from "@/app/components/SearchCombobox";
 import StepActions from "@/app/components/StepActions";
 import {
     Dialog,

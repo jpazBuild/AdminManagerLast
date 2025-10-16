@@ -15,6 +15,7 @@ import AddCustomStep from "../components/AddCustomStep";
 import { FaSync } from "react-icons/fa";
 import CopyToClipboard from "../components/CopyToClipboard";
 import { Switch } from "@/components/ui/switch";
+import ButtonTab from "../components/ButtonTab";
 
 type DynamicHeader = {
   id: string | number;
@@ -514,20 +515,22 @@ const DynamicDataCrudPage = () => {
 
 
               <div className="flex items-center gap-2 mb-3 justify-center">
-                <button
-                  type="button"
-                  className={`rounded-xl px-4 py-3 text-[14px] bg-primary/5 ${createMode === 'dropzone' ? ' text-primary border-b-4' : ' text-primary/90 '}`}
+                <ButtonTab
+                  label="Upload JSON (Dropzone)"
+                  value="dropzone"
+                  isActive={createMode === 'dropzone'}
                   onClick={() => setCreateMode('dropzone')}
-                >
-                  Upload JSON (Dropzone)
-                </button>
-                <button
-                  type="button"
-                  className={`rounded-xl px-4 py-3 text-[14px] bg-primary/5 ${createMode === 'editor' ? ' text-primary border-b-4' : ' text-primary/90 '}`}
+                  isDarkMode={darkMode}
+                  
+                />
+                <ButtonTab
+                  label="Edit JSON (Editor)"
+                  value="editor"
+                  isActive={createMode === 'editor'}
                   onClick={() => setCreateMode('editor')}
-                >
-                  Edit JSON (Editor)
-                </button>
+                  isDarkMode={darkMode}
+                  
+                />
               </div>
 
               <div className="mt-2 self-center w-full flex flex-col justify-center">

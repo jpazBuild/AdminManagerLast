@@ -3,16 +3,17 @@ import { Geist, Geist_Mono } from "next/font/google";
 import './globals.css'
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip";
+import localFont from "next/font/local";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+// const geistSans = Geist({
+//   variable: "--font-geist-sans",
+//   subsets: ["latin"],
+// });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// const geistMono = Geist_Mono({
+//   variable: "--font-geist-mono",
+//   subsets: ["latin"],
+// });
 
 export const metadata: Metadata = {
   title: "Admin | Manager",
@@ -22,16 +23,31 @@ export const metadata: Metadata = {
   },
 };
 
+
+const greycliff = localFont({
+  src: [
+    { path: "./fonts/greycliff/fonnts.com-Greycliff_CF_Thin.otf",        weight: "100", style: "normal" },
+    { path: "./fonts/greycliff/fonnts.com-Greycliff_CF_Extra_Light.otf", weight: "200", style: "normal" },
+    { path: "./fonts/greycliff/fonnts.com-Greycliff_CF_Light.otf",       weight: "300", style: "normal" },
+    { path: "./fonts/greycliff/fonnts.com-Greycliff_CF_Regular.otf",     weight: "400", style: "normal" },
+    { path: "./fonts/greycliff/fonnts.com-Greycliff_CF_Medium.otf",      weight: "500", style: "normal" },
+    { path: "./fonts/greycliff/fonnts.com-Greycliff_CF_Demi_Bold.otf",   weight: "600", style: "normal" },
+    { path: "./fonts/greycliff/fonnts.com-Greycliff_CF_Bold.otf",        weight: "700", style: "normal" },
+    { path: "./fonts/greycliff/fonnts.com-Greycliff_CF_Extra_Bold.otf",  weight: "800", style: "normal" },
+    { path: "./fonts/greycliff/fonnts.com-Greycliff_CF_Heavy.otf",       weight: "900", style: "normal" },
+  ],
+  display: "swap",
+  variable: "--font-greycliff",
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html lang="en" className={greycliff.variable}>
+      <body className={`antialiased ${greycliff.variable}`}     >
         <TooltipProvider>
 
           {children}

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { EnvRow } from "../types/types";
 import axios from "axios";
 import { URL_API_ALB } from "@/config";
-import { X } from "lucide-react";
+import { PlusIcon, X } from "lucide-react";
 import useTags from "../../hooks/useTags";
 import { SearchField } from "@/app/components/SearchField";
 import { Tag } from "@/types/types";
@@ -90,7 +90,7 @@ const CreateEnvironment = ({ setToastError, setCreateView, setToastMsg, setRefet
         <div className="w-full h-full bg-white flex items-center justify-center">
             <div className="bg-white p-6 rounded shadow-lg w-full h-full ">
                 <div className="flex flex-col items-center gap-4 w-full">
-                    <h2 className="text-xl font-bold text-primary/85">Create New Environment</h2>
+                    <h2 className="text-xl font-semibold text-primary/85">Create New Environment</h2>
 
                     <TextInputWithClearButton
                         id="new-env-name"
@@ -189,10 +189,10 @@ const CreateEnvironment = ({ setToastError, setCreateView, setToastMsg, setRefet
 
                             <div className="mt-2 flex justify-between">
                                 <button
-                                    className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50"
+                                    className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50 flex gap-2 items-center"
                                     onClick={createAddRow}
                                 >
-                                    + Add variable
+                                    <PlusIcon className="w-5 h-5"/> Add variable
                                 </button>
 
                                 <div className="flex gap-2">

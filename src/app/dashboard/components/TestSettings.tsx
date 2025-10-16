@@ -30,19 +30,23 @@ const TestSettings = ({ onBrowserLimitChange, onHeadlessChange,isDarkMode }: Tes
   }));
 
   return (
-    <div className={`p-4 border  rounded-lg shadow-lg ${isDarkMode ? "bg-gray-700 text-white":"bg-white border-primary/30 text-primary/70"} `}>
-      <h2 className="text-lg font-semibold mb-4 flex justify-between">Settings Tests <Settings/></h2>
-      <div className="mb-6">
+    // <div className={`p-4 border  rounded-lg shadow-lg ${isDarkMode ? "bg-gray-700 text-white":"bg-white border-primary/30 text-primary/70"} `}>
+    //   <h2 className="text-lg font-semibold mb-4 flex justify-between">Settings Tests <Settings/></h2>
+    //   <div className="mb-6">
       <SearchField 
-        label="Max number of Browsers:"
+        label="No. of Browsers:"
         value={String(browserLimit) }
         onChange={handleBrowserLimitChange}
         options={browserOptions}
         placeholder="Select number of browsers"
         darkMode={isDarkMode}
+        className="text-[12px]"
+        widthComponent='w-34'
+        showSearch={false}
+        textColorLabel={"text-[11px]"}
       />
-      </div>
-    </div>
+    //   </div>
+    // </div>
   );
 };
 

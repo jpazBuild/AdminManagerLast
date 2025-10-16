@@ -4,13 +4,14 @@ import TextInputWithClearButton from "@/app/components/InputClear";
 import { DashboardHeader } from "@/app/Layouts/main";
 import { URL_API_ALB } from "@/config";
 import axios from "axios";
-import { CircleAlert, Settings, Trash2Icon, X } from "lucide-react";
+import { CircleAlert, PlusIcon, Settings, Trash2Icon, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import MoreMenu from "../components/MoreMenu";
 import CreateEnvironment from "./components/create";
 import { EnvRow } from "./types/types";
 import { buildSavePayload, normalizeToRows, renameKey } from "./utils/rowsMethods";
 import EnvironmentDetails from "./components/details";
+import NoData from "@/app/components/NoData";
 
 
 const EnvironmentsPage = () => {
@@ -293,10 +294,10 @@ const EnvironmentsPage = () => {
                             onChangeHandler={(e) => setQuery(e.target.value)}
                         />
                     </div>
-                    <button className="mr-2 w-1/2 self-end px-3 py-2.5 bg-primary rounded-md  text-white font-medium hover:bg-primary/90 transition" onClick={() => {
+                    <button className="mr-2 w-1/2 flex gap-2 items-center justify-center self-end px-3 py-2.5 bg-primary rounded-md  text-white font-medium hover:bg-primary/90 transition" onClick={() => {
                         setCreateView(true);
                     }}>
-                        + Create
+                        <PlusIcon className="w-5 h-5"/> Create
                     </button>
                     {environments.length > 0 ? (
                         <div className="flex overflow-y-auto w-full flex-col gap-1 p-2">
@@ -315,9 +316,7 @@ const EnvironmentsPage = () => {
                             ))}
                         </div>
                     ) : (
-                        <div className="flex-1 flex items-center justify-center p-4">
-                            <p className="text-sm text-gray-500">No environments found.</p>
-                        </div>
+                        <NoData text="No environments found." />
                     )}
                 </div>
 

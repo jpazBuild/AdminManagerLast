@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -11,13 +11,22 @@ import { ExecutionSummary } from "../../components/ExecutionSummary";
 import { downloadRenderedHtml, downloadRenderedPdf } from "./ReportsHistoricTestCaseList";
 import { flushSync } from "react-dom";
 import CopyToClipboard from "@/app/components/CopyToClipboard";
+import { PaginationResults } from "./PaginationResults";
+import { usePagination } from "@/app/hooks/usePagination";
 
-const TestReports = ({ reports, setLoading, progress, selectedTest, testData, stopped, setStopped, onPlayTest, loading }: any) => {
+const TestReports = ({ reports, setLoading, progress, selectedTest, testData, stopped, setStopped, onPlayTest, loading, onRunAll }: any) => {
     const [expandedReports, setExpandedReports] = useState<Record<string, boolean>>({});
     const { stopTest } = useTestExecution();
     const stepMap: Record<string, { connectionId: string; steps: Record<number, any> }> = {};
     const containerRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
+    const {
+        page, setPage,
+        pageSize, setPageSize,
+        totalItems, totalPages,
+        start, end,
+        items: paginatedSelectedTests,
+    } = usePagination(selectedTest, 10);
 
     reports.forEach((report: any) => {
         const testCaseId = report.testCaseId || report.id;
@@ -179,9 +188,17 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
     };
 
     console.log("stepMap final", stepMap);
-
+    const anyRunning = useMemo(
+        () =>
+            selectedTest.some((test: any) => {
+                const id = test.id || test.testCaseId;
+                const pct = progress.find((p: any) => p.testCaseId === id)?.percent ?? 0;
+                return pct > 0 && pct < 100 && !stopped[id];
+            }),
+        [selectedTest, progress, stopped]
+    );
     return (
-        <div className="space-y-6 mt-6 flex flex-col overflow-y-auto">
+        <div className="space-y-6 mt-6 flex flex-col overflow-y-auto w-full">
             {totalTests > 0 && (
                 <div className="space-y-2">
                     <ExecutionSummary
@@ -190,18 +207,33 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
                         totalPending={totalPending}
                         successRate={successRate}
                     />
-                    <div className="flex place-self-end justify-between items-center px-2">
-                        {totalPending > 1 && (
-                            <button
-                                onClick={handleStopAllTests}
-                                className="flex cursor-pointer items-center gap-2 text-xs border-red-500 border-2 text-red-500 font-semibold px-4 py-2 rounded hover:bg-red-50 hover:shadow-md"
-                                title="Stop All Running Tests"
-                            >
-                                <StopCircle className="w-4 h-4" /> Stop All
-                            </button>
-                        )}
+                    <div className="flex justify-between items-center px-2 gap-2">
+                        <div className="flex items-center gap-2">
+                            {
+                                !anyRunning && (
+                                    <button
+                                        onClick={() => onRunAll?.()}
+                                        disabled={selectedTest.length === 0 || anyRunning}
+                                        className="flex cursor-pointer items-center text-[14px] gap-2 border-primary border-2 bg-primary/90 text-white font-semibold px-4 py-2 rounded hover:bg-primary/95 hover:shadow-md"
+
+                                        title="Run all selected tests"
+                                    >
+                                        <Play className="w-4 h-4" /> Run All
+                                    </button>
+                                )
+                            }
+                            {totalPending > 0 && (
+                                <button
+                                    onClick={handleStopAllTests}
+                                    className="flex cursor-pointer items-center text-[14px] gap-2 border-red-500 border-2 text-red-500 font-semibold px-4 py-2 rounded hover:bg-red-50 hover:shadow-md"
+                                    title="Stop All Running Tests"
+                                >
+                                    <StopCircle className="w-4 h-4" /> Stop All
+                                </button>
+                            )}
+                        </div>
                         {totalPending === 0 && (
-                            <div className="flex gap-2 self-end pt-2">
+                            <div className="flex gap-2 self-end">
                                 <button
                                     onClick={() => handleDownloadHTMLReport(totalSuccess, totalFailed, totalTests, totalExecutionTime, reports, testData, selectedTest)}
                                     className="flex cursor-pointer items-center gap-2 text-xs border-primary/60 border-2 text-primary/60 font-semibold px-4 py-2 rounded hover:shadow-md"
@@ -220,8 +252,19 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
                 </div>
             )}
 
+            {totalTests > 0 && (
+                <PaginationResults
+                    totalItems={totalItems}
+                    pageSize={pageSize}
+                    setPageSize={setPageSize}
+                    page={page}
+                    setPage={setPage}
+                />
+            )}
+
+
             <div className="">
-                {selectedTest.map((test: any) => {
+                {paginatedSelectedTests.map((test: any) => {
                     const reportId = test?.id || test.testCaseId;
                     const progressValue = progress.find((p: any) => p.testCaseId === reportId)?.percent || 0;
                     const isExpanded = expandedReports[reportId] ?? false;
@@ -243,7 +286,7 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
                                         <button
                                             disabled={!!loading[reportId]}
                                             onClick={(e) => { e.stopPropagation(); onPlayTest?.(test); }}
-                                            className={`flex items-center gap-1 rounded-md bg-primary/80 text-white px-3 py-2 cursor-pointer ${loading[reportId] ? "opacity-50 cursor-not-allowed" : ""}`}
+                                            className={`flex items-center gap-1 text-[14px] rounded-md bg-primary/80 text-white px-3 py-2 cursor-pointer ${loading[reportId] ? "opacity-50 cursor-not-allowed" : ""}`}
                                         >
                                             <Play className="w-4 h-4" /> Play
                                         </button>
@@ -290,7 +333,7 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
 
                                                 const file = buildReportFile(reportId, test);
                                                 console.log("file for pdf", file);
-                                                
+
                                                 const header = {
                                                     name: test?.name || test?.testCaseName || reportId,
                                                     createdBy: test?.createdBy || test?.testerName,

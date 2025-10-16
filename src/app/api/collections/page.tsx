@@ -4,7 +4,7 @@ import Image from "next/image";
 import TextInputWithClearButton from "@/app/components/InputClear";
 import { SearchField } from "@/app/components/SearchField";
 import { DashboardHeader } from "@/app/Layouts/main";
-import { ChevronRight, ChevronDown, Folder, Trash2Icon, Code2Icon, FileJson } from "lucide-react";
+import { ChevronRight, ChevronDown, Folder, Trash2Icon, Code2Icon, FileJson, PlusIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import colletEmptyState from "../../../assets/apisImages/select-collection.svg"
 import TooltipLocation from "@/app/components/ToolTip";
@@ -16,6 +16,7 @@ import { TbBrandGraphql, TbCodeVariablePlus, TbJson } from "react-icons/tb";
 import { RiErrorWarningLine } from "react-icons/ri";
 import { stackoverflowLight, tomorrow, vs } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { VscJson } from "react-icons/vsc";
+import ButtonTab from "@/app/components/ButtonTab";
 
 
 
@@ -507,12 +508,18 @@ const CollectionsPage = () => {
                                     </div>
 
                                     <div className="flex justify-center gap-2 mb-4 text-primary/85">
-                                        <button onClick={() => setActiveTab("request")} className={`cursor-pointer text-[16px] px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 ${activeTab === "request" ? " bg-gray-200" : ""}`}>
-                                            Request
-                                        </button>
-                                        <button onClick={() => setActiveTab("test")} className={`cursor-pointer text-[16px] px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 ${activeTab === "test" ? " bg-gray-200" : ""}`}>
-                                            Test
-                                        </button>
+                                        <ButtonTab
+                                            label="Request"
+                                            value="request"
+                                            isActive={activeTab === "request"}
+                                            onClick={() => setActiveTab("request")}
+                                        />
+                                        <ButtonTab
+                                            label="Test"
+                                            value="test"
+                                            isActive={activeTab === "test"}
+                                            onClick={() => setActiveTab("test")}
+                                        />
 
                                     </div>
                                     {activeTab === "request" && (
@@ -528,16 +535,48 @@ const CollectionsPage = () => {
                                             />
                                             {selectedRequest?.node?.request?.body?.mode === "graphql" && (
                                                 <div className="flex items-center gap-2 mt-4">
-                                                    <div onClick={() => setActiveTabRequest("headers")} className={`flex gap-2 px-3 py-2 text-[14px] rounded-3xl ${activeTabRequest === "headers" ? "bg-gray-200" : "bg-gray-100"}`}><TbBrandGraphql className="text-primary/85 w-5 h-5" /> Headers</div>
-                                                    <div onClick={() => setActiveTabRequest("graphql")} className={`flex gap-2 px-3 py-2 text-[14px] rounded-3xl ${activeTabRequest === "graphql" ? "bg-gray-200" : "bg-gray-100"}`}><TbBrandGraphql className="text-primary/85 w-5 h-5" /> Query/Mutation</div>
-                                                    <div onClick={() => setActiveTabRequest("variables")} className={`flex gap-2 px-3 py-2 text-[14px] rounded-3xl ${activeTabRequest === "variables" ? "bg-gray-200" : "bg-gray-100"}`}><TbCodeVariablePlus className="text-primary/85 w-5 h-5" /> Variables</div>
+                                                    <ButtonTab
+                                                        label="Headers"
+                                                        value="headers"
+                                                        isActive={activeTabRequest === "headers"}
+                                                        onClick={() => setActiveTabRequest("headers")}
+                                                        Icon={<TbBrandGraphql className="text-primary/85 w-5 h-5" />}
+                                                        className="text-[14px]"
+                                                    />
+                                                    <ButtonTab
+                                                        label="Query/Mutation"
+                                                        value="graphql"
+                                                        isActive={activeTabRequest === "graphql"}
+                                                        onClick={() => setActiveTabRequest("graphql")}
+                                                        Icon={<TbBrandGraphql className="text-primary/85 w-5 h-5" />}
+                                                        className="text-[14px]"
+                                                    />
+                                                    <ButtonTab
+                                                        label="Variables"
+                                                        value="variables"
+                                                        isActive={activeTabRequest === "variables"}
+                                                        onClick={() => setActiveTabRequest("variables")}
+                                                        Icon={<TbCodeVariablePlus className="text-primary/85 w-5 h-5" />}
+                                                        className="text-[14px]"
+                                                    />
                                                 </div>
                                             )}
 
                                             {selectedRequest?.node?.request?.body?.mode === "raw" && (
                                                 <div className="flex items-center gap-2 mt-4">
-                                                    <div onClick={() => setActiveTabRequest("headers")} className={`flex gap-2 px-3 py-2 text-[14px] rounded-3xl ${activeTabRequest === "headers" ? "bg-gray-200" : "bg-gray-100"}`}> Headers</div>
-                                                    <div onClick={() => setActiveTabRequest("body")} className={`flex gap-2 px-3 py-2 text-[14px] rounded-3xl ${activeTabRequest === "body" ? "bg-gray-200" : "bg-gray-100"}`}><VscJson className="text-primary/85 w-5 h-5" /> Body</div>
+                                                    <ButtonTab
+                                                        label="Headers"
+                                                        value="headers"
+                                                        isActive={activeTabRequest === "headers"}
+                                                        onClick={() => setActiveTabRequest("headers")}
+                                                    />
+                                                    <ButtonTab
+                                                        label="Body"
+                                                        value="body"
+                                                        isActive={activeTabRequest === "body"}
+                                                        onClick={() => setActiveTabRequest("body")}
+                                                        Icon={<VscJson className="text-primary/85 w-5 h-5" />}
+                                                    />
                                                 </div>
                                             )}
                                             {activeTabRequest === "body" && (
@@ -641,9 +680,9 @@ const CollectionsPage = () => {
                                                     </div>
                                                     <button
                                                         onClick={() => setRequestHeaders([...requestHeaders, { key: "", value: "" }])}
-                                                        className="text-blue-600 text-sm mt-2"
+                                                        className="text-blue-600 text-sm flex items-center gap-1 hover:underline"
                                                     >
-                                                        + Add header
+                                                        <PlusIcon className="w-4 h-4" /> Add header
                                                     </button>
                                                 </div>
                                             )}
