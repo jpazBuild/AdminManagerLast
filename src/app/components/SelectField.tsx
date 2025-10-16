@@ -1,103 +1,137 @@
-import React, { useState, useRef, useEffect } from "react";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
+"use client";
 
-interface SelectOption {
-  label: string;
-  value: string;
-}
+import React, { useEffect, useMemo, useState } from "react";
 
-interface SelectFieldProps {
+type Option = { label: string; value: string };
+type MaybeOption = Option | string;
+
+type Props = {
   label?: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: SelectOption[];
   placeholder?: string;
+  /** Puede venir como string[] o como {label, value}[] */
+  options: MaybeOption[];
+  value?: string;
+  onChange: (value: string) => void;
+  onClear?: () => void;
   disabled?: boolean;
+  id?: string;
   className?: string;
+};
+
+function normalizeOptions(options: MaybeOption[] | undefined | null): Option[] {
+  if (!Array.isArray(options)) return [];
+  return options.map((opt) => {
+    if (typeof opt === "string") {
+      const s = String(opt);
+      return { label: s, value: s };
+    }
+    // Si viene como objeto pero label/value no son string, forzamos a string
+    const label = typeof opt.label === "string" ? opt.label : String(opt.label ?? "");
+    const value = typeof opt.value === "string" ? opt.value : String(opt.value ?? "");
+    return { label, value };
+  });
 }
 
-export const SelectField = ({
+export default function SearchField({
   label,
+  placeholder = "Search…",
+  options,
   value,
   onChange,
-  options,
-  placeholder = "Select an option",
-  disabled = false,
-  className = "",
-}: SelectFieldProps) => {
+  onClear,
+  disabled,
+  id,
+  className,
+}: Props) {
+  const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
-  const filteredOptions = options.filter((opt) =>
-    opt.label.toLowerCase().includes(searchTerm.toLowerCase())
+  const normalized = useMemo(() => normalizeOptions(options), [options]);
+
+  const selectedOption = useMemo(
+    () => normalized.find((opt) => opt.value === (value ?? "")) || null,
+    [normalized, value]
   );
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
+  const filteredOptions = useMemo(() => {
+    const q = (searchTerm || "").toLowerCase();
+    if (!q) return normalized;
+    return normalized.filter((opt) => opt.label.toLowerCase().includes(q));
+  }, [normalized, searchTerm]);
+
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onChange("");
+    setSearchTerm("");
+    onClear?.();
   };
 
   useEffect(() => {
-    if (isOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [isOpen]);
-
-  const handleOptionClick = (value: string) => {
-    setSearchTerm(value);
-    onChange(value);
-    setIsOpen(false);
-  };
+    if (!value) setSearchTerm("");
+  }, [value]);
 
   return (
-    <div className="flex flex-col gap-2 w-full bg-white">
-      {label && <label className="font-medium text-sm text-primary/90 ">{label}</label>}
+    <div className={className}>
+      {label && (
+        <label htmlFor={id} className="mb-1 block text-sm font-medium text-gray-600">
+          {label}
+        </label>
+      )}
 
-      <Select
-        value={value}
-        onValueChange={onChange}
-        disabled={disabled}
-        open={isOpen}
-        onOpenChange={setIsOpen}
-        
-      >
-        <SelectTrigger className={`w-full ${className}`}>
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          <div className="p-2 sticky top-0 bg-white z-10">
-            <input
-              ref={searchInputRef}
-              type="text"
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={handleSearchChange}
-              onClick={(e) => e.stopPropagation()}
-              className={`w-full text-primary/90 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary`}
-            />
+      <div className="relative">
+        <input
+          id={id}
+          className="w-full rounded-xl border border-[#E1E8F0] bg-white px-3 py-2 text-[#0A2342] shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          placeholder={placeholder}
+          disabled={disabled}
+          value={selectedOption ? selectedOption.label : searchTerm}
+          onFocus={() => setOpen(true)}
+          onChange={(e) => {
+            const text = e.target.value;
+            setSearchTerm(text);
+            setOpen(true);
+            // Si borran todo con teclado, limpiamos selección también
+            if (text === "") onChange("");
+          }}
+        />
+
+        {(value || searchTerm) && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            aria-label="Clear"
+          >
+            ×
+          </button>
+        )}
+
+        {open && (
+          <div className="absolute z-20 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg max-h-56 overflow-auto">
+            {filteredOptions.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-gray-500">No results</div>
+            ) : (
+              filteredOptions.map((opt) => (
+                <button
+                  key={opt.value + opt.label}
+                  type="button"
+                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
+                    value === opt.value ? "bg-gray-50" : ""
+                  }`}
+                  onMouseDown={(e) => e.preventDefault()} // evita blur inmediato
+                  onClick={() => {
+                    onChange(opt.value);
+                    setSearchTerm(opt.label);
+                    setOpen(false);
+                  }}
+                >
+                  {opt.label}
+                </button>
+              ))
+            )}
           </div>
-
-          {filteredOptions.length > 0 ? (
-            filteredOptions.map((opt) => (
-              <SelectItem
-                key={opt.value}
-                value={opt.value}
-                onClick={() => handleOptionClick(opt.value)}
-              >
-                {opt.label}
-              </SelectItem>
-            ))
-          ) : (
-            <div className="p-2 text-sm text-primary/40">No options found</div>
-          )}
-        </SelectContent>
-      </Select>
+        )}
+      </div>
     </div>
   );
-};
+}
