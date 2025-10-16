@@ -1,12 +1,18 @@
 "use client";
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { FaChevronDown, FaChevronUp, FaEdit } from "react-icons/fa";
-import { Save, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, PlusIcon, Save, Trash2, Trash2Icon } from "lucide-react";
 import { FaXmark } from "react-icons/fa6";
 import CopyToClipboard from "./CopyToClipboard";
 import TextInputWithClearButton from "./InputClear";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { atomOneDark, atomOneLight } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import ButtonTab from "./ButtonTab";
+import { SearchField } from "./SearchField";
+import { httpMethodsStyle } from "../api/utils/colorMethods";
+
+const HTTP_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"];
+const METHOD_OPTIONS = HTTP_METHODS.map(m => ({ label: m, value: m }));
 
 interface InteractionItemData {
     id: string;
@@ -92,6 +98,14 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
     const [jsonError, setJsonError] = useState<string | null>(null);
 
     const lastSavedStrRef = useRef<string | null>(null);
+    const [activeApiIdx, setActiveApiIdx] = useState(0);
+    const [viewModeApi, setViewModeApi] = useState<"request" | "env" | "script">("request");
+    const [collapsedApis, setCollapsedApis] = useState<Record<number, boolean>>({});
+    const [viewModeApiByIdx, setViewModeApiByIdx] = useState<
+        Record<number, "request" | "env" | "script">
+    >({});
+    const setViewModeApiFor = (i: number, tab: "request" | "env" | "script") =>
+        setViewModeApiByIdx((p) => ({ ...p, [i]: tab }));
 
     useEffect(() => {
         if (editingJson) return;
@@ -290,6 +304,7 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
         if (!value) return null;
         return {
             hasNavigation: value.action === "navigate" || value.stepData?.action === "navigate",
+            hasApi: value.action === "apis" || value.stepData?.action === "apis",
             hasContext: value.context || value.stepData?.context,
             hasContextGeneral: value.action === "context-general" || value?.stepData?.action === "context-general",
             hasSelectors: value?.data?.selectors?.length > 0 || value?.stepData?.data?.selectors?.length > 0,
@@ -319,6 +334,106 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
         : "rounded-lg shadow-lg bg-white overflow-hidden px-2";
 
     const actualData = value.stepData || value;
+    const apis = useMemo(() => Array.isArray(actualData?.apisData?.apis) ? actualData.apisData.apis : [], [actualData]);
+    const env = useMemo(() => actualData?.apisData?.env ?? {}, [actualData]);
+    const pretty = (v: unknown) => {
+        try { return JSON.stringify(typeof v === "string" ? JSON.parse(v) : v, null, 2); }
+        catch { return typeof v === "string" ? v : JSON.stringify(v, null, 2); }
+    };
+
+
+    const baseApisPath = value.stepData ? ["stepData", "apisData"] : ["apisData"];
+    const apiPath = (idx: number, ...rest: (any)[]) =>
+        [...baseApisPath, "apis", idx, ...rest];
+
+    const setRequestMethod = (idx: number, newMethod: string) =>
+        updateNestedData(apiPath(idx, "request", "method"), newMethod);
+
+    const setRequestUrl = (idx: number, newUrl: string) => {
+        updateNestedData(apiPath(idx, "request", "url", "raw"), newUrl);
+    };
+
+    const addHeader = (idx: number) => {
+        const list = Array.isArray(apis[idx]?.request?.header) ? [...apis[idx].request.header] : [];
+        list.push({ type: "text", key: "X-Header", value: "" });
+        updateNestedData(apiPath(idx, "request", "header"), list);
+    };
+
+    const updateHeaderKey = (idx: number, hIdx: number, key: string) => {
+        const list = Array.isArray(apis[idx]?.request?.header) ? [...apis[idx].request.header] : [];
+        if (!list[hIdx]) return;
+        list[hIdx] = { ...list[hIdx], key };
+        updateNestedData(apiPath(idx, "request", "header"), list);
+    };
+
+    const updateHeaderValue = (idx: number, hIdx: number, value: string) => {
+        const list = Array.isArray(apis[idx]?.request?.header) ? [...apis[idx].request.header] : [];
+        if (!list[hIdx]) return;
+        list[hIdx] = { ...list[hIdx], value };
+        updateNestedData(apiPath(idx, "request", "header"), list);
+    };
+
+    const deleteHeader = (idx: number, hIdx: number) => {
+        const list = Array.isArray(apis[idx]?.request?.header) ? [...apis[idx].request.header] : [];
+        const next = list.filter((_, i) => i !== hIdx);
+        updateNestedData(apiPath(idx, "request", "header"), next);
+    };
+
+    const setGqlQuery = (idx: number, text: string) =>
+        updateNestedData(apiPath(idx, "request", "body", "graphql", "query"), text);
+
+    const setGqlVariables = (idx: number, text: string) =>
+        updateNestedData(apiPath(idx, "request", "body", "graphql", "variables"), text);
+
+    const addEnvVar = () => {
+        const curr = { ...(actualData?.apisData?.env ?? {}) };
+        let newKey = "NEW_KEY";
+        let i = 1;
+        while (curr[newKey]) { newKey = `NEW_KEY_${i++}`; }
+        curr[newKey] = "";
+        updateNestedData([...baseApisPath, "env"], curr);
+    };
+
+    const updateEnvKey = (i: number, oldKey: string, newKey: string) => {
+        const curr = { ...(actualData?.apisData?.env ?? {}) };
+        if (!oldKey || !curr.hasOwnProperty(oldKey)) return;
+        if (newKey === oldKey || !newKey) return;
+        const value = curr[oldKey];
+        delete curr[oldKey];
+        curr[newKey] = value;
+        updateNestedData([...baseApisPath, "env"], curr);
+    };
+
+    const updateEnvValue = (i: number, key: string, val: string) =>
+        updateNestedData([...baseApisPath, "env", key], val);
+
+    const deleteEnvVar = (i: number, key: string) => {
+        const curr = { ...(actualData?.apisData?.env ?? {}) };
+        delete curr[key];
+        updateNestedData([...baseApisPath, "env"], curr);
+    };
+
+    const getTestEventIndex = (api: any) =>
+        Array.isArray(api?.event) ? api.event.findIndex((e: any) => e?.listen === "test") : -1;
+
+    const setTestScript = (idx: number, code: string) => {
+        const api = apis[idx] ?? {};
+        const evIdx = getTestEventIndex(api);
+        let nextEvents = Array.isArray(api.event) ? [...api.event] : [];
+        if (evIdx === -1) {
+            nextEvents.push({
+                listen: "test",
+                script: { type: "text/javascript", packages: {}, exec: code.split("\n") },
+            });
+        } else {
+            nextEvents[evIdx] = {
+                ...nextEvents[evIdx],
+                script: { ...(nextEvents[evIdx]?.script || {}), exec: code.split("\n") },
+            };
+        }
+        updateNestedData(apiPath(idx, "event"), nextEvents);
+    };
+
 
     return (
         <div className={containerClasses}>
@@ -549,6 +664,268 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
                         </div>
                     )}
 
+                    {processedData.hasApi && (
+                        <div className={`${getPanelContainerClasses()} p-4`}>
+                            {apis.length === 0 && (
+                                <span className={isDarkMode ? "text-slate-300" : "text-gray-600"}>
+                                    No APIs found
+                                </span>
+                            )}
+
+                            <div className="flex flex-col gap-3">
+                                {apis.map((api: any, i: number) => {
+                                    const isCollapsed = !!collapsedApis[i];
+                                    const vm = viewModeApiByIdx[i] ?? "request";
+
+                                    const req = api?.request ?? {};
+                                    const method: string = req?.method ?? "GET";
+                                    const urlRaw: string = req?.url?.raw ?? "";
+                                    const headers: Array<{ key: string; value: string }> = Array.isArray(req?.header) ? req.header : [];
+                                    const mode = req?.body?.mode;
+                                    const gql = req?.body?.graphql;
+
+                                    return (
+                                        <div key={api?.name ?? i} className="rounded-lg border overflow-hidden">
+                                            <div
+                                                className={`flex items-center justify-between px-3 py-2 cursor-pointer ${isDarkMode ? "bg-slate-800 text-slate-200" : "bg-gray-100 text-primary/90"
+                                                    }`}
+                                                onClick={() =>
+                                                    setCollapsedApis((p) => ({ ...p, [i]: !p[i] }))
+                                                }
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <span
+                                                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${httpMethodsStyle(method)}`}
+
+                                                    >
+                                                        {method}
+                                                    </span>
+                                                    <span className="font-semibold">{api?.name ?? `API ${i + 1}`}</span>
+
+                                                </div>
+                                                <div className="text-xs opacity-70">
+                                                    {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                                                </div>
+                                            </div>
+
+                                            {!isCollapsed && (
+                                                <div className="p-3 space-y-3">
+                                                    <div className="flex items-center gap-2">
+                                                        {(["request", "env", "script"] as const).map((tab) => (
+                                                            <ButtonTab
+                                                                key={`${i}-${tab}`}
+                                                                value={tab}
+                                                                label={tab === "request" ? "Request" : tab === "env" ? "Environments" : "Script"}
+                                                                isActive={vm === tab}
+                                                                onClick={() => setViewModeApiFor(i, tab)}
+                                                                isDarkMode={isDarkMode}
+                                                            />
+                                                        ))}
+                                                    </div>
+
+                                                    {vm === "request" && (
+                                                        <div className="space-y-4">
+                                                            <div className={`rounded-md p-3 ${isDarkMode ? "bg-slate-700/50" : "bg-gray-100"}`}>
+                                                                <div className="flex flex-col md:flex-row gap-2 items-start md:items-center">
+                                                                    <div className={`method-chip ${String(method).toUpperCase()}`}>
+                                                                        <SearchField
+                                                                            id={`method-${String(i)}`}
+                                                                            value={method}
+                                                                            onChange={(val) =>
+                                                                                setRequestMethod(i, (val || "GET").toUpperCase())
+                                                                            }
+                                                                            placeholder="GET"
+                                                                            label="HTTP Method"
+                                                                            darkMode={isDarkMode}
+                                                                            className="w-28"
+                                                                            options={METHOD_OPTIONS}
+                                                                            showSearch={false}
+                                                                            widthComponent="w-32"
+                                                                        />
+                                                                    </div>
+
+                                                                    <TextInputWithClearButton
+                                                                        id={`url-${i}`}
+                                                                        value={urlRaw}
+                                                                        onChangeHandler={(e) => setRequestUrl(i, e.target.value)}
+                                                                        placeholder="https://api.example.com/endpoint"
+                                                                        label="Request URL"
+                                                                        isDarkMode={isDarkMode}
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            <div>
+                                                                <div className="flex items-center justify-between mb-2">
+                                                                    <div className="text-sm font-semibold">Headers</div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => addHeader(i)}
+                                                                        className="text-xs border px-2 py-1 rounded cursor-pointer hover:shadow flex gap-2 items-center"
+                                                                    >
+                                                                        <PlusIcon className="w-4 h-4" /> Add Header
+                                                                    </button>
+                                                                </div>
+                                                                <div className={`rounded-md p-3 flex flex-col gap-3 ${isDarkMode ? "bg-slate-800/50" : "bg-white border"}`}>
+                                                                    {headers.length === 0 && (
+                                                                        <div className="text-xs opacity-70">No headers.</div>
+                                                                    )}
+                                                                    {headers.map((h, idx) => (
+                                                                        <div key={`${h.key}-${idx}`} className="grid md:grid-cols-2 gap-2 items-start">
+                                                                            <TextInputWithClearButton
+                                                                                id={`hk-${i}-${idx}`}
+                                                                                value={String(h.key ?? "")}
+                                                                                onChangeHandler={(e) => updateHeaderKey(i, idx, e.target.value)}
+                                                                                placeholder="Header key"
+                                                                                label="Key"
+                                                                                isDarkMode={isDarkMode}
+                                                                            />
+                                                                            <div className="flex gap-2 items-center">
+                                                                                <div className="flex w-full">
+                                                                                    <TextInputWithClearButton
+                                                                                        id={`hv-${i}-${idx}`}
+                                                                                        value={String(h.value ?? "")}
+                                                                                        onChangeHandler={(e) => updateHeaderValue(i, idx, e.target.value)}
+                                                                                        placeholder="Header value"
+                                                                                        label="Value"
+                                                                                        isDarkMode={isDarkMode}
+                                                                                    />
+                                                                                </div>
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => deleteHeader(i, idx)}
+                                                                                    className="text-xs px-2 py-1 rounded cursor-pointer hover:bg-rose-50"
+                                                                                >
+                                                                                    <Trash2Icon className="w-4 h-4" />
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+
+                                                            {mode === "graphql" && (
+                                                                <div className="grid md:grid-cols-2 gap-3">
+                                                                    <div>
+                                                                        <div className="text-sm font-semibold mb-1">GraphQL Query</div>
+                                                                        <textarea
+                                                                            rows={25}
+                                                                            className={`w-full h-full resize-y p-4 font-mono text-xs rounded-md border border-transparent focus:outline-none focus:ring-0 ${isDarkMode ? "bg-[#282c34] text-[#abb2bf]" : "bg-gray-200 text-primary/90"
+                                                                                }`}
+                                                                            value={String(gql?.query ?? "")}
+                                                                            onChange={(e) => setGqlQuery(i, e.target.value)}
+                                                                            spellCheck={false}
+                                                                            style={{ whiteSpace: "pre", wordWrap: "break-word", lineHeight: "1.4", fontFamily: "'Fira Code','Source Code Pro',monospace" }}
+                                                                        />
+                                                                    </div>
+                                                                    <div>
+                                                                        <div className="text-sm font-semibold mb-1">Variables (JSON or string)</div>
+                                                                        <textarea
+                                                                            rows={25}
+                                                                            className={`w-full h-full resize-y p-4 font-mono text-xs rounded-md border border-transparent focus:outline-none focus:ring-0 ${isDarkMode ? "bg-[#282c34] text-[#abb2bf]" : "bg-gray-200 text-primary/90"
+                                                                                }`}
+                                                                            value={pretty(gql?.variables ?? "{}")}
+                                                                            onChange={(e) => setGqlVariables(i, e.target.value)}
+                                                                            spellCheck={false}
+                                                                            style={{ whiteSpace: "pre", wordWrap: "break-word", lineHeight: "1.4", fontFamily: "'Fira Code','Source Code Pro',monospace" }}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {vm === "env" && (() => {
+                                                        const entries = Object.entries(env ?? {});
+                                                        console.log("entries", { entries });
+
+                                                        return (
+                                                            <div className="space-y-2">
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="text-sm font-semibold">Environment</div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => addEnvVar()}
+                                                                        className="text-xs border px-2 py-1 rounded cursor-pointer hover:shadow flex gap-2 items-center"
+                                                                    >
+                                                                        <PlusIcon className="w-4 h-4" /> Add Variable
+                                                                    </button>
+                                                                </div>
+
+                                                                {entries.length === 0 ? (
+                                                                    <div className={`${isDarkMode ? "bg-slate-700/50" : "bg-gray-100"} rounded-md p-3 text-xs`}>
+                                                                        No environment variables.
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className={`rounded-md p-3 flex flex-col gap-3 ${isDarkMode ? "bg-slate-800/50" : "bg-white border"}`}>
+                                                                        {entries.map(([key, val]) => (
+                                                                            <div key={`${i}-${key}`} className="grid md:grid-cols-2 gap-2 items-start">
+                                                                                <TextInputWithClearButton
+                                                                                    id={`env-key-${i}-${key}`}
+                                                                                    value={key}
+                                                                                    onChangeHandler={(e) => updateEnvKey(i, key, e.target.value)}
+                                                                                    placeholder="KEY"
+                                                                                    label="Key"
+                                                                                    isDarkMode={isDarkMode}
+                                                                                />
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <div className="flex w-full">
+                                                                                        <TextInputWithClearButton
+                                                                                            id={`env-val-${i}-${key}`}
+                                                                                            value={String(val ?? "")}
+                                                                                            onChangeHandler={(e) => updateEnvValue(i, key, e.target.value)}
+                                                                                            placeholder="value"
+                                                                                            label="Value"
+                                                                                            isDarkMode={isDarkMode}
+                                                                                        />
+                                                                                    </div>
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => deleteEnvVar(i, key)}
+                                                                                        className="text-xs px-2 py-1 rounded cursor-pointer hover:bg-rose-50"
+                                                                                    >
+                                                                                        <Trash2Icon className="w-4 h-4" />
+                                                                                    </button>
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })()}
+
+                                                    {vm === "script" && (() => {
+                                                        const listenTest = Array.isArray(api.event)
+                                                            ? api.event.find((e: any) => e.listen === "test")
+                                                            : undefined;
+                                                        const scriptLines: string[] = listenTest?.script?.exec ?? [];
+                                                        const scriptText = scriptLines.join("\n");
+                                                        return (
+                                                            <div className="space-y-2">
+                                                                <div className="text-sm font-semibold">Test Script</div>
+                                                                <textarea
+                                                                    rows={8}
+                                                                    className={`w-full h-full resize-none p-4 font-mono text-xs rounded-md border border-transparent focus:outline-none focus:ring-0 ${isDarkMode ? "bg-[#282c34] text-[#abb2bf]" : "bg-gray-200 text-primary/90"
+                                                                        }`}
+                                                                    value={scriptText}
+                                                                    onChange={(e) => setTestScript(i, e.target.value)}
+                                                                    spellCheck={false}
+                                                                    style={{ whiteSpace: "pre", wordWrap: "break-word", lineHeight: "1.4", fontFamily: "'Fira Code','Source Code Pro',monospace" }}
+                                                                />
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+
                     <div className={getPanelContainerClasses()}>
                         <div className={getDropdownHeaderClasses()} onClick={() => setOpenPanels((p) => ({ ...p, jsonPreview: !p.jsonPreview }))}>
                             <span className={getDropdownHeaderTextClasses()}>JSON Preview</span>
@@ -616,6 +993,106 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
                     </div>
                 </div>
             )}
+
+            <style jsx global>{`
+            /* trigger base */
+            .method-chip > div > div:first-child {
+                /* quita estilos por defecto del SearchField (bg/border) */
+                background: transparent !important;
+                border-color: transparent !important;
+            }
+
+            /* GET */
+            .method-chip.GET > div > div:first-child {
+                background: rgba(16,185,129,.14) !important;   /* emerald/14 */
+                border: 1px solid rgba(16,185,129,.32) !important;
+                color: #065f46 !important;                     /* emerald-800 */
+            }
+            #option-GET:hover { background: rgba(16,185,129,0.2); }
+
+             #option-GET {
+                background: rgba(16,185,129,0.1);
+                border: 1px solid rgba(16,185,129,0.25);
+            }    
+            /* POST */
+            .method-chip.POST > div > div:first-child {
+                background: rgba(37,99,235,.14) !important;    /* blue/14 */
+                border: 1px solid rgba(37,99,235,.32) !important;
+                color: #1e3a8a !important;                     /* blue-800 */
+            }
+
+            
+            #option-POST {
+                background: rgba(37,99,235,0.1);
+                border: 1px solid rgba(37,99,235,0.25);
+            }
+
+            /* PUT */
+            .method-chip.PUT > div > div:first-child {
+                background: rgba(245,158,11,.16) !important;   /* amber/16 */
+                border: 1px solid rgba(245,158,11,.34) !important;
+                color: #92400e !important;
+            }
+
+            /* PATCH */
+            .method-chip.PATCH > div > div:first-child {
+                background: rgba(168,85,247,.14) !important;   /* purple/14 */
+                border: 1px solid rgba(168,85,247,.32) !important;
+                color: #5b21b6 !important;
+            }
+
+            /* DELETE */
+            .method-chip.DELETE > div > div:first-child {
+                background: rgba(244,63,94,.14) !important;    /* rose/14 */
+                border: 1px solid rgba(244,63,94,.32) !important;
+                color: #9f1239 !important;
+            }
+
+            /* HEAD */
+            .method-chip.HEAD > div > div:first-child {
+                background: rgba(8,145,178,.14) !important;    /* cyan/14 */
+                border: 1px solid rgba(8,145,178,.32) !important;
+                color: #155e75 !important;
+            }
+
+            /* OPTIONS */
+            .method-chip.OPTIONS > div > div:first-child {
+                background: rgba(71,85,105,.16) !important;    /* slate/16 */
+                border: 1px solid rgba(71,85,105,.34) !important;
+                color: #0f172a !important;
+            }
+            #option-PUT {
+                background: rgba(245,158,11,0.1);
+                border: 1px solid rgba(245,158,11,0.25);
+            }
+            #option-PUT:hover { background: rgba(245,158,11,0.2); }
+
+            #option-PATCH {
+                background: rgba(168,85,247,0.1);
+                border: 1px solid rgba(168,85,247,0.25);
+            }
+            #option-PATCH:hover { background: rgba(168,85,247,0.2); }
+
+            #option-DELETE {
+                background: rgba(244,63,94,0.1);
+                border: 1px solid rgba(244,63,94,0.25);
+            }
+            #option-DELETE:hover { background: rgba(244,63,94,0.2); }
+
+            #option-HEAD {
+                background: rgba(8,145,178,0.1);
+                border: 1px solid rgba(8,145,178,0.25);
+            }
+            #option-HEAD:hover { background: rgba(8,145,178,0.2); }
+
+            #option-OPTIONS {
+                background: rgba(71,85,105,0.1);
+                border: 1px solid rgba(71,85,105,0.25);
+            }
+            #option-OPTIONS:hover { background: rgba(71,85,105,0.2); }    
+            
+            `}</style>
+
         </div>
     );
 });
@@ -682,25 +1159,14 @@ const ReusableStepsBlock = ({
                         const stableKeyRef = (step as any).__k || crypto.randomUUID();
                         (step as any).__k = stableKeyRef;
                         return (
-                            // <div key={stableKeyRef} className={getReusableStepClasses()}>
                             <InteractionItem
                                 key={stableKeyRef}
                                 data={step}
                                 index={idx}
                                 isDarkMode={isDarkMode}
-                                //   onUpdate={(stepIndex, updatedStep) => {
-                                //     const newStepsData = [...(data.stepsData || [])];
-                                //     newStepsData[stepIndex] = updatedStep;
-                                //     updateReusableStepsData(newStepsData);
-                                //   }}
-                                //   onDelete={() => {
-                                //     const newStepsData = (data.stepsData || []).filter((_: any, i: number) => i !== idx);
-                                //     updateReusableStepsData(newStepsData);
-                                //   }}
                                 onDelete={undefined}
                                 test={test}
                             />
-                            // </div>
                         );
                     })}
                 </div>
@@ -724,10 +1190,10 @@ const InteractionItem: React.FC<InteractionItemProps> = React.memo(({ data, inde
 
     const actualStepData = data.stepData || data;
 
-    const getMainContainerClasses = () =>
+    const getMainContainerClasses = (action: string) =>
         isDarkMode
             ? "relative flex flex-col gap-2 py-2 px-1 text-slate-400 rounded-md border-l-4 border-slate-500 bg-slate-800/90 shadow-lg transition-all duration-300 hover:bg-slate-800"
-            : "relative flex flex-col gap-2 py-2 px-1 text-primary rounded-md border-l-4 border-1 border-primary shadow-lg transition-all duration-300";
+            : `relative flex flex-col gap-2 py-2 px-1 text-primary rounded-md border-l-4 border-1 ${action === "apis" ? "border-orange-500" : "border-primary/80"} shadow-lg transition-all duration-300`;
 
     const getStepNumberClasses = () =>
         isDarkMode ? "absolute top-0 left-0 bg-slate-600 text-white px-3 py-1 text-sm font-semibold rounded-tl-xl rounded-br-full shadow-md" : "absolute top-0 left-0 bg-primary text-white px-3 py-1 text-sm font-semibold rounded-tl-xl rounded-br-full shadow-md font-bold";
@@ -736,7 +1202,7 @@ const InteractionItem: React.FC<InteractionItemProps> = React.memo(({ data, inde
 
     return (
         <div className="flex flex-col gap-4">
-            <div className={getMainContainerClasses()}>
+            <div className={getMainContainerClasses(actualStepData.action)}>
                 <div className="flex justify-center items-center w-full">
                     <div className={`flex flex-col ${isDarkMode ? "text-slate-300" : "text-gray-700"} gap-1`}>
                         <p className="font-semibold text-center">{actualStepData.action}</p>

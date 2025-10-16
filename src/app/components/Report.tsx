@@ -259,7 +259,6 @@ const ReportUI = ({
                         );
                     }
                     )}
-                    {/* <div ref={endOfReportRef} /> */}
                 </div>
             </div>
 

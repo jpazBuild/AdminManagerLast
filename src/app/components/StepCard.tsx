@@ -1,14 +1,13 @@
 import Image from "next/image";
 import { Clock, CodeIcon } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Tabs, TabsList, TabsTrigger } from "@radix-ui/react-tabs";
-import { TabsContent } from "@/components/ui/tabs";
 import { AiOutlineClose } from "react-icons/ai";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { httpMethodsStyle } from "../api/utils/colorMethods";
 import TextInputWithClearButton from "./InputClear";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
+import ButtonTab from "./ButtonTab";
 
 interface Step {
     status?: string;
@@ -136,7 +135,6 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
             {openModalApi && step?.apisScriptsResult && (
                 <Dialog open={openModalApi}>
                     <DialogContent
-                        showCloseButton={false}
                         className="sm:max-w-3xl max-w-lg max-h-[90vh] overflow-y-auto bg-white"
                     >
                         <button
@@ -151,50 +149,29 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
                             API/Script Execution Details
                         </h2>
 
-                        <div className=" p-2 bg-gray-100 rounded-md border border-gray-300 h-full">
+                        <div className=" p-2 bg-gray-100 rounded-md border border-gray-300 h-full text-primary/80">
 
                             <div className="flex flex-col h-full">
-                                <Tabs
-                                    value={activeTabApi}
-                                    onValueChange={setActiveTabApi}
-                                    className="mt-2 flex flex-col text-primary/85 sticky top-0 bg-white py-2 h-full"
-                                >
-                                    <TabsList className="self-center flex gap-2">
-                                        <TabsTrigger
-                                            value="request"
-                                            className="text-primary rounded-md flex flex-col gap-2 cursor-pointer"
-                                            key={"request"}
-                                        >
-                                            <p className="bg-primary/20 px-3 py-2">Request</p>
-                                            {activeTabApi === "request" && (
-                                                <span className="self-center h-2 w-8 bg-primary/90 rounded-full" />
-                                            )}
-                                        </TabsTrigger>
+                                <div className="flex gap-2 items-center justify-center mb-2">
+                                    {
+                                        ["request", "response", "environment"].map((tab) => (
+                                            <ButtonTab
+                                                key={tab}
+                                                value={tab}
+                                                label={tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                                isActive={activeTabApi === tab}
+                                                onClick={(val) => setActiveTabApi(val)}
+                                                isDarkMode={false}
+                                                className="text-[14px]"
+                                                Icon={null}
+                                            />
+                                        ))
 
-                                        <TabsTrigger
-                                            value="response"
-                                            key={"response"}
-                                            className="text-primary rounded-md flex flex-col gap-2 cursor-pointer"
-                                        >
-                                            <p className="bg-primary/20 px-3 py-2">Response</p>
-                                            {activeTabApi === "response" && (
-                                                <span className="self-center h-2 w-8 bg-primary/90 rounded-full" />
-                                            )}
-                                        </TabsTrigger>
+                                    }
+                                </div>
 
-                                        <TabsTrigger
-                                            value="environment"
-                                            key={"environment"}
-                                            className="text-primary rounded-md flex flex-col gap-2 cursor-pointer"
-                                        >
-                                            <p className="bg-primary/20 px-3 py-2">Environment</p>
-                                            {activeTabApi === "environment" && (
-                                                <span className="self-center h-2 w-8 bg-primary/90 rounded-full" />
-                                            )}
-                                        </TabsTrigger>
-                                    </TabsList>
-
-                                    <TabsContent value="request" className="text-primary/85 flex flex-col gap-2 px-2 py-2">
+                                {activeTabApi === "request" && (
+                                    <>
                                         {step.apisScriptsResult?.environment?.__request?.url && (
                                             <div className="mt-2">
                                                 <strong>Request URL:</strong>
@@ -283,25 +260,23 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
 
                                             </div>
                                         )}
-                                    </TabsContent>
-
-                                    <TabsContent value="response">
-
-                                        <SyntaxHighlighter
-                                            language="json"
-                                            style={oneLight}
-                                            customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem" }}
-                                        >
-                                            {JSON.stringify(
-                                                step.apisScriptsResult?.environment?.__response?.json,
-                                                null,
-                                                2
-                                            )}
-                                        </SyntaxHighlighter>
-
-                                    </TabsContent>
-
-                                    <TabsContent value="environment" className="px-2 py-2">
+                                    </>
+                                )}
+                                {activeTabApi === "response" && (
+                                    <SyntaxHighlighter
+                                        language="json"
+                                        style={oneLight}
+                                        customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem" }}
+                                    >
+                                        {JSON.stringify(
+                                            step.apisScriptsResult?.environment?.__response?.json,
+                                            null,
+                                            2
+                                        )}
+                                    </SyntaxHighlighter>
+                                )}
+                                {activeTabApi === "environment" && (
+                                    <>
                                         {Object.keys(step.apisScriptsResult?.environment?.environment || {}).length === 0 && (
                                             <p className="text-sm text-gray-500">No environment variables available.</p>
                                         )}
@@ -325,8 +300,8 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
                                             </>
 
                                         )}
-                                    </TabsContent>
-                                </Tabs>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </DialogContent>

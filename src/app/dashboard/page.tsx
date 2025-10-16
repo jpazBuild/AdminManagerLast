@@ -557,17 +557,6 @@ const DashboardPage = () => {
 
 
                 <div className="flex gap-2">
-                    {/* <div className="flex flex-col items-center gap-1">
-                        <button
-                            onClick={() => setViewMode('list')}
-                            className={`cursor-pointer px-4 py-2 font-semibold tracking-wide mt-4 rounded-lg ${isDarkMode
-                                ? "bg-white text-[#021d3d] hover:bg-gray-200"
-                                : "bg-gray-200 text-primary hover:bg-gray-200"}`}
-                        >
-                            View Test Cases
-                        </button>
-                        <span className={`w-10 h-2 rounded-md ${viewMode === "list" ? "bg-primary" : "bg-gray-200"}`}></span>
-                    </div> */}
                     <ButtonTab
                         label="View Test Cases"
                         value="list"
