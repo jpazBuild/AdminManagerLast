@@ -8,7 +8,6 @@ type MaybeOption = Option | string;
 type Props = {
   label?: string;
   placeholder?: string;
-  /** Puede venir como string[] o como {label, value}[] */
   options: MaybeOption[];
   value?: string;
   onChange: (value: string) => void;
@@ -25,7 +24,6 @@ function normalizeOptions(options: MaybeOption[] | undefined | null): Option[] {
       const s = String(opt);
       return { label: s, value: s };
     }
-    // Si viene como objeto pero label/value no son string, forzamos a string
     const label = typeof opt.label === "string" ? opt.label : String(opt.label ?? "");
     const value = typeof opt.value === "string" ? opt.value : String(opt.value ?? "");
     return { label, value };
@@ -90,7 +88,6 @@ export default function SearchField({
             const text = e.target.value;
             setSearchTerm(text);
             setOpen(true);
-            // Si borran todo con teclado, limpiamos selección también
             if (text === "") onChange("");
           }}
         />
@@ -118,7 +115,7 @@ export default function SearchField({
                   className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
                     value === opt.value ? "bg-gray-50" : ""
                   }`}
-                  onMouseDown={(e) => e.preventDefault()} // evita blur inmediato
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
                     onChange(opt.value);
                     setSearchTerm(opt.label);

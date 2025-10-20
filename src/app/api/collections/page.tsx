@@ -433,7 +433,7 @@ const CollectionsPage = () => {
                         />
                     </div>
 
-                    <div className="flex-1 p-4 overflow-y-auto">
+                    <div className="flex flex-col p-4 overflow-y-auto">
                         {elementsPostman?.teams[0]?.workspaces?.find((t: any) => t.id === selectedWorkspaceId)?.collections?.length && (
                             <>
                                 {elementsPostman?.teams[0]?.workspaces

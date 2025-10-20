@@ -33,13 +33,13 @@ const ButtonTab: React.FC<ButtonTabProps> = ({
         className={`cursor-pointer flex gap-1 items-center px-4 py-2 font-semibold tracking-wide mt-4 rounded-lg transition-colors
           ${isDarkMode
             ? "bg-white text-[#021d3d] hover:bg-gray-200"
-            : "bg-gray-200 text-primary hover:bg-gray-200"}`}
+            : "bg-gray-100 text-primary hover:bg-gray-200"}`}
       >
         {Icon} {label}
       </button>
       <span
         className={`${underlineWidthClass} h-1 rounded-md transition-colors ${
-          isActive ? "bg-primary" : "bg-gray-200"
+          isActive ? "bg-[#3b5af1]" : "bg-gray-200"
         }`}
         aria-hidden="true"
       />
@@ -48,3 +48,4 @@ const ButtonTab: React.FC<ButtonTabProps> = ({
 };
 
 export default ButtonTab;
+

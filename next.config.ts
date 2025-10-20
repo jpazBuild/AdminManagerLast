@@ -32,7 +32,7 @@ const nextConfig: NextConfig = {
     URL_API_ALB: process.env.URL_ALB_API_RUNNER,
     URL_API_DYNAMO: process.env.URL_API_DYNAMO,
   },
-  
+
   async redirects() {
     return [
       {

@@ -4,18 +4,18 @@ import { Button } from "@/components/ui/button";
 import JSONDropzone from "../../components/JSONDropzone";
 import SortableTestCasesAccordion from "./SortableItem";
 import SortableTestCaseItem from "./SortableTestCaseItem";
-import { Download, DownloadIcon } from "lucide-react";
+import { DownloadIcon, UploadIcon } from "lucide-react";
 import { toast } from "sonner";
 import { TestCase } from "@/types/TestCase";
 import { Checkbox } from "@/components/ui/checkbox";
 import UnifiedInput from "../../components/Unified";
-import ExpandToggle from "./ExpandToggle";
 import axios from "axios";
 import { URL_API_ALB } from "@/config";
 import TextInputWithClearButton from "../../components/InputClear";
 import { AiOutlineClose } from "react-icons/ai";
 import CopyToClipboard from "@/app/components/CopyToClipboard";
 import NoData from "@/app/components/NoData";
+import DialogUI from "@/app/components/Dialog";
 
 interface TestStep {
     action: string;
@@ -96,6 +96,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
 
     const [selectedDD, setSelectedDD] = useState<DynamicHeaderMini | null>(null);
     const [lastImportedData, setLastImportedData] = useState<any[] | null>(null);
+    const [viewUploadedJSON, setViewUploadedJSON] = useState<boolean>(false);
 
     useEffect(() => {
         if (typeof onTestCasesDataChange === "function") {
@@ -583,35 +584,44 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
     }, [ddQuery, ddHeaders]);
 
 
-    console.log("uniqueDynamicFields :", uniqueDynamicFields);
-    console.log("testCasesData :", testCasesData);
-    
     return (
         <div className=" flex flex-col gap-2">
-            <div className="flex flex-col gap-2 items-center justify-center w-full">
-                <JSONDropzone
-                    onJSONParsed={handleParsedJSON}
-                    onFileInfoChange={({ loaded, name }) => {
-                        if (loaded && setEditMode) setEditMode('individual');
-                    }}
-                    onClear={handleClearJSONData}
-                    isDarkMode={isDarkMode}
-                />
-                <p className="text-sm text-gray-500 font-bold">Or</p>
-                <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={openDynamicDataModal}
-                        className={`cursor-pointer font-medium text-primary/80 text-[14px] px-4 py-3 ${isDarkMode
-                            ? "rounded-2xl border border-gray-200"
-                            : "rounded-2xl border border-gray-200 bg-gray-200 hover:bg-gray-200"}`}
+            <div className="flex gap-2 items-center justify-center w-full">
+                <button className="flex gap-1 cursor-pointer font-medium text-primary/80 text-[14px] px-4 py-3 bg-gray-200 rounded-full" onClick={() => setViewUploadedJSON(true)}>
+                    <UploadIcon className="w-4 h-4" /> Upload JSON
+                </button>
+                {viewUploadedJSON && (
+                    <DialogUI
+
+                        isOpen={viewUploadedJSON}
+                        handleAccordionToggle={() => setViewUploadedJSON(false)}
+                        title="Import Dynamic Data from JSON"
+                        height="h-80"
+                        width="lg:max-w-2xl w-full"
                     >
-                        Import from Dynamic Data…
-                    </button>
-                </div>
+                        <JSONDropzone
+                            onJSONParsed={handleParsedJSON}
+                            onFileInfoChange={({ loaded, name }) => {
+                                if (loaded && setEditMode) setEditMode('individual');
+                            }}
+                            onClear={handleClearJSONData}
+                            isDarkMode={isDarkMode}
+                        />
+                    </DialogUI>
+                )}
+
+                <button
+                    type="button"
+                    onClick={openDynamicDataModal}
+                    className={`cursor-pointer font-medium text-primary/80 text-[14px] px-4 py-3 ${isDarkMode
+                        ? "rounded-2xl border border-gray-200"
+                        : "rounded-full border-gray-200 bg-gray-200"}`}
+                >
+                    Import from Dynamic Data…
+                </button>
             </div>
 
-            {editMode === 'global' && testCasesData.length > 1 && uniqueDynamicFields.length > 0  && (
+            {editMode === 'global' && testCasesData.length > 1 && uniqueDynamicFields.length > 0 && (
                 <div className={styleClasses.globalFields}>
                     <div>
                         <h3 className={styleClasses.globalFieldsTitle}>
@@ -672,15 +682,15 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                 {allIds.length > 0 && (
                     <div className="flex justify-between items-center">
                         <div className="flex justify-between items-center gap-4">
-                            
+
                         </div>
 
                         <button
                             onClick={handleExportAsDataObject}
-                            
+
                             className={`cursor-pointer text-primary/80 text-[14px] bg-gray-200 rounded-xl px-3 py-2 flex gap-2 hover:bg-gray-200`}
                         >
-                            <DownloadIcon className="w-5 h-5"/> Export Dynamic Values
+                            <DownloadIcon className="w-5 h-5" /> Export Dynamic Values
                         </button>
                     </div>
                 )}
@@ -693,7 +703,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                         onClick={() => setDdModalOpen(false)}
                     />
                     <div className={`relative min-h-[50vh] z-10 w-[95%] max-w-3xl rounded-2xl shadow-xl
-      ${isDarkMode ? "bg-gray-800 text-white border border-gray-600" : "bg-white text-primary border border-gray-200"}`}>
+                        ${isDarkMode ? "bg-gray-800 text-white border border-gray-600" : "bg-white text-primary border border-gray-200"}`}>
                         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                             <h3 className="text-lg font-semibold text-primary/80">Choose Dynamic Data</h3>
                             <button
@@ -729,7 +739,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                         <div
                                             key={String(h.id)}
                                             className={`rounded-xl border p-3 flex items-center justify-between gap-3
-                  ${isDarkMode ? "border-gray-600 bg-gray-700/50" : "border-gray-200 bg-gray-50"}`}
+                                            ${isDarkMode ? "border-gray-600 bg-gray-700/50" : "border-gray-200 bg-gray-50"}`}
                                         >
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-2">

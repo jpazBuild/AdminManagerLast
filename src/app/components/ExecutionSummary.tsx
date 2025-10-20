@@ -11,8 +11,8 @@ import {
 export function ExecutionSummary({ totalSuccess, totalFailed, totalPending }: any) {
   const total = totalSuccess + totalFailed + totalPending;
   const data = [
-    { id: "Success", label: "Success", value: totalSuccess, color: "#4CAF50" },
-    { id: "Failed", label: "Failed", value: totalFailed, color: "#F44336" },
+    { id: "Success", label: "Success", value: totalSuccess, color: "#059669" },
+    { id: "Failed", label: "Failed", value: totalFailed, color: "#DC2626" },
     { id: "Pending", label: "Pending", value: totalPending, color: "#FF9800" },
   ].filter(entry => entry.value > 0);
 

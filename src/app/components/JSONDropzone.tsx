@@ -110,7 +110,7 @@ const JSONDropzone = ({
         if ((e.target as HTMLElement).closest("button")) return;
         openFileDialog();
       }}
-      className={dzCls}
+      className={` ${dzCls}`}
       role="button"
       aria-label="Cargar JSON"
       tabIndex={0}

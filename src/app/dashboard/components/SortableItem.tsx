@@ -15,7 +15,7 @@ import { CSS } from '@dnd-kit/utilities';
 import React, { useCallback } from 'react';
 import { Accordion } from '@/components/ui/accordion';
 import { usePagination } from '@/app/hooks/usePagination';
-import { PaginationResults } from './PaginationResults';
+import PaginationResults from './PaginationResults';
 
 type SortableTestCasesAccordionProps = {
   testCases: any[];
