@@ -15,14 +15,14 @@ type PaginationResultsProps = {
   className?: string;
 };
 
-export function PaginationResults({
+const PaginationResults = ({
   totalItems,
   pageSize,
   setPageSize,
   page,
   setPage,
   className = "",
-}: PaginationResultsProps) {
+}: PaginationResultsProps) => {
   const totalPages = Math.max(1, Math.ceil((totalItems || 0) / Math.max(1, pageSize || 1)));
   const clampedPage = Math.min(Math.max(page, 1), totalPages);
   const start = (clampedPage - 1) * pageSize;
@@ -45,7 +45,7 @@ export function PaginationResults({
           onChange={(val) => {
             const next = Number(val) || 10;
             setPageSize(next);
-            setPage(1); // reset a la primera página al cambiar tamaño
+            setPage(1);
           }}
           className="!w-18 h-8"
           widthComponent="w-22"
@@ -81,3 +81,5 @@ export function PaginationResults({
     </div>
   );
 }
+
+export default PaginationResults;

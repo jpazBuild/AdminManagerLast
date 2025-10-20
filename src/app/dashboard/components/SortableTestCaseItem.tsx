@@ -2,7 +2,6 @@ import React, { useRef, useState, useEffect, useCallback, useMemo } from "react"
 import {
     AccordionItem,
     AccordionTrigger,
-    AccordionContent,
 } from "@/components/ui/accordion";
 import { Eye, File, FileChartColumn, Locate, Plus, Settings } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,10 +20,8 @@ import ReportTestCaseList from "./ReportsHistoricTestCaseList";
 import UnifiedInput from "../../components/Unified";
 import { updateTest } from "@/utils/DBBUtils";
 import EditLocationPanel from "./EditLocationPanel";
-import { createPortal } from "react-dom";
-import { AiOutlineClose } from "react-icons/ai";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import ButtonTab from "@/app/components/ButtonTab";
+import DialogUI from "@/app/components/Dialog";
+import TabsUnderline from "./TabsLine";
 
 const useScrollPosition = (dependencies: any[]) => {
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -666,53 +663,18 @@ const SortableTestCaseItem: React.FC<Props> = ({
                         </div>
                     </AccordionTrigger>
                 </div>
-
-                <Dialog
-                    open={isOpen}
+                <DialogUI
+                    isOpen={isOpen}
+                    title="Test Case Details"
+                    handleAccordionToggle={handleAccordionToggle}
 
                 >
-                    <DialogContent className="w-full h-full max-h-[90vh] min-h-[70vh] overflow-hidden bg-white flex flex-col">
-                        <div className="h-full w-full rounded-lg shadow-2xl flex flex-col z-10">
-
-                            <div className="sticky top-0 flex flex-col items-center justify-between px-6 py-4 w-full h-auto bg-white z-50 border-b border-gray-200 rounded-t-lg flex-shrink-0">
-                                <div className="flex items-center gap-4 justify-between w-full">
-                                    <h2 className="text-lg font-semibold text-primary/80">Test Case Details</h2>
-                                    <Button
-                                        variant="ghost"
-                                        onClick={handleAccordionToggle}
-                                        className="text-gray-600 hover:text-gray-800 hover:bg-gray-200"
-                                    >
-                                        <AiOutlineClose className="h-6 w-6" />
-                                    </Button>
-                                </div>
-
-                                <h3 className="text-lg text-center font-semibold text-primary/80 break-words">{test?.name}</h3>
-
-                            </div>
-
-                            <div className="sticky top-0 gap-2 mb-4 flex-shrink-0 w-full flex justify-center ">
-                                {['data', 'steps', 'Historic reports', 'editLocation'].map(mode => (
-                                    <ButtonTab
-                                        value={mode}
-                                        key={mode}
-                                        isActive={viewMode === mode}
-                                        onClick={() => setViewMode(mode as any)}
-                                        Icon={mode === 'editLocation' ? <Locate className="ml-1 h-5 w-5" /> :
-                                            mode === 'data' ? <File className="ml-1 h-5 w-5" /> :
-                                                mode === 'Historic reports' ? <FileChartColumn className="h-5 w-5" /> :
-                                                    <Eye className="ml-1 h-5 w-5" />}
-                                        label={mode === 'editLocation' ? 'Edit Location' :
-                                            mode === 'data' ? 'Data' :
-                                                mode === 'Historic reports' ? 'Historic reports' :
-                                                    'Steps'}
-                                    />
-                                ))}
-                            </div>
-                            <div className="flex flex-col w-full h-full overflow-y-auto px-6 pb-6 pt-2">
-
-
-                                {viewMode === 'data' && (
-                                    <div className="flex flex-col w-full">
+                    <div className="flex flex-col w-full h-full overflow-y-auto px-6 pb-6 pt-2">
+                        <TabsUnderline defaultValue="Data" tabs={[
+                            {
+                                name: 'Data', value: 'Data', icon: <File className="ml-1 h-5 w-5" />,
+                                content: (
+                                    <div className="flex flex-col w-full h-full overflow-y-auto">
                                         <div className="self-end flex gap-2 border rounded-md px-3 py-2 mb-4">
                                             <CopyToClipboard text={JSON.stringify(dynamicValueForThisTest)} isDarkMode={false} />
                                             Copy dynamic values
@@ -769,74 +731,60 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                             )}
                                         </div>
                                     </div>
-                                )}
+                                )
+                            },
+                            {
+                                name: 'Steps', value: 'Steps', icon: <Eye className="ml-1 h-5 w-5" />,
+                                content: (
+                                    <div className="w-full overflow-y-auto text-primary/80">
 
-                                {viewMode === 'steps' && (
-                                    <div className="flex flex-col w-full h-full overflow-y-auto">
-                                        <div
-                                            ref={scrollRef}
-                                            className={`w-full h-full px-2 flex flex-col gap-2`}
-                                        >
-                                            <div className={styleClasses.stepsStickyHeader}>
-                                                <div className="flex flex-wrap items-center gap-4 justify-between">
-                                                    <div className="flex items-center gap-2">
+                                        <div className={styleClasses.stepsStickyHeader}>
+                                            <div className="flex flex-wrap items-center gap-4 justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <Button
+                                                        variant={selectionMode ? "destructive" : "outline"}
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setSelectionMode(!selectionMode);
+                                                            setSelectedStepsForReusable([]);
+                                                        }}
+                                                        className={`${isDarkMode
+                                                            ? 'bg-gray-700 text-white border-white/40'
+                                                            : 'bg-gray-200 text-gray-900 border-primary/40'
+                                                            } border shadow-md cursor-pointer flex items-center`}
+                                                    >
+                                                        <Settings className="w-4 h-4 mr-1" />
+                                                        {selectionMode ? 'Cancel Selection' : 'Select Steps for Reusable'}
+                                                    </Button>
+
+                                                    {selectionMode && selectedStepsForReusable.length > 0 && (
                                                         <Button
-                                                            variant={selectionMode ? "destructive" : "outline"}
                                                             size="sm"
-                                                            onClick={() => {
-                                                                setSelectionMode(!selectionMode);
-                                                                setSelectedStepsForReusable([]);
-                                                            }}
-                                                            className={`${isDarkMode
-                                                                ? 'bg-gray-700 text-white border-white/40'
-                                                                : 'bg-gray-200 text-gray-900 border-primary/40'
-                                                                } border shadow-md cursor-pointer flex items-center`}
+                                                            onClick={() => setShowReusableModal(true)}
+                                                            className="bg-primary/90 text-white cursor-pointer flex items-center"
                                                         >
-                                                            <Settings className="w-4 h-4 mr-1" />
-                                                            {selectionMode ? 'Cancel Selection' : 'Select Steps for Reusable'}
+                                                            <Plus className="w-4 h-4 mr-1" />
+                                                            Create Reusable ({selectedStepsForReusable.length})
                                                         </Button>
+                                                    )}
+                                                </div>
 
-                                                        {selectionMode && selectedStepsForReusable.length > 0 && (
-                                                            <Button
-                                                                size="sm"
-                                                                onClick={() => setShowReusableModal(true)}
-                                                                className="bg-primary/90 text-white cursor-pointer flex items-center"
-                                                            >
-                                                                <Plus className="w-4 h-4 mr-1" />
-                                                                Create Reusable ({selectedStepsForReusable.length})
-                                                            </Button>
-                                                        )}
-                                                    </div>
-
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="rounded-md flex items-center gap-2 border-dashed border p-1">
-                                                            <span>Copy All steps</span>
-                                                            <CopyToClipboard
-                                                                text={JSON.stringify(transformedStepsToCopy(responseTest?.stepsData || []), null, 2)}
-                                                                isDarkMode={isDarkMode}
-                                                            />
-                                                        </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="rounded-md flex items-center gap-2 border-dashed border p-1">
+                                                        <span>Copy All steps</span>
+                                                        <CopyToClipboard
+                                                            text={JSON.stringify(transformedStepsToCopy(responseTest?.stepsData || []), null, 2)}
+                                                            isDarkMode={isDarkMode}
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            <StepActions
-                                                index={-1}
-                                                steps={responseTest?.stepsData || []}
-                                                test={{ ...test }}
-                                                setTestCasesData={setTestCasesData}
-                                                setResponseTest={setResponseTest}
-                                            />
-
-                                            {isLoadingTest && (
-                                                <div className="flex justify-center items-center h-32">
-                                                    <span className="text-gray-500">Loading steps...</span>
-                                                </div>
-                                            )}
-
+                                        </div>
+                                        <div className="w-full flex flex-col gap-2" >
                                             {!isLoadingTest && responseTest?.stepsData?.map((step: any, i: number) => (
                                                 <div key={i} className="flex flex-col gap-2">
-                                                    <div
+                                                   <>
+                                                     <div
                                                         className={getStepSelectionClasses(i)}
                                                         onClick={() => handleStepSelection(i)}
                                                     >
@@ -910,8 +858,17 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                                         setTestCasesData={setTestCasesData}
                                                         setResponseTest={setResponseTest}
                                                     />
+                                                   </>
                                                 </div>
                                             ))}
+
+                                            <TestCaseActions
+                                                test={currentTestCase}
+                                                onDelete={handleDelete}
+                                                onUpdate={handleUpdateConfirm}
+                                                isLoadingUpdate={isLoadingUpdate}
+                                                isDarkMode={isDarkMode}
+                                            />
 
                                             <ReusableStepModal
                                                 isOpen={showReusableModal}
@@ -923,29 +880,23 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                                 responseTest={responseTest}
                                                 onSetResponseData={handleResponseCreateReusedStep}
                                             />
-
-                                            <TestCaseActions
-                                            test={currentTestCase}
-                                            onDelete={handleDelete}
-                                            onUpdate={handleUpdateConfirm}
-                                            isLoadingUpdate={isLoadingUpdate}
-                                            isDarkMode={isDarkMode}
-                                        />
                                         </div>
-
-                                        
                                     </div>
-                                )}
 
-                                {viewMode === 'Historic reports' && test.id && (
+                                )
+                            }, {
+                                name: 'Historic reports', value: 'Historic reports', icon: <FileChartColumn className="h-5 w-5" />,
+                                content: (
                                     <ReportTestCaseList
                                         test={{ ...test, testCaseId: test.id }}
                                         visible={true}
                                         viewMode={viewMode}
                                     />
-                                )}
-
-                                {viewMode === 'editLocation' && (
+                                )
+                            },
+                            {
+                                name: 'Edit Location', value: 'editLocation', icon: <Locate className="ml-1 h-5 w-5" />,
+                                content: (
                                     <div className="w-full p-1 pt-2 min-h-[480px] flex flex-col gap-2">
                                         <h3 className="text-center font-semibold text-lg text-primary/90 mb-4">Edit test case Information</h3>
                                         <EditLocationPanel
@@ -958,14 +909,21 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                             setIsLoadingUpdate={setIsLoadingUpdate}
                                         />
                                     </div>
-                                )}
-                            </div>
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                                )
+                            }
+
+                        ]} />
+                    </div>
+
+
+                </DialogUI>
             </AccordionItem>
         </div>
     );
 };
 
 export default React.memo(SortableTestCaseItem);
+
+
+
+

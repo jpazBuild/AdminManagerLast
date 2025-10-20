@@ -4,9 +4,8 @@ import TextInputWithClearButton from "@/app/components/InputClear";
 import { DashboardHeader } from "@/app/Layouts/main";
 import { URL_API_ALB } from "@/config";
 import axios from "axios";
-import { CircleAlert, PlusIcon, Settings, Trash2Icon, X } from "lucide-react";
+import { CircleAlert, PlusIcon, Settings, X } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import MoreMenu from "../components/MoreMenu";
 import CreateEnvironment from "./components/create";
 import { EnvRow } from "./types/types";
 import { buildSavePayload, normalizeToRows, renameKey } from "./utils/rowsMethods";
@@ -125,63 +124,6 @@ const EnvironmentsPage = () => {
     const removeRow = (id: string) =>
         setRows(prev => prev.filter(r => r.id !== id));
 
-
-
-    // const onSave = async () => {
-    //     if (!selectedEnvironment) return;
-    //     setSaving(true);
-    //     try {
-    //         if (sourceType === "values") {
-    //             const payload = buildSavePayload(selectedEnvironment, rows, sourceType);
-    //             delete payload.createdAt;
-    //             delete payload.type;
-    //             delete payload.route;
-    //             renameKey(
-    //                 payload,
-    //                 "createdByName",
-    //                 "updatedBy"
-    //             );
-    //             const valuesPayload = rows.map(r => ({
-    //                 key: r.key,
-    //                 value: r.value,
-    //                 enabled: r.enabled,
-    //                 type: r._type ?? r._orig?.type ?? "default",
-    //             }));
-
-    //             await axios.patch(`${URL_API_ALB}envs`, payload);
-    //             fetchEnvironments();
-    //         } else {
-    //             const envObj: Record<string, string> = {};
-    //             rows.forEach(r => {
-    //                 envObj[r.key] = r.value;
-    //             });
-
-    //             await axios.patch(`${URL_API_ALB}envs`, {
-    //                 id: selectedEnvironment.id,
-    //                 name: selectedEnvironment?.name,
-    //                 tagNames: selectedEnvironment?.tagNames,
-    //                 description: selectedEnvironment?.description,
-    //                 env: envObj,
-    //                 updatedBy: selectedEnvironment?.createdByName,
-    //                 createdBy: selectedEnvironment?.createdByName,
-    //                 temp: false,
-    //             });
-    //             fetchEnvironments();
-    //         }
-
-    //         const snapshot: EnvRow[] = JSON.parse(JSON.stringify(rows));
-    //         originalRowsRef.current = snapshot;
-
-    //         setToastMsg("Changes saved successfully.");
-    //         setTimeout(() => setToastMsg(null), 4000);
-    //     } catch (e) {
-    //         setToastMsg("Error while saving changes.");
-    //         setTimeout(() => setToastMsg(null), 4000);
-    //     } finally {
-    //         setSaving(false);
-    //     }
-    // };
-
     const onSave = async (opts?: { nameOverride?: string }) => {
         if (!selectedEnvironment) return;
         setSaving(true);
@@ -206,7 +148,7 @@ const EnvironmentsPage = () => {
 
                 await axios.patch(`${URL_API_ALB}envs`, {
                     id: selectedEnvironment.id,
-                    name: effectiveName, // <-- usar el nombre nuevo
+                    name: effectiveName,
                     tagNames: selectedEnvironment?.tagNames,
                     description: selectedEnvironment?.description,
                     env: envObj,
@@ -217,11 +159,9 @@ const EnvironmentsPage = () => {
                 await fetchEnvironments();
             }
 
-            // Snapshot filas OK
             const snapshot: EnvRow[] = JSON.parse(JSON.stringify(rows));
             originalRowsRef.current = snapshot;
 
-            // Refleja el nombre nuevo localmente (evita pantalla vieja)
             if (opts?.nameOverride) {
                 setSelectedEnvironment((prev: any) =>
                     prev ? { ...prev, name: effectiveName } : prev
@@ -246,7 +186,6 @@ const EnvironmentsPage = () => {
             return;
         }
         if (newName.trim() === selectedEnvironment.name) {
-            // No change in name
             return;
         }
         if (environments.some(env => env.name === newName.trim())) {

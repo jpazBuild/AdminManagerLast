@@ -11,7 +11,7 @@ import { ExecutionSummary } from "../../components/ExecutionSummary";
 import { downloadRenderedHtml, downloadRenderedPdf } from "./ReportsHistoricTestCaseList";
 import { flushSync } from "react-dom";
 import CopyToClipboard from "@/app/components/CopyToClipboard";
-import { PaginationResults } from "./PaginationResults";
+import PaginationResults from "./PaginationResults";
 import { usePagination } from "@/app/hooks/usePagination";
 
 const TestReports = ({ reports, setLoading, progress, selectedTest, testData, stopped, setStopped, onPlayTest, loading, onRunAll }: any) => {
