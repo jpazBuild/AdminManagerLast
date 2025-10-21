@@ -1054,7 +1054,7 @@ const CollectionsPage = () => {
                                     singlePieces.length ? (
                                         <div className="w-full">
                                             <div className="mb-3 flex items-center gap-2">
-                                              
+
 
                                                 <div className="ml-auto text-xs">
                                                     {(() => {
@@ -1115,8 +1115,7 @@ const CollectionsPage = () => {
                                                         const responsePayload =
                                                             reqDetail?.response ??
                                                             testDetail?.response ??
-                                                            (testDetail?.error ? { error: testDetail.error } : {}) ??
-                                                            {};
+                                                            (testDetail?.error ? { error: testDetail.error } : {});
 
                                                         const payload = resTab === "request" ? requestPayload : responsePayload;
                                                         return JSON.stringify(payload, null, 2);

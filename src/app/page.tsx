@@ -62,19 +62,16 @@ export default function Home() {
       return acc;
     }, {} as Filters);
 
-    // Convertir activeFilters a un formato que URLSearchParams entienda
     const searchParams: [string, string][] = [];
 
     for (const [key, value] of Object.entries(activeFilters)) {
       if (Array.isArray(value)) {
-        // Si el valor es un array, creamos múltiples entradas para cada valor del array
         value.forEach(val => searchParams.push([key, String(val)]));
       } else {
         searchParams.push([key, String(value)]);
       }
     }
 
-    // Crear los parámetros de búsqueda
     const params = new URLSearchParams(searchParams).toString();
     return params;
   };
