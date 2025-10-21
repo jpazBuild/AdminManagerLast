@@ -84,3 +84,38 @@ export type ReportFile = {
   status: "passed" | "failed" | string;
   reportName: string;
 };
+
+export type FlowNode = {
+    id: string;
+    name: string;
+    method: string;
+    url: string;
+    rawNode: any;
+};
+
+export type Detail = {
+    key: string;
+    uid: string;
+    name: string;
+    teamId: number | string;
+    data: any;
+};
+
+export type Connector = { d: string };
+
+
+export type Stage = "pre" | "request" | "post";
+export type ModalTab = "metadata" | "error" | "environment";
+
+export type ExecPiece = {
+    name: string;
+    request?: {
+        success?: boolean;
+        status?: number | null;
+        detail?: any;
+    };
+    test?: {
+        success?: boolean;
+        detail?: any;
+    };
+};

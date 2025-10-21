@@ -598,6 +598,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                         title="Import Dynamic Data from JSON"
                         height="h-80"
                         width="lg:max-w-2xl w-full"
+                        
                     >
                         <JSONDropzone
                             onJSONParsed={handleParsedJSON}
@@ -606,6 +607,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                             }}
                             onClear={handleClearJSONData}
                             isDarkMode={isDarkMode}
+                            
                         />
                     </DialogUI>
                 )}

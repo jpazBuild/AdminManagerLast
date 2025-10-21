@@ -431,7 +431,7 @@ const DashboardPage = () => {
             <div className={`p-4 flex justify-center items-center w-full h-full flex-col gap-4 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-primary"} transition-colors duration-300`}>
                 <div className="w-full lg:w-2/3 flex flex-col gap-4 mb-4 mt-2 justify-center items-center">
                     <h2 className="font-medium tracking-wide text-center text-[20px] w-full">Find test cases</h2>
-                    
+
                     <SearchField
                         label="Search Test by tags"
                         value={selectedTag}
@@ -556,93 +556,56 @@ const DashboardPage = () => {
                     </div>
                 </div>
 
-
-                <div className="flex gap-2">
-                    <ButtonTab
-                        label="View Test Cases"
-                        value="list"
-                        isActive={viewMode === "list"}
-                        onClick={() => setViewMode("list")}
-                        isDarkMode={isDarkMode}
-                    />
-                    <ButtonTab
-                        label="View Reports"
-                        value="reports"
-                        isActive={viewMode === "reports"}
-                        onClick={() => setViewMode("reports")}
-                        isDarkMode={isDarkMode}
-                    />
-
-
-                </div>
-
                 <div className="w-full lg:w-2/3 flex flex-col gap-4 justify-center items-center">
-                    <div
-                        className={viewMode === 'list' ? 'block w-full' : 'hidden w-full'}
-                        aria-hidden={viewMode !== 'list'}
-                    >
-                        {dataTestCases.length > 0 ? (
-                            <div className="w-full">
-                                <TestCaseList
-                                    testCases={dataTestCases}
-                                    selectedCases={selectedCases}
-                                    toggleSelect={toggleSelect}
-                                    onDataChange={onDataChangeRead}
-                                    onTestCasesDataChange={onTestCasesDataChange}
-                                    onRefreshAfterUpdateOrDelete={fetchInitialData}
-                                    editMode={editMode}
-                                    setEditMode={setEditMode}
+                    {dataTestCases.length > 0 ? (
+                        <div className="w-full">
+                            <TestCaseList
+                                testCases={dataTestCases}
+                                selectedCases={selectedCases}
+                                toggleSelect={toggleSelect}
+                                onDataChange={onDataChangeRead}
+                                onTestCasesDataChange={onTestCasesDataChange}
+                                onRefreshAfterUpdateOrDelete={fetchInitialData}
+                                editMode={editMode}
+                                setEditMode={setEditMode}
+                                isDarkMode={isDarkMode}
+                            />
+
+                        </div>
+                    ) : (
+                        <NoData />
+                    )}
+
+                    {
+                        selectedCases.length > 0 && (
+                            <div className="w-full flex justify-end items-center">
+                                <FaChrome className="w-6 h-6 text-primary mr-2" title="Chrome Browser" />
+                                <TestSettings
+                                    onBrowserLimitChange={handleBrowserLimitChange}
+                                    onHeadlessChange={handleHeadlessChange}
                                     isDarkMode={isDarkMode}
+
                                 />
-
                             </div>
-                        ) : (
-                            <NoData />
-                        )}
-                    </div>
-
-                    <div
-                        className={viewMode === 'reports' ? 'block w-full' : 'hidden w-full'}
-                        aria-hidden={viewMode !== 'reports'}
-                    >
-                        {
-                            dataTestCases.length > 0 && (
-                                <div className="w-full flex justify-end items-center">
-                                    <FaChrome className="w-6 h-6 text-primary mr-2" title="Chrome Browser" />
-                                    <TestSettings
-                                        onBrowserLimitChange={handleBrowserLimitChange}
-                                        onHeadlessChange={handleHeadlessChange}
-                                        isDarkMode={isDarkMode}
-
-                                    />
-                                </div>
-                            )
-                        }
-                        {dataTestCases.length === 0 && (
-                            <div className="w-full h-full p-10 flex flex-col gap-4 justify-center items-center mb-4">
-                                <TbWorld className="w-8 h-8 text-blue-500 mr-2" title="No test cases available" />
-                                <span className="text-primary/80">Select test cases for execute</span>
-                                <button onClick={() => setViewMode("list")} className="bg-primary/80 font-bold text-white px-4 py-2 rounded-lg">View test cases</button>
-                            </div>
-                        )}
+                        )
+                    }
 
 
-                        <TestReports
-                            stopped={stopped}
-                            setStopped={setStopped}
-                            setLoading={setLoading}
-                            loading={loading}
-                            testData={testData}
-                            reports={reports}
-                            idReports={idReports}
-                            progress={progress}
-                            selectedCases={selectedCases}
-                            selectedTest={selectedTests}
-                            darkMode={isDarkMode}
-                            onPlayTest={handlePlaySingle}
-                            onRunAll={handleRunTests}
-                        />
-                    </div>
+                    <TestReports
+                        stopped={stopped}
+                        setStopped={setStopped}
+                        setLoading={setLoading}
+                        loading={loading}
+                        testData={testData}
+                        reports={reports}
+                        idReports={idReports}
+                        progress={progress}
+                        selectedCases={selectedCases}
+                        selectedTest={selectedTests}
+                        darkMode={isDarkMode}
+                        onPlayTest={handlePlaySingle}
+                        onRunAll={handleRunTests}
+                    />
                 </div>
             </div>
         </DashboardHeader>

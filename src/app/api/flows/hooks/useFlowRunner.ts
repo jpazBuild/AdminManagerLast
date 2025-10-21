@@ -1,4 +1,3 @@
-// hooks/useFlowRunner.ts
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -13,6 +12,13 @@ type MsgEntry = {
     ts: number;
     kind: "log" | "progress" | "done" | "error" | "raw";
     payload: any;
+};
+
+type RunApisPayload = {
+    action: "runApis";
+    key: string;
+    apis: any[];
+    env?: any;
 };
 
 export type FlowRunStatus = "idle" | "running" | "done" | "error";
@@ -140,12 +146,38 @@ export const useFlowRunner = () => {
         };
     }, [appendMessage, setFlowStatus]);
 
+    const resetFlows = useCallback((flowIds?: string[]) => {
+        if (!flowIds?.length) {
+            setMessagesResult({});
+            setRunningByFlow({});
+            setSummariesByFlow({});
+            setError(null);
+            return;
+        }
+        setMessagesResult(prev => {
+            const copy = { ...prev };
+            for (const id of flowIds) copy[id] = { status: "idle", messages: [] };
+            return copy;
+        });
+        setRunningByFlow(prev => {
+            const copy = { ...prev };
+            for (const id of flowIds) copy[id] = false;
+            return copy;
+        });
+        setSummariesByFlow(prev => {
+            const copy = { ...prev };
+            for (const id of flowIds) delete copy[id];
+            return copy;
+        });
+        setError(null);
+    }, []);
+
     const runFlows = useCallback(async (flowIds: string[]) => {
         if (!flowIds?.length) {
             toast.error("Select at least one flow to run");
             return;
         }
-
+        resetFlows(flowIds);
         setMessagesResult(prev => {
             const copy = { ...prev };
             for (const id of flowIds) {
@@ -188,9 +220,67 @@ export const useFlowRunner = () => {
     }, [appendMessage, ensureSocketFor, setFlowStatus]);
 
 
+    const sendPayload = useCallback(
+        async (flowId: string, payload: any, opts?: { reset?: boolean }) => {
+            const { reset = true } = opts ?? {};
+
+            if (reset) {
+                setMessagesResult(prev => ({ ...prev, [flowId]: { status: "idle", messages: [] } }));
+                setRunningByFlow(prev => ({ ...prev, [flowId]: false }));
+                setSummariesByFlow(prev => {
+                    const copy = { ...prev };
+                    delete copy[flowId];
+                    return copy;
+                });
+            }
+
+            ensureSocketFor(flowId, async () => {
+                try {
+                    const ws = wsRefs.current.get(flowId);
+                    if (!ws || ws.readyState !== WebSocket.OPEN) {
+                        appendMessage(flowId, {
+                            ts: Date.now(),
+                            kind: "error",
+                            payload: { message: "WebSocket not open" }
+                        });
+                        setFlowStatus(flowId, "error");
+                        return;
+                    }
+
+                    const payloadStr = JSON.stringify(payload);
+                    console.log(`[flow:${flowId}] sending custom payload`, payload);
+
+                    ws.send(payloadStr);
+
+                    appendMessage(flowId, {
+                        ts: Date.now(),
+                        kind: "log",
+                        payload: { message: "Flow started (custom payload)" }
+                    });
+                    toast.message(`Flow ${flowId} started`);
+                } catch (e) {
+                    appendMessage(flowId, {
+                        ts: Date.now(),
+                        kind: "error",
+                        payload: { message: "Failed to send custom payload", e }
+                    });
+                    setFlowStatus(flowId, "error");
+                }
+            });
+        },
+        [appendMessage, ensureSocketFor, setFlowStatus]
+    );
+
     const runSingleFlow = useCallback(async (flowObj: any) => {
         await runFlows([flowObj.id]);
     }, [runFlows]);
+
+    const runSingleFlowWithPayload = useCallback(
+        async (flowId: string, payload: any, opts?: { reset?: boolean }) => {
+            await sendPayload(flowId, payload, opts);
+        },
+        [sendPayload]
+    );
 
     const stopFlow = useCallback((flowId: string) => {
         const ws = wsRefs.current.get(flowId);
@@ -227,6 +317,7 @@ export const useFlowRunner = () => {
         runFlows,
         runSingleFlow,
         stopFlow,
-        getExecutedApis
+        getExecutedApis,
+        runSingleFlowWithPayload
     };
 };

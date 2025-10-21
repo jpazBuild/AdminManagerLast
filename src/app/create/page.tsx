@@ -523,7 +523,7 @@ const CreateForm = () => {
 
     return (
         <DashboardHeader>
-            <div className="sticky top-0 h-full self-center flex flex-col w-full lg:w-2/3 justify-center !overflow-hidden">
+            <div className="sticky top-0 h-full self-center flex flex-col w-full lg:w-2/3 justify-center overflow-y-auto">
                 <h2 className=" text-2xl font-semibold mb-2 text-primary/80 text-center">
                     Location Information
                 </h2>
@@ -559,7 +559,7 @@ const CreateForm = () => {
                                     {creatingTag ? "Saving…" : "Save Tag"}
                                 </button>
 
-                                <div className="w-full mt-4 h-full overflow-hidden">
+                                <div className="w-full h-full overflow-hidden">
                                     <div className="flex items-center justify-between mb-2">
                                         <h4 className="text-md font-semibold text-primary/80">
                                             Existing Tags
@@ -592,7 +592,7 @@ const CreateForm = () => {
                                     )}
 
                                     {filteredTags.length > 0 && (
-                                        <div className="h-full w-full flex flex-col gap-2 pb-2 overflow-auto">
+                                        <div className="h-full w-full max-h-[50vh] flex flex-col gap-2 pb-2 overflow-auto px-2">
                                             {filteredTags
                                                 .slice((tagPage - 1) * tagPageSize, tagPage * tagPageSize)
                                                 .map((tag: any) => (
