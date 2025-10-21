@@ -17,6 +17,8 @@ import { RiErrorWarningLine } from "react-icons/ri";
 import { stackoverflowLight, tomorrow, vs } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { VscJson } from "react-icons/vsc";
 import ButtonTab from "@/app/components/ButtonTab";
+import { useFlowRunner } from "../flows/hooks/useFlowRunner";
+import { toast } from "sonner";
 
 
 
@@ -48,6 +50,113 @@ const parseMaybeJson = (val: unknown) => {
     }
 }
 
+type Stage = "pre" | "request" | "post";
+type ModalTab = "metadata" | "error" | "environment";
+
+type ExecPiece = {
+    name: string;
+    request?: {
+        success?: boolean;
+        status?: number | null;
+        detail?: any;
+    };
+    test?: {
+        success?: boolean;
+        detail?: any;
+    };
+};
+
+const isPlainObj = (v: any) => v && typeof v === "object" && !Array.isArray(v);
+const deepMerge = (a: any, b: any): any => {
+    if (Array.isArray(a) && Array.isArray(b)) return b;
+    if (isPlainObj(a) && isPlainObj(b)) {
+        const out: any = { ...a };
+        for (const k of Object.keys(b)) out[k] = k in a ? deepMerge(a[k], b[k]) : b[k];
+        return out;
+    }
+    return b ?? a;
+};
+const pick = (obj: any, keys: string[]) =>
+    keys.reduce((acc, k) => (obj && k in obj ? ((acc as any)[k] = obj[k], acc) : acc), {} as any);
+
+const computePiecesFromMessages = (msgs: any[]) => {
+    const sorted = msgs.slice().sort((a, b) => a.ts - b.ts);
+    const byName: Record<string, ExecPiece> = {};
+
+    const ensure = (name?: string | null): ExecPiece | null => {
+        if (!name) return null;
+        if (!byName[name]) byName[name] = { name };
+        return byName[name];
+    };
+
+    for (const m of sorted) {
+        const resp = m?.payload?.response;
+        const item = m?.payload?.item;
+
+        if (typeof item === "string") {
+            let match = item.match(/^(?:Running request|Request completed):\s*(.+)$/i);
+            if (match?.[1]) {
+                const e = ensure(match[1].trim());
+                if (e && /^Running request:/i.test(item)) {
+                    e.request = e.request ?? { success: undefined, status: null, detail: {} };
+                }
+            }
+            match = item.match(/^(?:Running test script|Test script completed):\s*(.+)$/i);
+            if (match?.[1]) {
+                const e = ensure(match[1].trim());
+                if (e && /^Running test script:/i.test(item)) {
+                    e.test = e.test ?? { success: undefined, detail: {} };
+                }
+            }
+        }
+
+        if (resp && (resp.name || resp.type)) {
+            const rName: string | null = resp.name ?? null;
+            const rType: string | null = resp.type ?? null;
+
+            if (rName && rType === "request") {
+                const e = ensure(rName);
+                if (!e) continue;
+
+                const nextReq = {
+                    success: typeof resp.success === "boolean" ? resp.success : e.request?.success ?? undefined,
+                    status:
+                        typeof resp.status === "number"
+                            ? resp.status
+                            : typeof e.request?.status === "number"
+                                ? e.request?.status
+                                : null,
+                    detail: deepMerge(e.request?.detail ?? {}, pick(resp, ["request", "response", "env"])),
+                };
+                e.request = nextReq;
+            }
+
+            if (rName && rType === "script" && resp.listen === "test") {
+                const e = ensure(rName);
+                if (!e) continue;
+
+                const nextTest = {
+                    success: typeof resp.success === "boolean" ? resp.success : e.test?.success ?? undefined,
+                    detail: deepMerge(e.test?.detail ?? {}, resp),
+                };
+                e.test = nextTest;
+            }
+        }
+    }
+
+    const pieces = Object.values(byName);
+    const totalSteps = pieces.reduce((acc, p) => acc + (p.request ? 1 : 0) + (p.test ? 1 : 0), 0) || 0;
+    const doneSteps = pieces.reduce(
+        (acc, p) =>
+            acc +
+            (typeof p.request?.success === "boolean" ? 1 : 0) +
+            (typeof p.test?.success === "boolean" ? 1 : 0),
+        0
+    );
+    const progressPct = totalSteps ? Math.round((doneSteps / totalSteps) * 100) : 0;
+
+    return { pieces, progressPct, sorted };
+};
 
 const CollectionsPage = () => {
     const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
@@ -77,16 +186,26 @@ const CollectionsPage = () => {
     const [activeTabRequest, setActiveTabRequest] = useState<"graphql" | "variables" | "headers" | "body">("headers");
     const { getCollection, cache: collectionsCache, loading: loadingCollection, error: collectionError } =
         useFetchCollection();
+    const [resTab, setResTab] = useState<"request" | "response">("response");
 
-
+    const [singleFlowId, setSingleFlowId] = useState<string | null>(null);
+    const { runSingleFlowWithPayload, messagesResult, anyRunning } = useFlowRunner();
+    const [variablesCode, setVariablesCode] = useState<string>("{}");
+    const [variablesErr, setVariablesErr] = useState<string | null>(null);
+    const [chipModal, setChipModal] = useState<{
+        open: boolean;
+        apiName: string | null;
+        stage: Stage;
+        tab: ModalTab;
+    }>({ open: false, apiName: null, stage: "request", tab: "metadata" });
     const teams = [{ name: "Team A" }, { name: "Team B" }, { name: "Team C" }];
     const typeOrigin = [{ name: "Postman" }, { name: "BD" }];
     const [dataDetailCollections, setDataDetailCollections] = useState<
         Array<{ key: string; uid: string; name: string; teamId: string | number; data: any }>
     >([]);
 
+
     const selectRequest = (collectionName: string, methodName: string, node: any) => {
-        console.log("selectRequest", { collectionName, methodName, node });
         setSelectedRequest({
             collection: collectionName,
             method: methodName,
@@ -94,43 +213,24 @@ const CollectionsPage = () => {
             node
         });
 
-        const defaultUrl = `http://localhost:3000/api/${collectionName.toLowerCase().replace(/\s+/g, "-")}`;
-        setRequestUrl(defaultUrl);
+        const initialUrl = node?.request?.url?.raw || "";
+        setRequestUrl(initialUrl);
+
+        const rawVars = node?.request?.body?.graphql?.variables;
+        try {
+            const parsed = rawVars == null
+                ? {}
+                : (typeof rawVars === "string" ? JSON.parse(rawVars) : rawVars);
+            setVariablesCode(JSON.stringify(parsed, null, 2));
+        } catch {
+            setVariablesCode(typeof rawVars === "string" ? rawVars : "{}");
+        }
+        setVariablesErr(null);
 
         setRequestHeaders([{ key: "", value: "" }]);
 
         setIsOpen(false);
     };
-
-    const runRequest = async (collectionName: string, methodName: string) => {
-        try {
-            setIsRequestRunning(true);
-
-            const mockResponse = {
-                status: 200,
-                timestamp: new Date().toISOString(),
-                data: {
-                    message: `${methodName} executed for ${collectionName}`,
-                    requestUrl,
-                    headers: requestHeaders.filter(h => h.key || h.value),
-                    payload: { id: 123, name: "Mock item" },
-                },
-            };
-
-            setSelectedRequest({
-                collection: collectionName,
-                method: methodName,
-                response: mockResponse,
-                node: selectedRequest?.node || null,
-            });
-
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setIsRequestRunning(false);
-        }
-    };
-
 
 
 
@@ -384,6 +484,163 @@ const CollectionsPage = () => {
         }
     }, [parsed]);
 
+
+    const buildSinglePayload = () => {
+        if (!selectedRequest?.node) return null;
+
+        const rn = selectedRequest.node ?? {};
+        const request = rn?.request ?? {};
+
+        const cleanedHeadersList = (requestHeaders || [])
+            .filter(h => h.key || h.value)
+            .map(h => ({ key: h.key, value: h.value }));
+
+        const headersObj = cleanedHeadersList.reduce(
+            (acc, h) => (h.key ? { ...acc, [h.key]: h.value } : acc),
+            {} as Record<string, string>
+        );
+
+        let vars: any = {};
+        try {
+            vars = variablesCode?.trim() ? JSON.parse(variablesCode) : {};
+        } catch (e) {
+            toast.error("Variables JSON inválido");
+            return null;
+        }
+
+        const variablesAsString =
+            variablesCode?.trim() ? variablesCode : JSON.stringify(vars);
+
+        const methodUpper = String(request.method || "GET").toUpperCase();
+        const method = methodUpper.toLowerCase();
+        const url = requestUrl || request?.url?.raw || "";
+        if (!url) {
+            toast.error("URL requerida");
+            return null;
+        }
+
+        const bodyMode = request?.body?.mode;
+        let data: any = undefined;
+
+        if (["post", "put", "patch"].includes(method)) {
+            if (bodyMode === "graphql") {
+                const query = request?.body?.graphql?.query ?? "";
+                data = { query, variables: variablesAsString };
+                if (!headersObj["Content-Type"]) headersObj["Content-Type"] = "application/json";
+            } else if (bodyMode === "raw") {
+                const raw = request?.body?.raw ?? "";
+                data = typeof raw === "string" ? raw : JSON.stringify(raw);
+                if (!headersObj["Content-Type"]) headersObj["Content-Type"] = "application/json";
+            }
+        }
+
+        const mergedHeadersArray =
+            Object.keys(headersObj).length
+                ? Object.entries(headersObj).map(([key, value]) => ({ key, value }))
+                : (request.header ?? []);
+
+        const apiItem = {
+            ...rn,
+            name: rn?.name ?? selectedRequest?.method ?? "Request",
+            request: {
+                ...request,
+                method: methodUpper,
+                header: mergedHeadersArray,
+                url: { ...(request.url ?? {}), raw: url },
+                ...(data !== undefined
+                    ? (bodyMode === "graphql"
+                        ? { body: { mode: "graphql", graphql: { query: request?.body?.graphql?.query ?? "", variables: variablesAsString } } }
+                        : { body: { mode: "raw", raw: data } })
+                    : {}),
+            },
+        };
+
+        const flowId = `single-flow-${Date.now()}`;
+
+        const payload = {
+            action: "runApis",
+            key: `single/run_${Date.now()}.json`,
+            apis: [apiItem],
+            env: { variables: vars },
+        };
+
+        return { flowId, payload };
+    };
+
+    const runRequest = async (collectionName: string, methodName: string) => {
+        const built = buildSinglePayload();
+        if (!built) {
+            toast.error("No request selected");
+            return;
+        }
+
+        const { flowId, payload } = built;
+
+        setIsOpen(true);
+
+        setSingleFlowId(flowId);
+
+        runSingleFlowWithPayload(flowId, payload);
+    };
+
+    const normalizeSinglePack = (pack: any) => {
+        if (Array.isArray(pack) && pack.length && pack[0]?.name) {
+            return { pieces: pack as ExecPiece[], sorted: [] as any[], progressPct: calcProgressFromPieces(pack as ExecPiece[]) };
+        }
+
+        if (pack?.pieces && Array.isArray(pack.pieces)) {
+            return { pieces: pack.pieces as ExecPiece[], sorted: Array.isArray(pack.sorted) ? pack.sorted : [], progressPct: calcProgressFromPieces(pack.pieces as ExecPiece[]) };
+        }
+
+        if (Array.isArray(pack?.messages)) {
+            const { pieces, progressPct, sorted } = computePiecesFromMessages(pack.messages);
+            return { pieces, progressPct, sorted };
+        }
+
+        return { pieces: [] as ExecPiece[], progressPct: 0, sorted: [] as any[] };
+    };
+
+    const calcProgressFromPieces = (list: ExecPiece[]) => {
+        const totalSteps = list.reduce((acc, p) => acc + (p.request ? 1 : 0) + (p.test ? 1 : 0), 0) || 0;
+        const doneSteps = list.reduce(
+            (acc, p) =>
+                acc + (typeof p.request?.success === "boolean" ? 1 : 0) + (typeof p.test?.success === "boolean" ? 1 : 0),
+            0
+        );
+        return totalSteps ? Math.round((doneSteps / totalSteps) * 100) : 0;
+    };
+
+    const { pieces: singlePieces, progressPct: singlePct, sorted: singleMsgs } = useMemo(() => {
+        if (!singleFlowId) return { pieces: [] as ExecPiece[], progressPct: 0, sorted: [] as any[] };
+        const pack = messagesResult?.[singleFlowId];
+
+        return normalizeSinglePack(pack);
+    }, [singleFlowId, messagesResult]);
+
+
+
+    useEffect(() => {
+        if (variablesParsed != null) {
+            try {
+                setVariablesCode(
+                    typeof variablesParsed === "string"
+                        ? variablesParsed
+                        : JSON.stringify(variablesParsed, null, 2)
+                );
+            } catch {
+                setVariablesCode(typeof variablesRaw === "string" ? variablesRaw : "{}");
+            }
+        } else {
+            setVariablesCode(typeof variablesRaw === "string" ? variablesRaw : "{}");
+        }
+        setVariablesErr(null);
+    }, [selectedRequest?.node, variablesRaw, variablesParsed]);
+
+
+    console.log("singlePieces for render:", singlePieces);
+
+
+
     return (
         <DashboardHeader pageType="api" callback={(mobileSidebarOpen) => {
             setMobileSidebarOpen(mobileSidebarOpen);
@@ -413,7 +670,7 @@ const CollectionsPage = () => {
                                     options={
                                         (elementsPostman?.teams?.[0]?.workspaces ?? []).map((ws: any) => ({
                                             label: ws.name,
-                                            value: String(ws.id ?? ws.uid ?? ws.workspaceId), // usa id/uid real
+                                            value: String(ws.id ?? ws.uid ?? ws.workspaceId),
                                         }))
                                     }
                                     disabled={selectedTypeOrigin === "BD"}
@@ -528,7 +785,7 @@ const CollectionsPage = () => {
                                                 id="request-url"
                                                 type="text"
                                                 inputMode="text"
-                                                value={selectedRequest?.node?.request?.url?.raw ?? requestUrl}
+                                                value={requestUrl}
                                                 onChangeHandler={(e) => setRequestUrl(e.target.value)}
                                                 placeholder="Enter request URL"
                                                 label="Enter request URL"
@@ -612,24 +869,73 @@ const CollectionsPage = () => {
                                                 )
                                             }
 
-                                            {
-                                                activeTabRequest === "variables" && (
-                                                    <div className="max-h-[400px] overflow-y-auto">
-                                                        <SyntaxHighlighter
-                                                            language="json"
-                                                            style={vs}
-                                                            customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem", backgroundColor: "#F3F6F9", marginTop: "1rem" }}
-                                                        >
-                                                            {
-                                                                variablesParsed != null
-                                                                    ? JSON.stringify(variablesParsed, null, 2)
-                                                                    : (typeof variablesRaw === "string" ? variablesRaw : "{}")
-                                                            }
-                                                        </SyntaxHighlighter>
+                                            {activeTabRequest === "variables" && (
+                                                <div className="space-y-2">
+                                                    <div className="flex items-center justify-between">
+                                                        <h2 className="text-sm text-slate-600">Variables (JSON)</h2>
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                type="button"
+                                                                className="px-2 py-1 text-xs rounded border bg-white hover:bg-slate-50"
+                                                                onClick={() => {
+                                                                    try {
+                                                                        const pretty = JSON.stringify(JSON.parse(variablesCode || "{}"), null, 2);
+                                                                        setVariablesCode(pretty);
+                                                                        setVariablesErr(null);
+                                                                    } catch (e: any) {
+                                                                        setVariablesErr(e?.message || "Invalid JSON");
+                                                                    }
+                                                                }}
+                                                            >
+                                                                Prettify
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="px-2 py-1 text-xs rounded border bg-white hover:bg-slate-50"
+                                                                onClick={() => {
+                                                                    setVariablesCode("{}");
+                                                                    setVariablesErr(null);
+                                                                }}
+                                                            >
+                                                                Reset
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                )
-                                            }
 
+                                                    <div className="max-h-[400px] overflow-y-auto">
+                                                        <textarea
+                                                            value={variablesCode}
+                                                            onChange={(e) => {
+                                                                setVariablesCode(e.target.value);
+                                                                if (variablesErr) setVariablesErr(null);
+                                                            }}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === "Tab") {
+                                                                    e.preventDefault();
+                                                                    const el = e.currentTarget;
+                                                                    const start = el.selectionStart ?? 0;
+                                                                    const end = el.selectionEnd ?? 0;
+                                                                    const before = variablesCode.slice(0, start);
+                                                                    const after = variablesCode.slice(end);
+                                                                    const next = `${before}  ${after}`;
+                                                                    setVariablesCode(next);
+                                                                    queueMicrotask(() => {
+                                                                        el.selectionStart = el.selectionEnd = start + 2;
+                                                                    });
+                                                                }
+                                                            }}
+                                                            spellCheck={false}
+                                                            className="w-full font-mono text-[13px] leading-5 rounded-md border border-slate-200 bg-[#F3F6F9] p-3 outline-none focus:ring-2 focus:ring-primary/30"
+                                                            rows={14}
+                                                            placeholder='{"foo":"bar"}'
+                                                        />
+                                                    </div>
+
+                                                    {variablesErr && (
+                                                        <div className="text-xs text-red-600">JSON error: {variablesErr}</div>
+                                                    )}
+                                                </div>
+                                            )}
                                             {activeTabRequest === "headers" && (
                                                 <div className="mt-4 w-full">
                                                     <h2 className="text-sm text-slate-600 mb-2">Headers</h2>
@@ -741,44 +1047,95 @@ const CollectionsPage = () => {
                             />
                         </button>
 
-                        {isOpen && (
-                            <div className="w-full h-full flex  p-4 overflow-y-auto text-sm bg-slate-50">
-                                {selectedRequest?.response ? (
-                                    <SyntaxHighlighter
-                                        language="json"
-                                        style={stackoverflowLight}
-                                        showLineNumbers
-                                        wrapLongLines
-                                        customStyle={{
-                                            margin: 0,
-                                            padding: "12px 16px",
-                                            borderRadius: "0 0 0.375rem 0.375rem",
-                                            background: "#ffffff",
-                                            fontSize: "0.9rem",
-                                            width: "100%",
-                                            height: "100%",
-                                        }}
-                                        lineNumberStyle={{
-                                            minWidth: "2ch",
-                                            paddingRight: "12px",
-                                            color: "#9AA0A6",
-                                            userSelect: "none",
-                                        }}
 
-                                    >
-                                        {code}
-                                    </SyntaxHighlighter>
+                        {isOpen && (
+                            <div className="w-full h-full flex p-4 overflow-y-auto text-sm bg-slate-50">
+                                {singleFlowId ? (
+                                    singlePieces.length ? (
+                                        <div className="w-full">
+                                            <div className="mb-3 flex items-center gap-2">
+                                              
+
+                                                <div className="ml-auto text-xs">
+                                                    {(() => {
+                                                        const req = (singlePieces as any)[0]?.request;
+                                                        const label =
+                                                            req?.success === true
+                                                                ? "Success"
+                                                                : req?.success === false
+                                                                    ? "Failed"
+                                                                    : "Pending";
+                                                        const cls =
+                                                            req?.success === true
+                                                                ? "border-emerald-600 text-emerald-700"
+                                                                : req?.success === false
+                                                                    ? "border-red-600 text-red-600"
+                                                                    : "border-slate-300 text-slate-600";
+                                                        return (
+                                                            <span className={`px-3 py-1 rounded-full border bg-white ${cls}`}>
+                                                                {label}{typeof req?.status === "number" ? ` · ${req.status}` : ""}
+                                                            </span>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            </div>
+
+                                            <div className="max-h-[60vh] overflow-auto rounded-md">
+                                                <SyntaxHighlighter
+                                                    language="json"
+                                                    style={stackoverflowLight}
+                                                    showLineNumbers
+                                                    wrapLongLines
+                                                    customStyle={{
+                                                        margin: 0,
+                                                        padding: "12px 16px",
+                                                        borderRadius: "0.375rem",
+                                                        background: "#ffffff",
+                                                        fontSize: "0.9rem",
+                                                        width: "100%",
+                                                    }}
+                                                    lineNumberStyle={{
+                                                        minWidth: "2ch",
+                                                        paddingRight: "12px",
+                                                        color: "#9AA0A6",
+                                                        userSelect: "none",
+                                                    }}
+                                                >
+                                                    {(() => {
+                                                        const first = (singlePieces as any)[0] || {};
+                                                        const reqDetail = first?.request?.detail || {};
+                                                        const testDetail = first?.test?.detail || {};
+
+                                                        const requestPayload =
+                                                            reqDetail?.request ??
+                                                            testDetail?.request ??
+                                                            reqDetail ??
+                                                            {};
+
+                                                        const responsePayload =
+                                                            reqDetail?.response ??
+                                                            testDetail?.response ??
+                                                            (testDetail?.error ? { error: testDetail.error } : {}) ??
+                                                            {};
+
+                                                        const payload = resTab === "request" ? requestPayload : responsePayload;
+                                                        return JSON.stringify(payload, null, 2);
+                                                    })()}
+                                                </SyntaxHighlighter>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
+                                            {anyRunning ? "Running..." : "No response yet. Run the flow to see results."}
+                                        </div>
+                                    )
                                 ) : (
-                                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
-                                        <span className="text-4xl mb-2">&lt;/&gt;</span>
-                                        <p>API response are shown here</p>
+                                    <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
+                                        No response yet. Run the flow to see results.
                                     </div>
                                 )}
                             </div>
-                        )
-
-                        }
-
+                        )}
 
                     </div>
                 </div>

@@ -84,7 +84,7 @@ const JSONDropzone = ({
   }, [onClear, onFileInfoChange]);
 
   const dzClsBase =
-    "max-w-80 border-2 border-dashed rounded-md px-4 py-6 transition-colors cursor-pointer";
+    "self-center max-w-80 border-2 border-dashed rounded-md px-4 py-6 transition-colors cursor-pointer flex flex-col h-full w-full justify-center items-center";
   const dzCls = isDarkMode
     ? `${dzClsBase} ${isDragging ? "border-blue-400 bg-blue-900/20 text-white" : "border-gray-500 bg-gray-800 text-gray-300 hover:bg-blue-900/10 hover:border-blue-400"}`
     : `${dzClsBase} text-primary ${isDragging ? "border-primary bg-primary/10" : "border-primary/30 bg-white hover:bg-primary/10 hover:border-primary"}`;
@@ -120,6 +120,7 @@ const JSONDropzone = ({
           openFileDialog();
         }
       }}
+      
     >
       <div className={`flex flex-col items-center justify-center gap-2 text-sm ${textCls}`}>
         <Upload className={iconCls} size={20} />

@@ -103,7 +103,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
         <div
             key={`step-${index}`}
             className={`relative p-4 flex flex-col rounded-lg shadow-md transition-all text-primary border-2 border-l-4 ${isStepSuccess
-                ? "border-green-500"
+                ? "border-emerald-500"
                 : isStepError
                     ? "border-red-500"
                     : isStopped

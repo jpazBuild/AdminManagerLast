@@ -361,7 +361,7 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
                                             ? " border-blue-500 "
                                             : progressValue < 100
                                                 ? " border-yellow-500 "
-                                                : " border-green-500 "
+                                                : " border-emerald-500 "
                                     }`}
                                 onClick={() => toggleReport(reportId)}
                             >

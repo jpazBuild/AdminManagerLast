@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { DashboardHeader } from "@/app/Layouts/main";
 import CollectionsAside from "../collections/components/SideCollections";
 import { useFetchElementsPostman } from "../collections/hooks/useFetchElementsPostman";
@@ -10,9 +10,8 @@ import CollectionTree from "../collections/components/CollectionTree";
 import Image from "next/image";
 import Flows from "../../../assets/iconsSides/flows.svg";
 import CollectionMain from "../collections/components/CollectionMain";
-import { ArrowLeft, Check, ChevronDown, PlusIcon, RefreshCcw, Trash2Icon } from "lucide-react";
+import { Check, ChevronDown, PlusIcon, RefreshCcw } from "lucide-react";
 import TextInputWithClearButton from "@/app/components/InputClear";
-import ExpandIcon from "../../../assets/apisImages/ExpandArrow.svg";
 import axios from "axios";
 import { URL_API_ALB } from "@/config";
 import { SearchField } from "@/app/components/SearchField";
@@ -23,392 +22,12 @@ import CopyToClipboard from "@/app/components/CopyToClipboard";
 import { useFlowRunner } from "./hooks/useFlowRunner";
 import { FaXmark } from "react-icons/fa6";
 import { ExecutionSummary } from "@/app/components/ExecutionSummary";
-import SyntaxHighlighter from "react-syntax-highlighter";
-import { stackoverflowLight } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { Detail, ExecPiece, FlowNode, ModalTab, Stage } from "@/types/types";
+import FlowCanvas from "./components/FlowCanvas";
+import RequestDetails from "./components/RequestDetails";
+import ModalBackCanvas from "./components/ModalBackCanvas";
+import ModalRenderChips from "./components/ModalRenderChips";
 
-type Detail = {
-    key: string;
-    uid: string;
-    name: string;
-    teamId: number | string;
-    data: any;
-};
-
-type FlowNode = {
-    id: string;
-    name: string;
-    method: string;
-    url: string;
-    rawNode: any;
-};
-
-
-const MethodPill: React.FC<{ method: string }> = ({ method }) => (
-    <span className={`${httpMethodsStyle(method)} text-[11px] px-2 py-0.5 rounded`}>{method}</span>
-);
-
-const FlowCard: React.FC<{
-    node: FlowNode;
-    onOpen: (id: string) => void;
-    onChangeUrl: (id: string, url: string) => void;
-    onRemove: (id: string) => void;
-}> = ({ node, onOpen, onChangeUrl, onRemove }) => {
-    return (
-        <div className="rounded-lg border border-primary/20 bg-white shadow-sm px-4 py-3 min-w-[320px]">
-            <div className="flex items-center justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2">
-                    <MethodPill method={node.method} />
-                    <p className="font-medium text-primary/85">{node.name}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <button
-                        title="Open details"
-                        onClick={() => onOpen(node.id)}
-                        className="hover:opacity-80 text-primary/85"
-                    >
-                        <Image src={ExpandIcon} alt="Expand" className="w-4 h-4" />
-                    </button>
-                    <button title="Remove" onClick={() => onRemove(node.id)} className="hover:opacity-80 text-primary/85">
-                        <Trash2Icon className="w-5 h-5" />
-                    </button>
-                </div>
-            </div>
-            <TextInputWithClearButton
-                id={`flow-node-url-${node.id}`}
-                value={node.url}
-                onChangeHandler={(e) => onChangeUrl(node.id, e.target.value)}
-                placeholder="http://localhost:3000/"
-            />
-        </div>
-    );
-};
-
-type Connector = { d: string };
-
-const FlowCanvas: React.FC<{
-    flow: FlowNode[];
-    onOpenNode: (id: string) => void;
-    onChangeUrl: (id: string, url: string) => void;
-    onRemoveNode: (id: string) => void;
-    onSendFlow: () => void;
-}> = ({ flow, onOpenNode, onChangeUrl, onRemoveNode, onSendFlow }) => {
-    const containerRef = useRef<HTMLDivElement | null>(null);
-    const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
-    const [connectors, setConnectors] = useState<Connector[]>([]);
-
-    const setCardRef = (idx: number) => (el: HTMLDivElement | null) => {
-        cardRefs.current[idx] = el;
-    };
-
-    const recalc = () => {
-        const root = containerRef.current;
-        if (!root) return;
-
-        const rootRect = root.getBoundingClientRect();
-
-        type Measured = {
-            idx: number;
-            left: number;
-            right: number;
-            top: number;
-            midY: number;
-            bottom: number;
-        };
-
-        const items: Measured[] = cardRefs.current
-            .map((el, idx) => {
-                if (!el) return null;
-                const r = el.getBoundingClientRect();
-                return {
-                    idx,
-                    left: r.left,
-                    right: r.right,
-                    top: r.top,
-                    bottom: r.bottom,
-                    midY: r.top + r.height / 2,
-                };
-            })
-            .filter(Boolean) as Measured[];
-
-        if (items.length < 2) {
-            setConnectors([]);
-            return;
-        }
-
-        items.sort((a, b) => {
-            const topDiff = a.top - b.top;
-            if (Math.abs(topDiff) > 20) return topDiff;
-            return a.left - b.left;
-        });
-
-        const paths = [];
-        for (let i = 0; i < items.length - 1; i++) {
-            const a = items[i];
-            const b = items[i + 1];
-
-            const x1 = a.right - rootRect.left;
-            const y1 = a.midY - rootRect.top;
-            const x2 = b.left - rootRect.left - 8;
-            const y2 = b.midY - rootRect.top;
-
-            if (Math.abs(y1 - y2) < 20) {
-                const midX = (x1 + x2) / 2;
-                paths.push({ d: `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}` });
-            } else {
-                const midX1 = x1 + 30;
-                const midX2 = x2 - 30;
-                paths.push({
-                    d: `M ${x1} ${y1} L ${midX2} ${y1} L ${midX2} ${y2} L ${x2} ${y2}`
-                });
-            }
-        }
-
-        setConnectors(paths);
-    };
-
-
-    useLayoutEffect(() => {
-        recalc();
-
-        const ro = new ResizeObserver(() => recalc());
-        const root = containerRef.current;
-        if (root) ro.observe(root);
-        cardRefs.current.forEach((el) => el && ro.observe(el));
-
-        const onResize = () => recalc();
-        window.addEventListener("resize", onResize);
-
-        return () => {
-            ro.disconnect();
-            window.removeEventListener("resize", onResize);
-        };
-    }, [flow.length]);
-
-    useEffect(() => {
-        const id = requestAnimationFrame(recalc);
-        return () => cancelAnimationFrame(id);
-    });
-
-    return (
-        <div className="w-full flex flex-col gap-4">
-            <div
-                ref={containerRef}
-                className="relative flex items-start gap-6 flex-wrap"
-            >
-                {/* Tarjetas */}
-                {flow.map((n, i) => (
-                    <div key={n.id} ref={setCardRef(i)} className="relative z-30">
-                        <FlowCard
-                            node={n}
-                            onOpen={onOpenNode}
-                            onChangeUrl={onChangeUrl}
-                            onRemove={onRemoveNode}
-                        />
-                    </div>
-                ))}
-
-                <svg
-                    className="pointer-events-none absolute inset-0 z-20"
-                    width="100%"
-                    height="100%"
-                >
-                    {connectors.map((c, i) => (
-                        <path
-                            key={`conn-${i}`}
-                            d={c.d}
-                            fill="none"
-                            stroke="rgba(57,86,232,0.45)"
-                            strokeWidth={2}
-                            strokeLinecap="round"
-                        />
-                    ))}
-                </svg>
-            </div>
-
-            <div className="self-end pb-2">
-                <button
-                    onClick={onSendFlow}
-                    className="bg-[#3956E8] text-white px-5 py-2 rounded-md shadow hover:opacity-95"
-                >
-                    Send flow
-                </button>
-            </div>
-        </div>
-    );
-};
-
-
-const TabBtn: React.FC<{ active: boolean; onClick: () => void; children: React.ReactNode }> = ({
-    active,
-    onClick,
-    children,
-}) => (
-    <button
-        onClick={onClick}
-        className={`px-3 py-2 text-sm rounded-md ${active ? "bg-primary/10 text-primary/90" : "text-slate-600 hover:bg-slate-100"
-            }`}
-    >
-        {children}
-    </button>
-);
-
-const CodeBox: React.FC<{ value: string }> = ({ value }) => (
-    <textarea
-        readOnly
-        value={value}
-        className="w-full h-64 rounded-md border border-primary/20 bg-slate-50 px-3 py-2 font-mono text-[12px] leading-5"
-    />
-);
-
-const RequestDetails: React.FC<{
-    node: FlowNode;
-    onBack: () => void;
-    onUpdateNode: (patch: Partial<FlowNode>) => void;
-}> = ({ node, onBack, onUpdateNode }) => {
-    const [tab, setTab] = useState<"pre" | "request" | "post" | "headers" | "body" | "gqlvars">("body");
-
-    const bodyRaw =
-        node.rawNode?.request?.body?.mode === "graphql"
-            ? node.rawNode?.request?.body?.graphql?.query ?? "{}"
-            : node.rawNode?.request?.body?.raw ?? "{}";
-
-    const gqlVars =
-        node.rawNode?.request?.body?.mode === "graphql"
-            ? node.rawNode?.request?.body?.graphql?.variables ?? "{}"
-            : "{}";
-
-    const headers =
-        (node.rawNode?.request?.header ?? [])
-            .map((h: any) => `${h?.key ?? ""}: ${h?.value ?? ""}`)
-            .join("\n") || "// No headers";
-
-    return (
-        <div className="flex-1 flex flex-col gap-4">
-            <div className="rounded-lg border border-primary/20 bg-white shadow-sm p-4">
-                <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                        <button onClick={onBack} className="text-sm text-primary/80 hover:underline">
-                            <ArrowLeft className="w-6 h-6 mr-1" />
-                        </button>
-                        <span className={`${httpMethodsStyle(node.method)}`}>{node.method}</span>
-
-                        <h2 className="font-semibold text-primary/85">{node.name}</h2>
-                    </div>
-
-                </div>
-                <TextInputWithClearButton
-                    id="request-url"
-                    value={node.url}
-                    onChangeHandler={(e) => onUpdateNode({ url: e.target.value })}
-                    placeholder="Enter request URL"
-                />
-
-                <div className="flex items-center gap-2 mt-4">
-                    <TabBtn active={tab === "pre"} onClick={() => setTab("pre")}>
-                        Pre-request
-                    </TabBtn>
-                    <TabBtn active={tab === "request"} onClick={() => setTab("request")}>
-                        Request
-                    </TabBtn>
-                    <TabBtn active={tab === "post"} onClick={() => setTab("post")}>
-                        Post-response
-                    </TabBtn>
-                    <TabBtn active={tab === "headers"} onClick={() => setTab("headers")}>
-                        Headers
-                    </TabBtn>
-                    <TabBtn active={tab === "body"} onClick={() => setTab("body")}>
-                        Body
-                    </TabBtn>
-                </div>
-
-                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {tab === "headers" && (
-                        <>
-                            <div className="md:col-span-2">
-                                <CodeBox value={headers} />
-                            </div>
-                        </>
-                    )}
-
-                    {tab === "body" && (
-                        <>
-                            <CodeBox value={typeof bodyRaw === "string" ? bodyRaw : JSON.stringify(bodyRaw, null, 2)} />
-                            <CodeBox value={typeof gqlVars === "string" ? gqlVars : JSON.stringify(gqlVars, null, 2)} />
-                        </>
-                    )}
-
-                    {tab === "gqlvars" && (
-                        <>
-                            <div className="md:col-span-2">
-                                <CodeBox value={typeof gqlVars === "string" ? gqlVars : JSON.stringify(gqlVars, null, 2)} />
-                            </div>
-                        </>
-                    )}
-
-                    {tab === "pre" && (
-                        <div className="md:col-span-2">
-                            <CodeBox value={"// Pre-request script"} />
-                        </div>
-                    )}
-
-                    {tab === "request" && (
-                        <div className="md:col-span-2">
-                            <CodeBox value={JSON.stringify(node.rawNode?.request ?? {}, null, 2)} />
-                        </div>
-                    )}
-
-                    {tab === "post" && (
-                        <div className="md:col-span-2">
-                            <CodeBox value={"// Post-response script"} />
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const Modal: React.FC<{
-    open: boolean;
-    title?: string;
-    onClose: () => void;
-    children: React.ReactNode;
-}> = ({ open, title, onClose, children }) => {
-    if (!open) return null;
-    return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30">
-            <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-primary/20">
-                    <div className="text-[15px] font-semibold text-slate-800">{title}</div>
-                    <button
-                        onClick={onClose}
-                        className="rounded p-1.5 hover:bg-slate-100 focus:outline-none"
-                        aria-label="Close"
-                    >
-                        <FaXmark className="w-5 h-5 text-primary/40" />
-                    </button>
-                </div>
-                <div className="p-5">{children}</div>
-            </div>
-        </div>
-    );
-};
-
-type Stage = "pre" | "request" | "post";
-type ModalTab = "metadata" | "error" | "environment";
-
-type ExecPiece = {
-    name: string;
-    request?: {
-        success?: boolean;
-        status?: number | null;
-        detail?: any;
-    };
-    test?: {
-        success?: boolean;
-        detail?: any;
-    };
-};
 
 const FlowsPage: React.FC = () => {
     const [selectedTypeOrigin, setSelectedTypeOrigin] = useState<string | null>(null);
@@ -437,6 +56,7 @@ const FlowsPage: React.FC = () => {
     const [createNewFlowOpen, setCreateNewFlowOpen] = useState<boolean>(false);
     const [loadingFlows, setLoadingFlows] = useState<boolean>(false)
 
+    const [modalSureBackListFlows, setModalSureBackListFlows] = useState<boolean>(false);
     const [expandedFlows, setExpandedFlows] = useState<Record<string, boolean>>({});
     const [chipModal, setChipModal] = useState<{
         open: boolean;
@@ -460,7 +80,7 @@ const FlowsPage: React.FC = () => {
     const stateLabel = (v?: boolean) =>
         v === true ? "Success" : v === false ? "Failed" : "Pending";
 
-    const { runFlows, anyRunning, messagesResult, stopFlow, summariesByFlow, getExecutedApis } = useFlowRunner();
+    const { runFlows, anyRunning, messagesResult, stopFlow, summariesByFlow, getExecutedApis, runSingleFlow, runSingleFlowWithPayload } = useFlowRunner();
 
     const fetchEnvironments = async () => {
         const response = await axios.post(`${URL_API_ALB}envs`, {});
@@ -583,8 +203,58 @@ const FlowsPage: React.FC = () => {
         if (activeNodeId === id) setActiveNodeId(null);
     };
 
+    const buildPayloadFromCanvas = () => {
+        const envForRunner = environments.find((e) => e.id === selectedEnvironment)?.env ?? null;
+
+        const apis = flow.map((n) => {
+            const rn = n.rawNode ?? {};
+            const request = rn?.request ?? {};
+
+            const next: any = {
+                ...rn,
+                name: n.name ?? rn.name,
+                request: {
+                    ...request,
+                    method: (n.method || request.method || "GET").toUpperCase(),
+                    url: {
+                        ...(request.url ?? {}),
+                        raw: n.url ?? request.url?.raw ?? "",
+                    },
+                },
+            };
+
+            return next;
+        });
+
+        const flowId = "flow-execution";
+        const payload = {
+            action: "runApis",
+            key: `testFolder/runApis_custom_${Date.now()}.json`,
+            apis,
+            env: envForRunner,
+        };
+
+        return { flowId, payload };
+    };
+
     const sendFlow = () => {
+        if (!flow.length) {
+            toast.error("Add at least one API to the flow");
+            return;
+        }
+        if (!selectedEnvironment) {
+            toast.error("Select an environment");
+            return;
+        }
+
+        const { flowId, payload } = buildPayloadFromCanvas();
+
+        setSelectedIds(prev => new Set([...Array.from(prev), flowId]));
+
         console.log("Sending flow:", flow);
+        console.log("Running flow with payload:", payload);
+
+        runSingleFlowWithPayload(flowId, payload);
     };
 
     const activeNode = activeNodeId ? flow.find((n) => n.id === activeNodeId) ?? null : null;
@@ -745,7 +415,6 @@ const FlowsPage: React.FC = () => {
 
         return out;
     }, [selectedIds, messagesResult]);
-    console.log("executedForFlow", executedByFlow);
 
     const toggleFlowExpanded = (id: string) =>
         setExpandedFlows(prev => ({ ...prev, [id]: !(prev[id] ?? true) }));
@@ -791,14 +460,62 @@ const FlowsPage: React.FC = () => {
     }, [flowStatuses]);
 
 
+    const backToListFlows = () => {
+        if (flow.length > 0) {
+            setModalSureBackListFlows(true);
+        }
+        if (flow.length === 0) {
+            setCreateNewFlowOpen(false);
+        }
+    }
+
+
+    const SINGLE_FLOW_ID = "flow-execution";
+
+    const buildSingleFlowOrderedResult = useCallback(() => {
+        const fr = messagesResult?.[SINGLE_FLOW_ID];
+        if (!fr) return null;
+
+        const orderedMsgs = (fr.messages ?? []).slice().sort((a, b) => a.ts - b.ts);
+
+        return {
+            [SINGLE_FLOW_ID]: {
+                status: fr.status,
+                messages: orderedMsgs,
+            },
+        };
+
+    }, [messagesResult]);
+
+    const singleFlowResponseJson = useMemo(() => {
+        const packed = buildSingleFlowOrderedResult();
+        return packed ? JSON.stringify(packed, null, 4) : undefined;
+    }, [buildSingleFlowOrderedResult]);
+
+
     return (
         <DashboardHeader pageType="api">
-
             {loadingFlows && (
-                <div>
-                    loading
+                <div className="flex w-full items-center justify-center p-4 flex-col gap-2">
+                    <div className="animate-pulse flex flex-col gap-4 w-full lg:w-2/3">
+                        <div className="flex items-center gap-2">
+                            <div className="h-12 bg-gray-300 rounded-md w-full"></div>
+                            <div className="h-12 bg-gray-300 rounded-2xl w-32"></div>
+                        </div>
+
+                        <div className="flex gap-2">
+                            <div className="h-6 bg-gray-300 rounded w-6 mb-2"></div>
+                            <div className="h-6 bg-gray-300 rounded w-32 mb-2"></div>
+                        </div>
+                        <div className="space-y-2">
+                            {[...Array(5)].map((_, i) => (
+                                <div key={i} className="h-32 bg-gray-300 rounded"></div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             )}
+
             {!loadingFlows && createNewFlowOpen && (
                 <div className="flex gap-2 w-full h-full text-primary">
                     <div className="flex flex-col">
@@ -819,11 +536,10 @@ const FlowsPage: React.FC = () => {
                             renderCollectionTree={renderCollectionTree}
                         />
                     </div>
-
-                    <CollectionMain>
+                    <CollectionMain response={singleFlowResponseJson}>
                         <>
                             {view === "canvas" && (
-                                <div className="flex w-full p-4">
+                                <div className="flex w-full p-4 relative">
                                     {flow.length === 0 ? (
                                         <div className="flex w-full h-full items-center justify-center p-4 flex-col gap-2">
                                             <Image alt="Flows Icon" src={Flows} width={80} height={80} className="!text-[#3956E8]" />
@@ -835,15 +551,10 @@ const FlowsPage: React.FC = () => {
                                             <SearchField
                                                 label="Environment"
                                                 placeholder="Select environment..."
-                                                options={environments.map((env) => ({
-                                                    value: env.id,
-                                                    label: env.name,
-                                                }))}
+                                                options={environments.map((env) => ({ value: env.id, label: env.name }))}
                                                 onChange={setSelectedEnvironment}
                                                 value={selectedEnvironment}
                                                 widthComponent="w-64"
-
-
                                             />
                                             <FlowCanvas
                                                 flow={flow}
@@ -854,6 +565,9 @@ const FlowsPage: React.FC = () => {
                                             />
                                         </div>
                                     )}
+                                    <button className="absolute top-4 right-4 rounded p-1.5 focus:outline-none" onClick={backToListFlows}>
+                                        <FaXmark className="w-5 h-5 text-primary/40" />
+                                    </button>
                                 </div>
                             )}
                             {view === "details" && activeNode && (
@@ -866,9 +580,7 @@ const FlowsPage: React.FC = () => {
                                 </div>
                             )}
                         </>
-
                     </CollectionMain>
-
 
                 </div>
             )}
@@ -897,8 +609,6 @@ const FlowsPage: React.FC = () => {
                             label="Search flows"
                             className="w-full"
                         />
-
-
                         <button
                             onClick={onCreate}
                             className="w-38 flex gap-2 items-center rounded-full bg-gray-200 text-[14px] py-3 px-4"
@@ -936,7 +646,7 @@ const FlowsPage: React.FC = () => {
                                                 />
                                                 <div className="flex flex-col items-center">
                                                     <div className="flex items-center gap-2 mb-1">
-                                                        <span className="text-primary/30 text-[14px]">{flow.id}</span>
+                                                        <span className="text-primary/60 text-[14px]">{flow.id}</span>
                                                         <CopyToClipboard text={flow.id} />
                                                     </div>
                                                     <button
@@ -1064,14 +774,14 @@ const FlowsPage: React.FC = () => {
                                         </div>
 
                                         <div className="mt-4">
-                                            <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
+                                            <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
                                                 <div
                                                     className={`h-full rounded-full transition-all ${hasFail ? "bg-red-500" : "bg-emerald-700"
                                                         }`}
                                                     style={{ width: `${progressPct}%` }}
                                                 />
                                             </div>
-                                            <div className="mt-1 text-right text-xs text-slate-500">
+                                            <div className="mt-1 text-right text-xs text-primary/80">
                                                 {progressPct}%
                                             </div>
                                         </div>
@@ -1119,10 +829,10 @@ const FlowsPage: React.FC = () => {
                                                         "px-3 py-1 rounded-full text-xs border bg-white";
                                                     const chip = (state: "ok" | "fail" | "pending") =>
                                                         state === "ok"
-                                                            ? `${chipBase} border-emerald-300 text-emerald-600`
+                                                            ? `${chipBase} border-emerald-600 text-primary/80`
                                                             : state === "fail"
-                                                                ? `${chipBase} border-red-300 text-red-600`
-                                                                : `${chipBase} border-slate-300 text-slate-500`;
+                                                                ? `${chipBase} border-red-600 text-red-600`
+                                                                : `${chipBase} border-slate-300 text-primary/70`;
 
                                                     return (
                                                         <div
@@ -1130,7 +840,7 @@ const FlowsPage: React.FC = () => {
                                                             className={`rounded-2xl border px-4 py-3 ${reqState === "fail" || testState === "fail"
                                                                 ? "border-red-300"
                                                                 : reqState === "ok" && testState === "ok"
-                                                                    ? "border-emerald-300"
+                                                                    ? "border-emerald-600"
                                                                     : "border-slate-200"
                                                                 }`}
                                                         >
@@ -1167,7 +877,7 @@ const FlowsPage: React.FC = () => {
                                                                     </div>
                                                                 </div>
 
-                                                                <div className="text-xs text-slate-500 whitespace-nowrap">
+                                                                <div className="text-xs text-primary/80 whitespace-nowrap">
                                                                     {durSec != null ? `${durSec.toFixed(2)} s` : ""}
                                                                 </div>
                                                             </div>
@@ -1187,143 +897,22 @@ const FlowsPage: React.FC = () => {
                 </div>
             )}
 
-            <Modal
-                open={chipModal.open}
-                onClose={closeChipModal}
-                title={
-                    chipModal.stage === "pre"
-                        ? "Pre-request"
-                        : chipModal.stage === "post"
-                            ? "Post-response"
-                            : "Request"
-                }
-            >
-                {(() => {
-                    if (!chipModal.flowId || !chipModal.apiName) return null;
-                    const piece = getApiPiece(chipModal.flowId, chipModal.apiName);
-                    // en "request" tomamos el detalle de request; en "post" el de test; "pre" solo metadatos básicos
-                    const req = piece?.request;
-                    const test = piece?.test;
+            <ModalRenderChips
+                chipModal={chipModal}
+                getApiPiece={getApiPiece}
+                stateLabel={stateLabel}
+                setChipModal={setChipModal}
+                closeChipModal={closeChipModal}
+            />
 
-                    const detailReq = req?.detail ?? {};
-                    const detailTest = test?.detail ?? {};
-
-                    const envObj =
-                        chipModal.stage === "request"
-                            ? detailReq?.env
-                            : chipModal.stage === "post"
-                                ? detailTest?.env
-                                : undefined;
-
-                    const meta = chipModal.stage === "request"
-                        ? {
-                            Name: piece?.name ?? "—",
-                            Status: typeof req?.status === "number" ? String(req.status) : "—",
-                            Type: "request",
-                            Success: stateLabel(req?.success),
-                        }
-                        : chipModal.stage === "post"
-                            ? {
-                                Name: piece?.name ?? "—",
-                                Status: "—",
-                                Type: "script(test)",
-                                Success: stateLabel(test?.success),
-                            }
-                            : {
-                                Name: piece?.name ?? "—",
-                                Status: "—",
-                                Type: "pre-request",
-                                Success: "Pending/No data",
-                            };
-
-                    const TabBtnSmall: React.FC<{ k: ModalTab; label: string }> = ({ k, label }) => (
-                        <button
-                            onClick={() => setChipModal(prev => ({ ...prev, tab: k }))}
-                            className={`px-3 py-2 text-sm border-b-2 ${chipModal.tab === k ? "border-primary-blue text-slate-800" : "border-transparent text-slate-500"
-                                }`}
-                        >
-                            {label}
-                        </button>
-                    );
-
-                    const J = ({ obj }: { obj: any }) => (
-
-                        <SyntaxHighlighter
-                            language="json"
-                            style={stackoverflowLight}
-                            customStyle={{
-                                backgroundColor: "transparent",
-                                padding: "0",
-                                margin: "0",
-                                fontSize: 12,
-                                lineHeight: "16px",
-                            }}
-                        >
-                            {JSON.stringify(obj ?? {}, null, 2)}
-                        </SyntaxHighlighter>
-                    );
-
-                    const errorFromReq = detailReq?.response?.error || detailReq?.error;
-                    const errorFromTest = detailTest?.error || detailTest?.__error;
-
-                    const errorData =
-                        chipModal.stage === "request" ? errorFromReq : chipModal.stage === "post" ? errorFromTest : null;
-
-                    const metadataBlock = (
-                        <div className="space-y-3">
-                            {Object.entries(meta).map(([k, v]) => (
-                                <div key={k}>
-                                    <div className="text-xs text-slate-500">{k}</div>
-                                    <div className="mt-1 rounded bg-slate-100 text-[13px] px-3 py-2">{String(v)}</div>
-                                </div>
-                            ))}
-                            {chipModal.stage === "request" && (
-                                <>
-                                    <div>
-                                        <div className="text-xs text-slate-500">Request</div>
-                                        <J obj={detailReq?.request} />
-                                    </div>
-                                    <div>
-                                        <div className="text-xs text-slate-500">Response</div>
-                                        <J obj={detailReq?.response} />
-                                    </div>
-                                </>
-                            )}
-                            {chipModal.stage === "post" && (
-                                <>
-                                    <div>
-                                        <div className="text-xs text-slate-500">Script payload</div>
-                                        <J obj={detailTest} />
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    );
-
-                    const errorBlock = (
-                        <div>
-                            {errorData ? <J obj={errorData} /> : <div className="text-sm text-slate-500">No errors</div>}
-                        </div>
-                    );
-
-                    const environmentBlock = <J obj={envObj} />;
-
-                    return (
-                        <div>
-                            <div className="flex items-center gap-4 border-b border-primary/20 mb-4">
-                                <TabBtnSmall k="metadata" label="Metadata" />
-                                <TabBtnSmall k="error" label="Error" />
-                                <TabBtnSmall k="environment" label="Environment" />
-                            </div>
-
-                            {chipModal.tab === "metadata" && metadataBlock}
-                            {chipModal.tab === "error" && errorBlock}
-                            {chipModal.tab === "environment" && environmentBlock}
-                        </div>
-                    );
-                })()}
-            </Modal>
-
+            {modalSureBackListFlows && (
+              <ModalBackCanvas 
+                modalSureBackListFlows={modalSureBackListFlows}
+                setModalSureBackListFlows={setModalSureBackListFlows}
+                setCreateNewFlowOpen={setCreateNewFlowOpen}
+              />
+            )}
+            
         </DashboardHeader>
     );
 };

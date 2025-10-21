@@ -12,7 +12,7 @@ type TabsUnderlineDemoProps = {
 
 const TabsUnderline = ({tabs,defaultValue}:TabsUnderlineDemoProps) => {
   return (
-    <div className='w-full overflow-hidden '>
+    <div className='w-full h-full overflow-hidden'>
       <Tabs defaultValue={`${defaultValue}`} className='gap-4 w-full h-full '>
         <TabsList className='w-full flex justify-start rounded-none border-b border-primary/20 p-0 sticky top-0 bg-white z-10 h-12'>
           {tabs?.map(tab => (
@@ -27,8 +27,8 @@ const TabsUnderline = ({tabs,defaultValue}:TabsUnderlineDemoProps) => {
         </TabsList>
 
         {tabs?.map(tab => (
-          <TabsContent key={tab.value} value={tab.value} className='w-full'>
-            <div className={` w-full`}>{tab.content}</div>
+          <TabsContent key={tab.value} value={tab.value} className='w-full overflow-auto h-full p-4'>
+            <div className={` w-full h-full overflow-auto`}>{tab.content}</div>
           </TabsContent>
         ))}
       </Tabs>
