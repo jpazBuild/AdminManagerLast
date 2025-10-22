@@ -27,6 +27,7 @@ import FlowCanvas from "./components/FlowCanvas";
 import RequestDetails from "./components/RequestDetails";
 import ModalBackCanvas from "./components/ModalBackCanvas";
 import ModalRenderChips from "./components/ModalRenderChips";
+import ListFlows from "./components/ListFlows";
 
 
 const FlowsPage: React.FC = () => {
@@ -54,7 +55,7 @@ const FlowsPage: React.FC = () => {
     const [flows, setFlows] = useState<any>([]);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [createNewFlowOpen, setCreateNewFlowOpen] = useState<boolean>(false);
-    const [loadingFlows, setLoadingFlows] = useState<boolean>(false)
+    const [loadingFlows, setLoadingFlows] = useState<boolean | null>(null)
 
     const [modalSureBackListFlows, setModalSureBackListFlows] = useState<boolean>(false);
     const [expandedFlows, setExpandedFlows] = useState<Record<string, boolean>>({});
@@ -66,6 +67,9 @@ const FlowsPage: React.FC = () => {
         tab: ModalTab;
     }>({ open: false, flowId: null, apiName: null, stage: "request", tab: "metadata" });
 
+    const [errorFlows, setErrorFlows] = useState<boolean>(false);
+
+    const [modalCreateFlowOpen, setModalCreateFlowOpen] = useState<boolean>(false);
     const openChipModal = (flowId: string, apiName: string, stage: Stage) => {
         setChipModal({ open: true, flowId, apiName, stage, tab: "metadata" });
     };
@@ -93,8 +97,10 @@ const FlowsPage: React.FC = () => {
             setLoadingFlows(true)
             const response = await axios.post(`${URL_API_ALB}getApisScriptsHeaders`, {});
             setFlows(response.data);
+            setErrorFlows(false)
         } catch (e) {
             toast.error("Error in get flows")
+            setErrorFlows(true)
         } finally {
             setLoadingFlows(false)
         }
@@ -286,9 +292,6 @@ const FlowsPage: React.FC = () => {
     const filteredFlows = useMemo(() => {
         const q = query.trim().toLowerCase();
         if (!q) return flows;
-
-        console.log("flows filteredFlows", flows);
-
         return flows.filter(
             (f: any) =>
                 f.name.toLowerCase().includes(q));
@@ -315,9 +318,6 @@ const FlowsPage: React.FC = () => {
         });
     };
 
-    console.log("summary by flow", summariesByFlow);
-    console.log("messagesResult", messagesResult);
-
 
     const isPlainObj = (v: any) =>
         v && typeof v === "object" && !Array.isArray(v);
@@ -335,8 +335,14 @@ const FlowsPage: React.FC = () => {
     const pick = (obj: any, keys: string[]) =>
         keys.reduce((acc, k) => (obj && k in obj ? (acc[k] = obj[k], acc) : acc), {} as any);
 
+
     const executedByFlow = useMemo<Record<string, ExecPiece[]>>(() => {
         const out: Record<string, ExecPiece[]> = {};
+
+        const isSkipped = (v: any) => v === "skipped";
+        const hasBool = (v: any): v is boolean => typeof v === "boolean";
+        const nextSuccess = (incoming: any, prev: any) =>
+            (hasBool(incoming) || isSkipped(incoming)) ? incoming : (prev ?? undefined);
 
         for (const flowId of Array.from(selectedIds)) {
             const msgs = (messagesResult[flowId]?.messages ?? [])
@@ -354,24 +360,21 @@ const FlowsPage: React.FC = () => {
             for (const m of msgs) {
                 const resp = m?.payload?.response;
                 const item = m?.payload?.item;
+
                 if (typeof item === "string") {
                     let match = item.match(/^(?:Running request|Request completed):\s*(.+)$/i);
                     if (match?.[1]) {
                         const e = ensure(match[1].trim());
-                        if (e) {
-                            if (/^Running request:/i.test(item)) {
-                                e.request = e.request ?? { success: undefined, status: null, detail: {} };
-                            }
+                        if (e && /^Running request:/i.test(item)) {
+                            e.request = e.request ?? { success: undefined, status: null, detail: {} };
                         }
                     }
 
                     match = item.match(/^(?:Running test script|Test script completed):\s*(.+)$/i);
                     if (match?.[1]) {
                         const e = ensure(match[1].trim());
-                        if (e) {
-                            if (/^Running test script:/i.test(item)) {
-                                e.test = e.test ?? { success: undefined, detail: {} };
-                            }
+                        if (e && /^Running test script:/i.test(item)) {
+                            e.test = e.test ?? { success: undefined, detail: {} };
                         }
                     }
                 }
@@ -384,13 +387,16 @@ const FlowsPage: React.FC = () => {
                         const e = ensure(rName);
                         if (!e) continue;
 
+                        const prevReq = e.request ?? { success: undefined, status: null, detail: {} };
+                        const incomingSuccess = resp.success;
+                        const incomingStatus = resp.status;
+
                         const nextReq = {
-                            success: typeof resp.success === "boolean" ? resp.success : e.request?.success ?? undefined,
-                            status:
-                                typeof resp.status === "number"
-                                    ? resp.status
-                                    : (typeof e.request?.status === "number" ? e.request?.status : null),
-                            detail: deepMerge(e.request?.detail ?? {}, pick(resp, ["request", "response", "env"]))
+                            success: nextSuccess(incomingSuccess, prevReq.success),
+                            status: (typeof incomingStatus === "number")
+                                ? incomingStatus
+                                : (typeof prevReq.status === "number" ? prevReq.status : null),
+                            detail: deepMerge(prevReq.detail ?? {}, pick(resp, ["request", "response", "env"])),
                         };
 
                         e.request = nextReq;
@@ -400,9 +406,12 @@ const FlowsPage: React.FC = () => {
                         const e = ensure(rName);
                         if (!e) continue;
 
+                        const prevTest = e.test ?? { success: undefined, detail: {} };
+                        const incomingSuccess = resp.success;
+
                         const nextTest = {
-                            success: typeof resp.success === "boolean" ? resp.success : e.test?.success ?? undefined,
-                            detail: deepMerge(e.test?.detail ?? {}, resp)
+                            success: nextSuccess(incomingSuccess, prevTest.success),
+                            detail: deepMerge(prevTest.detail ?? {}, resp),
                         };
 
                         e.test = nextTest;
@@ -421,30 +430,29 @@ const FlowsPage: React.FC = () => {
 
     const flowStatuses = useMemo(() => {
         const statuses: Record<string, "success" | "failed" | "pending"> = {};
-        for (const flowId of Array.from(selectedIds)) {
-            const pieces = executedByFlow[flowId] ?? [];
 
+        for (const flowId of Array.from(selectedIds)) {
+            const fr = messagesResult?.[flowId];
+            if (fr?.status === "error") { statuses[flowId] = "failed"; continue; }
+            if (fr?.status === "running") { statuses[flowId] = "pending"; }
+
+            const pieces = executedByFlow[flowId] ?? [];
             if (!pieces.length) {
-                statuses[flowId] = "pending";
+                statuses[flowId] = statuses[flowId] ?? "pending";
                 continue;
             }
 
-            const hasFail = pieces.some(
-                (p) => p.request?.success === false || p.test?.success === false
-            );
-
-            const allOk =
-                pieces.length > 0 &&
-                pieces.every(
-                    (p) =>
-                        (p.request ? p.request.success === true : true) &&
-                        (p.test ? p.test.success === true : true)
+            const hasFail = pieces.some(p => p.request?.success === false || p.test?.success === false);
+            const allOk = pieces.length > 0 &&
+                pieces.every(p =>
+                    (p.request ? p.request.success === true : true) &&
+                    (p.test ? p.test.success === true : true)
                 );
 
             statuses[flowId] = hasFail ? "failed" : allOk ? "success" : "pending";
         }
         return statuses;
-    }, [selectedIds, executedByFlow]);
+    }, [selectedIds, executedByFlow, messagesResult]);
 
     const { totalSuccess, totalFailed, totalPending, successRate } = useMemo(() => {
         let s = 0, f = 0, p = 0;
@@ -492,10 +500,14 @@ const FlowsPage: React.FC = () => {
         return packed ? JSON.stringify(packed, null, 4) : undefined;
     }, [buildSingleFlowOrderedResult]);
 
+    
+    const dataEnvironment = useMemo(() => {
+        return environments.find((env) => env.id === selectedEnvironment)?.env ?? null;
+    }, [environments, selectedEnvironment]);
 
     return (
         <DashboardHeader pageType="api">
-            {loadingFlows && (
+            {loadingFlows != null && loadingFlows && !errorFlows && (
                 <div className="flex w-full items-center justify-center p-4 flex-col gap-2">
                     <div className="animate-pulse flex flex-col gap-4 w-full lg:w-2/3">
                         <div className="flex items-center gap-2">
@@ -516,7 +528,7 @@ const FlowsPage: React.FC = () => {
                 </div>
             )}
 
-            {!loadingFlows && createNewFlowOpen && (
+            {loadingFlows != null && !loadingFlows && createNewFlowOpen && !errorFlows && (
                 <div className="flex gap-2 w-full h-full text-primary">
                     <div className="flex flex-col">
                         <CollectionsAside
@@ -562,6 +574,12 @@ const FlowsPage: React.FC = () => {
                                                 onChangeUrl={(id, url) => updateNode(id, { url })}
                                                 onRemoveNode={removeNode}
                                                 onSendFlow={sendFlow}
+                                                openModalCreate={modalCreateFlowOpen}
+                                                setModalCreate={setModalCreateFlowOpen}
+                                                onCloseModalCreate={() => setModalCreateFlowOpen(false)}
+                                                environment={dataEnvironment || null}
+                                                refetchFlows={fetchFlows}
+                                                setCreateNewFlowOpen={setCreateNewFlowOpen}
                                             />
                                         </div>
                                     )}
@@ -585,7 +603,7 @@ const FlowsPage: React.FC = () => {
                 </div>
             )}
 
-            {!loadingFlows && !createNewFlowOpen && flows.length === 0 && (
+            {loadingFlows != null && !loadingFlows && !createNewFlowOpen && !errorFlows && flows.length === 0 && (
                 <div className="flex w-full h-full items-center justify-center p-4 flex-col gap-2">
                     <Image alt="Flows Icon" src={Flows} width={80} height={80} className="!text-[#3956E8]" />
                     <p className="text-[24px] font-semibold tracking-wider text-primary/85">Flows</p>
@@ -596,307 +614,42 @@ const FlowsPage: React.FC = () => {
                 </div>
             )}
 
-            {!loadingFlows && !createNewFlowOpen && flows.length > 0 && (
-                <div className="self-center flex w-full lg:w-2/3 flex-col gap-4">
+            {loadingFlows != null && !loadingFlows && !createNewFlowOpen && !errorFlows && flows.length > 0 && (
 
-                    <div className="flex w-full items-center justify-between gap-2">
-                        <TextInputWithClearButton
-                            id="search-flows"
-                            value={query}
-                            onChangeHandler={(e) => setQuery(e.target.value)}
-                            placeholder="Search flows"
-                            isSearch={true}
-                            label="Search flows"
-                            className="w-full"
-                        />
-                        <button
-                            onClick={onCreate}
-                            className="w-38 flex gap-2 items-center rounded-full bg-gray-200 text-[14px] py-3 px-4"
-                        >
-                            <PlusIcon className="w-5 h-5" />
-                            <span className="font-medium">New flow</span>
-                        </button>
-                    </div>
-
-                    <div className="flex items-center gap-2 pl-1">
-                        <Checkbox
-                            checked={allVisibleSelected}
-                            onCheckedChange={(checked) => onToggleSelectAllVisible(checked === true)}
-                        />
-                        <div className="flex items-center gap-2">
-                            <span className="text-slate-600 text-sm">{filteredFlows.length} Results</span>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col gap-3">
-                        {filteredFlows
-                            .filter((f: any) => !query || f.name.toLowerCase().includes(query.toLowerCase()))
-                            .map((flow: any) => (
-                                <div
-                                    key={flow.id}
-                                    className="rounded-2xl border border-gray-300 bg-white p-0.5"
-                                >
-                                    <div className="rounded-2xl bg-white px-5 py-6 border border-slate-100">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="flex items-center gap-3">
-
-                                                <Checkbox
-                                                    checked={selectedIds.has(flow.id)}
-                                                    onCheckedChange={(checked) => onToggleSelect(flow.id, checked === true)}
-                                                />
-                                                <div className="flex flex-col items-center">
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <span className="text-primary/60 text-[14px]">{flow.id}</span>
-                                                        <CopyToClipboard text={flow.id} />
-                                                    </div>
-                                                    <button
-                                                        onClick={() => onOpen(flow.id)}
-                                                        className="self-start text-[18px] font-semibold text-primary/70"
-                                                    >
-                                                        {flow.name}
-                                                    </button>
-
-                                                </div>
-                                            </div>
-
-                                            <MoreMenu
-                                                onDelete={() => {
-                                                    console.log("Delete flow:", flow.id);
-                                                    closeRowMenu();
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                    </div>
-
-                    <button
-                        onClick={() => runFlows(Array.from(selectedIds))}
-                        disabled={anyRunning || selectedIds.size === 0}
-                        className="bg-primary-blue/90 w-32 cursor-pointer text-white rounded-2xl py-3 px-5 mt-4 mb-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {anyRunning ? "Running..." : "Run"}
-                    </button>
-
-                    <div className="mt-6 space-y-6 mb-4">
-                        {Array.from(selectedIds).length > 0 && (
-                            <div className="flex items-center gap-2">
-                                <span className="text-lg font-semibold text-primary/80">Flows</span>
-                                <span className="text-slate-400 text-sm">({Array.from(selectedIds).length})</span>
-                            </div>
-                        )}
-
-                        {Array.from(selectedIds).length > 0 && (
-                            <div className="mt-4">
-                                <ExecutionSummary
-                                    totalSuccess={totalSuccess}
-                                    totalFailed={totalFailed}
-                                    totalPending={totalPending}
-                                    successRate={successRate}
-                                />
-                            </div>
-                        )}
-
-                        {Array.from(selectedIds).map((flowId) => {
-                            const pieces = executedByFlow[flowId] ?? [];
-
-                            const totalSteps = pieces.reduce((acc, p) => acc + (p.request ? 1 : 0) + (p.test ? 1 : 0), 0) || 0;
-                            const doneSteps = pieces.reduce(
-                                (acc, p) =>
-                                    acc +
-                                    (typeof p.request?.success === "boolean" ? 1 : 0) +
-                                    (typeof p.test?.success === "boolean" ? 1 : 0),
-                                0
-                            );
-                            const progressPct = totalSteps ? Math.round((doneSteps / totalSteps) * 100) : 0;
-
-                            const hasFail = pieces.some(
-                                (p) => p.request?.success === false || p.test?.success === false
-                            );
-                            const allOk =
-                                pieces.length > 0 &&
-                                pieces.every(
-                                    (p) =>
-                                        (p.request ? p.request.success === true : true) &&
-                                        (p.test ? p.test.success === true : true)
-                                );
-
-                            const flowMeta = flows.find((f: any) => f.id === flowId);
-                            const flowName = flowMeta?.name || flowId;
-                            const expanded = expandedFlows[flowId] ?? true;
-
-
-                            return (
-                                <div key={flowId} className="space-y-4">
-                                    <div
-                                        className={`rounded-2xl border-2 px-5 py-4 ${hasFail
-                                            ? "border-red-300"
-                                            : allOk
-                                                ? "border-emerald-700"
-                                                : "border-slate-200"
-                                            }`}
-                                    >
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="min-w-0">
-                                                <div className="text-xs text-primary/40">{flowId}</div>
-                                                <div className="text-lg font-semibold text-primary/85 truncate">
-                                                    {flowName}
-                                                </div>
-                                            </div>
-
-                                            <div className="flex  items-center gap-3">
-                                                <div
-                                                    className={`flex h-8 w-8 items-center justify-center rounded-full border ${hasFail
-                                                        ? "border-red-300 text-red-500"
-                                                        : allOk
-                                                            ? "border-emerald-300 text-emerald-700"
-                                                            : "border-slate-300 text-slate-400"
-                                                        }`}
-                                                    title={hasFail ? "Failed" : allOk ? "Success" : "In progress"}
-                                                >
-                                                    {hasFail ? <FaXmark className="w-55 h-5" /> : allOk ? <Check className="w-5 h-5 " /> : <RefreshCcw className="w-4 h-4" />}
-
-                                                </div>
-                                                <button
-                                                    onClick={() => toggleFlowExpanded(flowId)}
-                                                    className="p-2 rounded-full hover:bg-slate-100 transition"
-                                                    aria-expanded={expanded}
-                                                    aria-controls={`apis-${flowId}`}
-                                                >
-                                                    <ChevronDown
-                                                        className={`w-5 h-5 text-slate-400 transition-transform ${expanded ? "rotate-0" : "-rotate-90"}`}
-                                                    />
-                                                </button>
-                                            </div>
-
-
-                                        </div>
-
-                                        <div className="mt-4">
-                                            <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
-                                                <div
-                                                    className={`h-full rounded-full transition-all ${hasFail ? "bg-red-500" : "bg-emerald-700"
-                                                        }`}
-                                                    style={{ width: `${progressPct}%` }}
-                                                />
-                                            </div>
-                                            <div className="mt-1 text-right text-xs text-primary/80">
-                                                {progressPct}%
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div
-                                        id={`apis-${flowId}`}
-                                        className={`overflow-hidden transition-all duration-300 ${expanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"}`}
-                                    >
-                                        {!!pieces.length && (
-                                            <div className="space-y-3 pt-2">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="text-sm text-slate-500">APIs</div>
-                                                    <div className="text-xs text-slate-400">
-                                                        {Math.round(progressPct)}%
-                                                    </div>
-                                                </div>
-
-                                                {pieces.map((api) => {
-                                                    const msgs = (messagesResult[flowId]?.messages ?? []).filter(
-                                                        (m: any) =>
-                                                            m?.payload?.response?.name === api.name ||
-                                                            (typeof m?.payload?.item === "string" &&
-                                                                m.payload.item.includes(api.name))
-                                                    );
-                                                    const start = msgs[0]?.ts ?? null;
-                                                    const end = msgs[msgs.length - 1]?.ts ?? null;
-                                                    const durSec =
-                                                        start && end ? Math.max(0, (end - start) / 1000) : null;
-
-                                                    const reqState =
-                                                        api.request?.success === true
-                                                            ? "ok"
-                                                            : api.request?.success === false
-                                                                ? "fail"
-                                                                : "pending";
-                                                    const testState =
-                                                        api.test?.success === true
-                                                            ? "ok"
-                                                            : api.test?.success === false
-                                                                ? "fail"
-                                                                : "pending";
-
-                                                    const chipBase =
-                                                        "px-3 py-1 rounded-full text-xs border bg-white";
-                                                    const chip = (state: "ok" | "fail" | "pending") =>
-                                                        state === "ok"
-                                                            ? `${chipBase} border-emerald-600 text-primary/80`
-                                                            : state === "fail"
-                                                                ? `${chipBase} border-red-600 text-red-600`
-                                                                : `${chipBase} border-slate-300 text-primary/70`;
-
-                                                    return (
-                                                        <div
-                                                            key={api.name}
-                                                            className={`rounded-2xl border px-4 py-3 ${reqState === "fail" || testState === "fail"
-                                                                ? "border-red-300"
-                                                                : reqState === "ok" && testState === "ok"
-                                                                    ? "border-emerald-600"
-                                                                    : "border-slate-200"
-                                                                }`}
-                                                        >
-                                                            <div className="flex items-start justify-between gap-4">
-                                                                <div className="min-w-0">
-                                                                    <div className="text-base font-semibold text-primary/80 truncate">
-                                                                        {api.name}
-                                                                    </div>
-
-                                                                    <div className="mt-2 flex flex-wrap gap-2">
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => openChipModal(flowId, api.name, "pre")}
-                                                                            className={chip("pending")}
-                                                                        >
-                                                                            Pre-request
-                                                                        </button>
-
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => openChipModal(flowId, api.name, "request")}
-                                                                            className={chip(reqState)}
-                                                                        >
-                                                                            Request
-                                                                        </button>
-
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => openChipModal(flowId, api.name, "post")}
-                                                                            className={chip("pending")}
-                                                                        >
-                                                                            Post-response
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="text-xs text-primary/80 whitespace-nowrap">
-                                                                    {durSec != null ? `${durSec.toFixed(2)} s` : ""}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-
-
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                </div>
+                <ListFlows
+                    flows={flows}
+                    onCreate={() => setCreateNewFlowOpen(true)}
+                    selectedIds={selectedIds}
+                    onToggleSelect={onToggleSelect}
+                    onToggleSelectAllVisible={onToggleSelectAllVisible}
+                    allVisibleSelected={allVisibleSelected}
+                    query={query}
+                    setQuery={setQuery}
+                    filteredFlows={filteredFlows}
+                    onOpen={onOpen}
+                    closeRowMenu={closeRowMenu}
+                    anyRunning={anyRunning}
+                    runFlows={runFlows}
+                    executedByFlow={executedByFlow}
+                    totalSuccess={totalSuccess}
+                    totalFailed={totalFailed}
+                    totalPending={totalPending}
+                    successRate={successRate}
+                    expandedFlows={expandedFlows}
+                    openChipModal={openChipModal}
+                    toggleFlowExpanded={toggleFlowExpanded}
+                    messagesResult={messagesResult}
+                    refreshFlows={fetchFlows}
+                />
             )}
 
+            {loadingFlows != null && errorFlows && !loadingFlows && (
+                <div className="flex w-full h-full items-center justify-center p-4 flex-col gap-2">
+                    <p className="text-[20px] font-semibold tracking-wider text-primary/85">Error loading flows</p>
+                    <p className="text-[14px] text-gray-500">There was an error while fetching the flows. Please try again later.</p>
+                    <button onClick={() => fetchFlows()} className="bg-primary-blue/90 px-5 py-3 text-white font-semibold rounded-2xl">Try Reload</button>
+                </div>
+            )}
             <ModalRenderChips
                 chipModal={chipModal}
                 getApiPiece={getApiPiece}
@@ -906,13 +659,13 @@ const FlowsPage: React.FC = () => {
             />
 
             {modalSureBackListFlows && (
-              <ModalBackCanvas 
-                modalSureBackListFlows={modalSureBackListFlows}
-                setModalSureBackListFlows={setModalSureBackListFlows}
-                setCreateNewFlowOpen={setCreateNewFlowOpen}
-              />
+                <ModalBackCanvas
+                    modalSureBackListFlows={modalSureBackListFlows}
+                    setModalSureBackListFlows={setModalSureBackListFlows}
+                    setCreateNewFlowOpen={setCreateNewFlowOpen}
+                />
             )}
-            
+
         </DashboardHeader>
     );
 };

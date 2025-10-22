@@ -28,13 +28,13 @@ export const DashboardSidebar = ({
     const isActive = pathname === path || pathname.endsWith(path);
 
     if (isActive) {
-      return `flex items-center ${isCollapsed ? "p-2 justify-center text-center" : "px-4 py-3"}  text-sm font-medium rounded-xl transition-all duration-300 ${darkMode
+      return `flex items-center ${isCollapsed ? "p-2 justify-center text-center" : "px-4 py-3"} z-20  text-sm font-medium rounded-xl transition-all duration-300 ${darkMode
         ? "bg-slate-500 text-white shadow-lg"
         : "bg-primary/10 text-primary/90 border-r-2 border-primary/90 shadow-md"
         }`;
     }
 
-    return `flex items-center ${isCollapsed ? "p-2 justify-center text-center" : "px-4 py-3"}  text-sm font-medium rounded-xl transition-all duration-300 ${darkMode
+    return `flex items-center ${isCollapsed ? "p-2 justify-center text-center" : "px-4 py-3"}  z-20 text-sm font-medium rounded-xl transition-all duration-300 ${darkMode
       ? "text-gray-300 hover:bg-gray-700 hover:text-white"
       : "text-primary/70 hover:bg-primary/5"
       }`;
@@ -98,7 +98,7 @@ export const DashboardSidebar = ({
 
   return (
     <aside
-      className={`fixed left-1 top-20 bottom-4 rounded-2xl shadow-xl transform transition-all duration-500 ease-in-out z-40 ${isCollapsed ? "w-16" : "w-64"
+      className={`fixed left-1 top-20 bottom-4 rounded-2xl shadow-xl transform transition-all duration-500 ease-in-out z-10 ${isCollapsed ? "w-16" : "w-64"
         } ${darkMode
           ? "bg-gray-800/90 backdrop-blur-md border border-gray-600/30"
           : "bg-gray-100 backdrop-blur-md border border-gray-200/30"
@@ -321,7 +321,7 @@ export const DashboardHeader = ({
         </div>
 
         <div
-          className={`fixed left-0 top-16 w-64 transform transition-transform duration-200 ease-in-out z-40 lg:hidden ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          className={`fixed left-0 top-16 w-64 transform transition-transform duration-200 ease-in-out z-20 lg:hidden ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
             } ${darkMode
               ? "bg-gray-800 border-r border-gray-700"
               : "bg-white border-r border-gray-200"

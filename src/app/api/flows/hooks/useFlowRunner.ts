@@ -62,6 +62,16 @@ export const useFlowRunner = () => {
         }
     }, []);
 
+    const getRunnerError = (data: any): string | null => {
+        if (data?.response?.message === "Error running APIs" && data?.response?.error) {
+            return data.response.error;
+        }
+        if (typeof data?.response?.error === "string") return data.response.error;
+        if (typeof data?.error === "string") return data.error;
+        return null;
+    };
+
+
     const ensureSocketFor = useCallback((flowId: string, onOpenSend: () => void) => {
         const existing = wsRefs.current.get(flowId);
 
@@ -92,28 +102,32 @@ export const useFlowRunner = () => {
             try {
                 const data = JSON.parse(evt.data);
 
-                // ✅ FIN DE EJECUCIÓN (por flow) CUANDO LLEGA "APIs run completed"
-                if (
-                    data?.routeKey === "runApis" &&
-                    data?.response?.message === "APIs run completed"
-                ) {
+                if (data?.routeKey === "runApis" && data?.response?.message === "APIs run completed") {
                     const summary = data?.response?.summary;
-
-                    // guarda el summary si quieres consultarlo luego
                     setSummariesByFlow(prev => ({ ...prev, [flowId]: summary }));
-
-                    // log + marca como done
-                    appendMessage(flowId, {
-                        ts: Date.now(),
-                        kind: "done",
-                        payload: { message: "APIs run completed", summary }
-                    });
+                    appendMessage(flowId, { ts: Date.now(), kind: "done", payload: { message: "APIs run completed", summary } });
                     setFlowStatus(flowId, "done");
                     setRunningByFlow(prev => ({ ...prev, [flowId]: false }));
-                    return; // importante: no sigas procesando este mensaje
+                    return;
                 }
 
-                // 🔽 resto de manejo genérico (log/progress/error/raw)
+                const runnerErr = getRunnerError(data);
+                if (data?.routeKey === "runApis" && runnerErr) {
+                    appendMessage(flowId, {
+                        ts: Date.now(),
+                        kind: "error",
+                        payload: {
+                            message: "Error running APIs",
+                            error: runnerErr,
+                            raw: data,
+                        }
+                    });
+                    setFlowStatus(flowId, "error");
+                    setRunningByFlow(prev => ({ ...prev, [flowId]: false }));
+                    try { wsRefs.current.get(flowId)?.close(); } catch { }
+                    return;
+                }
+
                 if (data?.type === "log") {
                     appendMessage(flowId, { ts: Date.now(), kind: "log", payload: data });
                 } else if (data?.type === "progress") {
@@ -122,7 +136,7 @@ export const useFlowRunner = () => {
                     appendMessage(flowId, { ts: Date.now(), kind: "done", payload: data });
                     setFlowStatus(flowId, "done");
                     setRunningByFlow(prev => ({ ...prev, [flowId]: false }));
-                } else if (data?.type === "error" || data?.status === "error") {
+                } else if (data?.type === "error" || data?.status === "error" || typeof data?.error === "string") {
                     appendMessage(flowId, { ts: Date.now(), kind: "error", payload: data });
                     setFlowStatus(flowId, "error");
                     setRunningByFlow(prev => ({ ...prev, [flowId]: false }));
@@ -199,9 +213,7 @@ export const useFlowRunner = () => {
                     const { data } = await axios.post(`${URL_API_ALB}apisScripts`, { id: flowId });
                     const payloadObj = {
                         action: "runApis",
-                        key: `testFolder/runApis_${flowId}.json`,
-                        apis: data?.apis,
-                        env: data?.env,
+                        id: flowId
                     };
 
                     const payloadStr = JSON.stringify(payloadObj);
@@ -210,7 +222,6 @@ export const useFlowRunner = () => {
                     ws.send(payloadStr);
 
                     appendMessage(flowId, { ts: Date.now(), kind: "log", payload: { message: "Flow started" } });
-                    toast.message(`Flow ${flowId} started`);
                 } catch (e) {
                     appendMessage(flowId, { ts: Date.now(), kind: "error", payload: { message: "Failed to send payload", e } });
                     setFlowStatus(flowId, "error");
@@ -257,7 +268,6 @@ export const useFlowRunner = () => {
                         kind: "log",
                         payload: { message: "Flow started (custom payload)" }
                     });
-                    toast.message(`Flow ${flowId} started`);
                 } catch (e) {
                     appendMessage(flowId, {
                         ts: Date.now(),
