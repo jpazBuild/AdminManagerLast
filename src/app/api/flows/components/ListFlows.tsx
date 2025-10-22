@@ -64,7 +64,7 @@ const ListFlows = ({ query, setQuery, onCreate, allVisibleSelected, onToggleSele
             const ok = (data?.status ?? status) === 200 || status === 204;
             if (ok) {
                 closeRowMenu();
-                refreshFlows();
+                await refreshFlows();
                 toast.success("Flow deleted");
             } else {
                 throw new Error(data?.message ?? `Unexpected status: ${status}`);
@@ -74,7 +74,7 @@ const ListFlows = ({ query, setQuery, onCreate, allVisibleSelected, onToggleSele
             toast.error("Error deleting flow");
         }
     };
-
+    const SINGLE_FLOW_ID = "flow-execution";
     return (
         <div className="self-center flex w-full lg:w-2/3 flex-col gap-4">
 
@@ -186,7 +186,9 @@ const ListFlows = ({ query, setQuery, onCreate, allVisibleSelected, onToggleSele
                 )}
 
 
-                {Array.from(selectedIds).map((flowId) => {
+                {Array.from(selectedIds)
+                    .filter(flowId => flowId !== SINGLE_FLOW_ID)
+                .map((flowId) => {
                     const pieces = executedByFlow[flowId] ?? [];
 
                     const flowStatus = messagesResult[flowId]?.status as ("idle" | "running" | "done" | "error" | undefined);
