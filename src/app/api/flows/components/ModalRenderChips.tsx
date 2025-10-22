@@ -18,7 +18,7 @@ type ModalRenderChipsProps = {
 };
 
 
-const ModalRenderChips = ({chipModal,getApiPiece,stateLabel,setChipModal,closeChipModal}:ModalRenderChipsProps) => {
+const  ModalRenderChips = ({chipModal,getApiPiece,stateLabel,setChipModal,closeChipModal}:ModalRenderChipsProps) => {
 
     return (
         <Modal
@@ -79,9 +79,10 @@ const ModalRenderChips = ({chipModal,getApiPiece,stateLabel,setChipModal,closeCh
                     </button>
                 );
 
-                const J = ({ obj }: { obj: any }) => (
+                const JSONBox = ({ obj }: { obj: any }) => (
 
-                    <SyntaxHighlighter
+                    <div className="overflow-auto w-full max-h-80 border border-slate-200 rounded bg-slate-100 p-2">
+                        <SyntaxHighlighter
                         language="json"
                         style={stackoverflowLight}
                         customStyle={{
@@ -94,6 +95,7 @@ const ModalRenderChips = ({chipModal,getApiPiece,stateLabel,setChipModal,closeCh
                     >
                         {JSON.stringify(obj ?? {}, null, 2)}
                     </SyntaxHighlighter>
+                    </div>
                 );
 
                 const errorFromReq = detailReq?.response?.error || detailReq?.error;
@@ -114,20 +116,22 @@ const ModalRenderChips = ({chipModal,getApiPiece,stateLabel,setChipModal,closeCh
                             <>
                                 <div>
                                     <div className="text-xs text-slate-500">Request</div>
-                                    <J obj={detailReq?.request} />
+                                    <JSONBox obj={detailReq?.request} />
                                 </div>
                                 <div>
                                     <div className="text-xs text-slate-500">Response</div>
-                                    <J obj={detailReq?.response} />
+                                    <div className="overflow-auto w-full max-h-60 border border-slate-200 rounded bg-slate-100 p-2">
+                                        <JSONBox obj={detailReq?.response} />
+                                    </div>
                                 </div>
                             </>
                         )}
                         {chipModal.stage === "post" && (
                             <>
-                                <div>
+                                <>
                                     <div className="text-xs text-slate-500">Script payload</div>
-                                    <J obj={detailTest} />
-                                </div>
+                                    <JSONBox obj={detailTest} />
+                                </>
                             </>
                         )}
                     </div>
@@ -135,11 +139,11 @@ const ModalRenderChips = ({chipModal,getApiPiece,stateLabel,setChipModal,closeCh
 
                 const errorBlock = (
                     <div>
-                        {errorData ? <J obj={errorData} /> : <div className="text-sm text-slate-500">No errors</div>}
+                        {errorData ? <JSONBox obj={errorData} /> : <div className="text-sm text-slate-500">No errors</div>}
                     </div>
                 );
 
-                const environmentBlock = <J obj={envObj} />;
+                const environmentBlock = <JSONBox obj={envObj} />;
 
                 return (
                     <div>
