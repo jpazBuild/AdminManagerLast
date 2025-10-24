@@ -256,7 +256,6 @@ const FlowCanvas: React.FC<Props> = ({
             toast.error("Please select a user (createdBy)");
             return;
         }
-        console.log("flow to save:", flow);
 
         const selectedUserName = users.find((u) => u.id === selectedUser)?.name || "Unknown";
 
@@ -265,9 +264,7 @@ const FlowCanvas: React.FC<Props> = ({
                 if (!iterationData) return null;
                 try {
                     const { data } = await axios.post(`${URL_API_ALB}iterationData`, { id: iterationData?.id });
-                    const rows = data?.iterationData ?? [];
-                    console.log("fetched iteration data rows:", rows);
-                    
+                    const rows = data?.iterationData ?? [];                    
                     return formatIterationDataAll(rows);
                 } catch {
                     toast.error("No se pudo obtener el Iteration Data");

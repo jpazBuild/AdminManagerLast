@@ -39,13 +39,22 @@ export const useFetchCollection = () => {
               teamId,
               collectionUid,
             });
+
+            if (await res.status !== 200) {
+              throw new Error(`Unexpected response status: ${res.status}`);
+            }
             const data = res.data;
+
+
             setCache((prev) => ({ ...prev, [collectionUid]: data }));
             return data;
           } catch (err) {
-            lastErr = err;
-            const axErr = err as AxiosError<any>;
-            const status = axErr.response?.status;
+            console.error("Error fetching collection, attempt", attempt + 1, "of", maxRetries, err);
+
+            lastErr = await err;
+            const axErr = await err as AxiosError<any>;
+
+            const status = await axErr.response?.status;
             const message =
               (axErr.response?.data?.message as string | undefined) ??
               (axErr.response?.data?.error as string | undefined) ??
