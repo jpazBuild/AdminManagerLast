@@ -16,6 +16,7 @@ import { AiOutlineClose } from "react-icons/ai";
 import CopyToClipboard from "@/app/components/CopyToClipboard";
 import NoData from "@/app/components/NoData";
 import DialogUI from "@/app/components/Dialog";
+import ModalCustom from "@/app/components/ModalCustom";
 
 interface TestStep {
     action: string;
@@ -591,15 +592,13 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                     <UploadIcon className="w-4 h-4" /> Upload JSON
                 </button>
                 {viewUploadedJSON && (
-                    <DialogUI
 
-                        isOpen={viewUploadedJSON}
-                        handleAccordionToggle={() => setViewUploadedJSON(false)}
-                        title="Import Dynamic Data from JSON"
-                        height="h-80"
+                    <ModalCustom
+                        open={viewUploadedJSON}
+                        onClose={() => setViewUploadedJSON(false)}
                         width="lg:max-w-2xl w-full"
-                        
-                    >
+                    >   
+                        <h2 className="text-center break-words pb-4 font-semibold">Import Dynamic Data from JSON</h2>
                         <JSONDropzone
                             onJSONParsed={handleParsedJSON}
                             onFileInfoChange={({ loaded, name }) => {
@@ -607,9 +606,9 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                             }}
                             onClear={handleClearJSONData}
                             isDarkMode={isDarkMode}
-                            
+
                         />
-                    </DialogUI>
+                    </ModalCustom>
                 )}
 
                 <button

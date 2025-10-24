@@ -1,6 +1,6 @@
 import { ModalTab } from "@/types/types";
 import Modal from "./Modal";
-import SyntaxHighlighter from "react-syntax-highlighter";
+import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { stackoverflowLight } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
 type ModalRenderChipsProps = {
@@ -72,7 +72,7 @@ const  ModalRenderChips = ({chipModal,getApiPiece,stateLabel,setChipModal,closeC
                 const TabBtnSmall: React.FC<{ k: ModalTab; label: string }> = ({ k, label }) => (
                     <button
                         onClick={() => setChipModal(prev => ({ ...prev, tab: k }))}
-                        className={`px-3 py-2 text-sm border-b-2 ${chipModal.tab === k ? "border-primary-blue text-slate-800" : "border-transparent text-slate-500"
+                        className={`px-3 py-2 text-sm border-b-2 cursor-pointer ${chipModal.tab === k ? "border-primary-blue text-slate-800" : "border-transparent text-slate-500"
                             }`}
                     >
                         {label}

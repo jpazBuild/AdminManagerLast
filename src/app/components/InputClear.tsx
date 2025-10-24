@@ -20,7 +20,6 @@ interface TextInputWithClearButtonProps {
   required?: boolean;
   inputMode?: "text" | "search" | "none" | "numeric" | "decimal" | "tel" | "url" | "email";
   isDarkMode?: boolean;
-  defaultValue?: string;
   isSearch?: boolean;
   onBlur?: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
@@ -37,7 +36,6 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
   type = "text",
   className = "",
   isDarkMode = false,
-  defaultValue = "",
   readOnly = false,
   isSearch = false,
   disabled,
@@ -81,7 +79,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
   const clearInput = () => setLocalValue("");
   const togglePasswordVisibility = () => setShowPassword(prev => !prev);
 
-  const lineCount = localValue?.split("\n")?.length;
+  const lineCount:any = localValue?.split("\n")?.length;
   const isPassword = type === "password";
   const inputType = isPassword ? (showPassword ? "text" : "password") : type;
 
@@ -91,7 +89,6 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
   const labelColorFocused = isDarkMode ? "peer-focus:text-white/90" : "peer-focus:text-[#033a5c]/90";
   const ringFocus = isDarkMode ? "focus:ring-white/90" : "focus:ring-[#033a5c]/90";
 
-  
   return (
     <div className={`relative w-full text-[14px] ${baseSurface} rounded-lg`}>
       <div className="relative w-full">
@@ -104,14 +101,12 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
             rows={lineCount < 3 ? 3 : lineCount}
             onChange={e => setLocalValue(e.target.value)}
             className={`peer w-full ml-3 pr-10 pt-5 pb-2 rounded-md resize-none ${textColor} ${ringFocus} bg-transparent focus:outline-none ${className}`}
-            defaultValue={defaultValue}
             readOnly={readOnly}
             onBlur={onBlur}
             onKeyDown={onKeyDown}
             {...props}
           />
         ) : (
-
           <input
             ref={inputRef}
             inputMode={inputMode}
@@ -144,7 +139,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
               peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:-translate-y-0 peer-[:not(:placeholder-shown)]:text-xs
             `}
           >
-             {isSearch && <SearchIcon className="w-4 h-4 inline mb-1 mr-1" />} {label} 
+            {isSearch && <SearchIcon className="w-4 h-4 inline mb-1 mr-1" />} {label}
           </label>
         )}
 

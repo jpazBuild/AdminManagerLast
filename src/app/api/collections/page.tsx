@@ -11,7 +11,7 @@ import TooltipLocation from "@/app/components/ToolTip";
 import { httpMethodsStyle } from "../utils/colorMethods";
 import { useFetchElementsPostman } from "./hooks/useFetchElementsPostman";
 import { useFetchCollection } from "./hooks/useFetchCollection";
-import SyntaxHighlighter from "react-syntax-highlighter";
+import SyntaxHighlighter from 'react-syntax-highlighter';
 import { TbBrandGraphql, TbCodeVariablePlus, TbJson } from "react-icons/tb";
 import { RiErrorWarningLine } from "react-icons/ri";
 import { stackoverflowLight, tomorrow, vs } from "react-syntax-highlighter/dist/esm/styles/hljs";

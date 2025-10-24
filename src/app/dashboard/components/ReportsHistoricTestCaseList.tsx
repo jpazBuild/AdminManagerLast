@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { URL_API_ALB } from "@/config";
 import { toast } from "sonner";
@@ -8,9 +9,7 @@ import { ImageModalWithZoom } from "../../components/Report";
 import { ExecutionSummary } from "../../components/ExecutionSummary";
 import { DownloadIcon } from "lucide-react";
 import { buildStandaloneHtml } from "@/utils/buildHtmlreport";
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import html2pdf from 'html2pdf.js';
+import NoData from "@/app/components/NoData";
 
 interface Props {
   visible: boolean;
@@ -274,7 +273,11 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
     setSelectedImage("");
   }, []);
 
+  console.log("Rendering ReportTestCaseList", { testCaseId, items, activeUrl });
+  
   const fetchReportList = useCallback(async () => {
+    console.log("Fetching reports for testCaseId:", testCaseId);
+    
     if (!testCaseId) return;
     setIsLoadingList(true);
     setErrorList(null);
@@ -322,6 +325,8 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
   }, [testCaseId]);
 
   useEffect(() => {
+    console.log("Effect triggered for ReportTestCaseList", { visible, viewMode });
+    
     if (!visible || viewMode !== "Historic reports") return;
     fetchReportList();
   }, [visible, viewMode, fetchReportList]);
@@ -381,12 +386,12 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
   }
 
   if (items.length === 0) {
-    return <div className="p-4 text-sm text-muted-foreground">No historic reports.</div>;
+    return <NoData text="No historic reports found for this test case." />;
   }
 
   return (
     <>
-      <div className="w-full h-full flex flex-col overflow-y-auto gap-2">
+      <div className="w-full max-h-[90vh] flex flex-col overflow-y-auto gap-2">
         <div className="px-4 pt-4">
           <ExecutionSummary
             totalSuccess={items.filter((it) => it.status === "passed").length}

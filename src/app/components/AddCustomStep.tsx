@@ -88,8 +88,8 @@ const AddCustomStep = ({
       try {
         const parsed = safeJSONParse(validArrayString);
         if (Array.isArray(parsed)) return parsed;
-      } catch {
-        // Fallback to manual parsing
+      } catch (error){
+        toast.error("Error parsing JSON array.");
       }
 
       const objects: any[] = [];

@@ -15,12 +15,14 @@ export const DashboardSidebar = ({
   darkMode,
   isCollapsed,
   onToggleCollapse,
-  pageType
+  pageType,
+  hiddenSide
 }: {
   darkMode: boolean;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   pageType?: string
+  hiddenSide?: boolean
 }) => {
   const pathname = usePathname();
 
@@ -98,7 +100,7 @@ export const DashboardSidebar = ({
 
   return (
     <aside
-      className={`fixed left-1 top-20 bottom-4 rounded-2xl shadow-xl transform transition-all duration-500 ease-in-out z-10 ${isCollapsed ? "w-16" : "w-64"
+      className={`fixed left top-20 bottom-4 rounded-2xl shadow-xl transform transition-all duration-500 ease-in-out ${hiddenSide ? "-z-10":"z-10"} ${isCollapsed ? "w-16" : "w-64"
         } ${darkMode
           ? "bg-gray-800/90 backdrop-blur-md border border-gray-600/30"
           : "bg-gray-100 backdrop-blur-md border border-gray-200/30"
@@ -156,7 +158,8 @@ export const DashboardHeader = ({
   onDarkModeChange,
   pageType,
   callback,
-  typeFixed = true
+  typeFixed = true,
+  hiddenSide= false
 }: {
   children: React.ReactNode;
   overflow?: string;
@@ -164,6 +167,7 @@ export const DashboardHeader = ({
   pageType?: string
   callback?: (isOpen: boolean) => void;
   typeFixed?: boolean
+  hiddenSide?: boolean
 }) => {
   const [darkMode, setDarkMode] = useState<boolean>(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(true);
@@ -317,6 +321,7 @@ export const DashboardHeader = ({
             isCollapsed={sidebarCollapsed}
             onToggleCollapse={handleToggleSidebarCollapse}
             pageType={pageType}
+            hiddenSide={hiddenSide}
           />
         </div>
 

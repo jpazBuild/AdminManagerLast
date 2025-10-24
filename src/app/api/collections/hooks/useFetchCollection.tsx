@@ -33,12 +33,12 @@ export const useFetchCollection = () => {
         let attempt = 0;
         let lastErr: unknown;
 
-        while (attempt < maxRetries) {
+        while (attempt <= maxRetries) {
           try {
-            const res = await axios.post(
-              `${URL_API_ALB}getPostmanCollection`,
-              { teamId, collectionUid }
-            );
+            const res = await axios.post(`${URL_API_ALB}getPostmanCollection`, {
+              teamId,
+              collectionUid,
+            });
             const data = res.data;
             setCache((prev) => ({ ...prev, [collectionUid]: data }));
             return data;
@@ -51,16 +51,19 @@ export const useFetchCollection = () => {
               (axErr.response?.data?.error as string | undefined) ??
               (axErr.message ?? "");
 
-            const shouldRetry =
-              status === 500 && typeof message === "string" && message.includes("429");
+            const retryableStatus = [429, 500, 502, 503, 504];
+            const isRetryable =
+              (status && retryableStatus.includes(status)) ||
+              (status === 500 && typeof message === "string" && message.includes("429")) ||
+              axErr.code === "ECONNABORTED" ||
+              axErr.message?.toLowerCase().includes("network error");
 
-            attempt += 1;
-
-            if (!shouldRetry || attempt >= maxRetries) {
+            if (!isRetryable || attempt === maxRetries) {
               throw err;
             }
 
-            await sleep(300 * attempt);
+            attempt += 1;
+            await sleep(300 * Math.pow(2, attempt - 1));
           }
         }
 

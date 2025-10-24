@@ -3,7 +3,8 @@
 import React from "react";
 import TextInputWithClearButton from "@/app/components/InputClear";
 import { Trash2Icon } from "lucide-react";
-import { Row } from "../types";
+
+export type Row = { id: string; variable: string; value: string };
 
 type Props = {
   rows: Row[];
@@ -13,6 +14,8 @@ type Props = {
 };
 
 const VariablesList: React.FC<Props> = ({ rows, onUpdate, onRemove, onAdd }) => {
+  console.log("VariablesList rows:", rows);
+  
   return (
     <div className="flex flex-col min-h-0">
       <div className="grid grid-cols-[1fr_1fr_auto] gap-2 mb-2 px-1 items-end">

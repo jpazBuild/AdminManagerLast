@@ -2,27 +2,16 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  images: {
-    domains: ['localhost', 'blossom-automation-screenshots-dev.s3.us-east-2.amazonaws.com'],
-    remotePatterns: [
-      {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '4569',
-        pathname: '**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'blossom-automation-screenshots-dev.s3.us-east-2.amazonaws.com',
-        pathname: '**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'blossom-automation-screenshots-test.s3.us-east-2.amazonaws.com',
-        pathname: '**',
-      }
-    ]
+  turbopack: {
+    resolveAlias: {
+      "refractor/lib/core": "refractor/core",
+      "refractor/lib/all": "refractor/all",
+      // If you ever switch to the HLJS build:
+      "lowlight/lib/core": "lowlight/core",
+    },
   },
+
+
   env: {
     URL_API_INTEGRATION: process.env.URL_API_INTEGRATION,
     TOKEN_API: process.env.TOKEN_API,
@@ -46,6 +35,27 @@ const nextConfig: NextConfig = {
         permanent: false,
       }
     ];
+  },
+  images: {
+    domains: ['localhost', 'blossom-automation-screenshots-dev.s3.us-east-2.amazonaws.com'],
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '4569',
+        pathname: '**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'blossom-automation-screenshots-dev.s3.us-east-2.amazonaws.com',
+        pathname: '**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'blossom-automation-screenshots-test.s3.us-east-2.amazonaws.com',
+        pathname: '**',
+      }
+    ]
   },
 };
 

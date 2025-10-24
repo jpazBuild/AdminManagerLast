@@ -426,72 +426,77 @@ const DashboardPage = () => {
         const user = users.find((u) => u.name === name);
         return user ? user.id : null;
     }, [users]);
+
+    console.log("selectedTag", selectedTag);
+    
     return (
         <DashboardHeader typeFixed={false} onDarkModeChange={handleDarkModeChange}>
             <div className={`p-4 flex justify-center items-center w-full h-full flex-col gap-4 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-primary"} transition-colors duration-300`}>
                 <div className="w-full lg:w-2/3 flex flex-col gap-4 mb-4 mt-2 justify-center items-center">
                     <h2 className="font-medium tracking-wide text-center text-[20px] w-full">Find test cases</h2>
 
-                    <SearchField
-                        label="Search Test by tags"
-                        value={selectedTag}
-                        onChange={setSelectedTag}
-                        placeholder="Search by tags..."
-                        className="w-full"
-                        disabled={isLoadingSearch}
-                        options={tags?.map((tag: any) => ({
-                            label: String(tag?.name),
-                            value: String(tag?.name),
-                        }))}
-                    />
-
-                    <SearchField
-                        label="Search Test by groups"
-                        value={selectedGroup}
-                        onChange={setSelectedGroup}
-                        placeholder="Search by groups..."
-                        className="w-full"
-                        disabled={isLoadingGroups || errorGroups}
-                        options={groups?.map((group: any) => ({
-                            label: String(group?.name),
-                            value: String(group?.name),
-                        }))}
-                    />
-
-                    <SearchField
-                        label="Search Test by modules"
-                        value={selectedModule}
-                        onChange={setSelectedModule}
-                        placeholder="Search by modules..."
-                        className="w-full"
-                        disabled={!selectedGroup || modules.length === 0 || isLoadingModules || errorModules}
-                        options={modules?.map((module: any) => ({
-                            label: String(module?.name),
-                            value: String(module?.name),
-                        }))}
-                    />
-
-
-                    {isLoadingSubmodules ? (
-                        <div className="flex items-center gap-2">
-                            <Loader className="h-5 w-5 text-primary/80 animate-spin" />
-                            <span className="text-primary/80">Loading submodules...</span>
-                        </div>
-                    ) : (
-
+                    <div className="w-full flex flex-col gap-2">
                         <SearchField
-                            label="Search Test by submodules"
-                            value={selectedSubmodule}
-                            onChange={setSelectedSubmodule}
-                            placeholder="Search by submodules..."
+                            label="Search Test by tags"
+                            value={selectedTag}
+                            onChange={setSelectedTag}
+                            placeholder="Search by tags..."
                             className="w-full"
-                            disabled={!selectedModule || submodules.length === 0 || isLoadingSubmodules}
-                            options={submodules?.map((submodule: any) => ({
-                                label: String(submodule?.name),
-                                value: String(submodule?.id),
+                            disabled={isLoadingSearch}
+                            options={tags?.map((tag: any) => ({
+                                label: String(tag?.name),
+                                value: String(tag?.name),
                             }))}
                         />
-                    )}
+
+                        <SearchField
+                            label="Search Test by groups"
+                            value={selectedGroup}
+                            onChange={setSelectedGroup}
+                            placeholder="Search by groups..."
+                            className="w-full"
+                            disabled={isLoadingGroups || errorGroups}
+                            options={groups?.map((group: any) => ({
+                                label: String(group?.name),
+                                value: String(group?.name),
+                            }))}
+                        />
+
+                        <SearchField
+                            label="Search Test by modules"
+                            value={selectedModule}
+                            onChange={setSelectedModule}
+                            placeholder="Search by modules..."
+                            className="w-full"
+                            disabled={!selectedGroup || modules.length === 0 || isLoadingModules || errorModules}
+                            options={modules?.map((module: any) => ({
+                                label: String(module?.name),
+                                value: String(module?.name),
+                            }))}
+                        />
+
+
+                        {isLoadingSubmodules ? (
+                            <div className="flex w-full items-center gap-2">
+                                <Loader className="h-5 w-5 text-primary/80 animate-spin" />
+                                <span className="text-primary/80">Loading submodules...</span>
+                            </div>
+                        ) : (
+
+                            <SearchField
+                                label="Search Test by submodules"
+                                value={selectedSubmodule}
+                                onChange={setSelectedSubmodule}
+                                placeholder="Search by submodules..."
+                                className="w-full"
+                                disabled={!selectedModule || submodules.length === 0 || isLoadingSubmodules}
+                                options={submodules?.map((submodule: any) => ({
+                                    label: String(submodule?.name),
+                                    value: String(submodule?.id),
+                                }))}
+                            />
+                        )}
+                    </div>
 
                     <SearchField
                         label="Search Test by created by"
@@ -526,10 +531,20 @@ const DashboardPage = () => {
                         <div className={`flex ${isMobile ? "flex-col" : ""} md:justify-center lg:justify-center items-center gap-2 pb-2 w-full`}>
                             <button
                                 onClick={handleSearch}
-                                disabled={isSearchButtonDisabled || isLoadingSearch}
+                                disabled={isSearchButtonDisabled || isLoadingSearch || selectedTag === "" || selectedCreatedBy === "" || selectedGroup === "" 
+                                    || searchTestCaseName === "" || searchTestCaseId === ""
+                                }
                                 className={` w-full justify-center md:w-50 lg:w-50 px-4 py-2 shadow-md cursor-pointer font-semibold tracking-wide rounded-xl  text-white flex items-center gap-2
-                                    ${isLoadingSearch ? "!bg-primary/10 !cursor-not-allowed" : ""}
-                                    ${isDarkMode ? "bg-blue-700 hover:bg-blue-800" : "bg-primary/90 hover:bg-primary/80"}`}
+                                    ${isLoadingSearch ? "bg-primary/10 !cursor-not-allowed" : ""}
+                                    ${isDarkMode ? "bg-blue-700 hover:bg-blue-800" : `
+                                        ${selectedTag === "" ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed" : "bg-primary text-white"}
+                                        ${selectedGroup === "" ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed" : "bg-primary text-white"}
+                                        ${selectedCreatedBy === "" ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed" : "bg-primary text-white"}
+                                        ${searchTestCaseName === "" ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed" : "bg-primary text-white"}
+                                        ${searchTestCaseId === "" ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed" : "bg-primary text-white"}
+                                        `}
+                                    
+                                    `}
                             >
                                 {isLoadingSearch ? (
                                     <>

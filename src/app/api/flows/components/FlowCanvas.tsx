@@ -1,7 +1,6 @@
 import { Connector, FlowNode, User } from "@/types/types";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import FlowCard from "./FlowCard";
-import DialogUI from "@/app/components/Dialog";
 import { Tag } from "../../hooks/useTags";
 import axios from "axios";
 import { URL_API_ALB } from "@/config";
@@ -22,7 +21,107 @@ type Props = {
     environment: any | null;
     refetchFlows: () => void;
     setCreateNewFlowOpen?: (open: boolean) => void;
+    iterationData?: any;
 };
+
+
+type VisualNode = FlowNode & {
+    _metaType?: "environment" | "iteration";
+    _readonly?: boolean;
+    _subtitle?: string;
+};
+
+
+type recalcParams = {
+    setConnectors: (connectors: Connector[]) => void;
+    containerRef: any;
+    cardRefs: React.RefObject<(HTMLDivElement | null)[]>;
+};
+
+
+const recalc = ({ setConnectors, containerRef, cardRefs }: recalcParams) => {
+    const root = containerRef.current;
+    if (!root) return;
+    const rootRect = root.getBoundingClientRect();
+
+    type Measured = {
+        idx: number;
+        left: number;
+        right: number;
+        top: number;
+        midY: number;
+        bottom: number;
+    };
+
+    const items: Measured[] = cardRefs.current
+        .map((el, idx) => {
+            if (!el) return null;
+            const r = el.getBoundingClientRect();
+            return {
+                idx,
+                left: r.left,
+                right: r.right,
+                top: r.top,
+                bottom: r.bottom,
+                midY: r.top + r.height / 2
+            };
+        })
+        .filter(Boolean) as Measured[];
+
+    if (items.length < 2) {
+        setConnectors([]);
+        return;
+    }
+
+    items.sort((a, b) => {
+        const topDiff = a.top - b.top;
+        if (Math.abs(topDiff) > 20) return topDiff;
+        return a.left - b.left;
+    });
+
+    const paths: Connector[] = [];
+    for (let i = 0; i < items.length - 1; i++) {
+        const a = items[i];
+        const b = items[i + 1];
+
+        const x1 = a.right - rootRect.left;
+        const y1 = a.midY - rootRect.top;
+        const x2 = b.left - rootRect.left - 8;
+        const y2 = b.midY - rootRect.top;
+
+        if (Math.abs(y1 - y2) < 20) {
+            const midX = (x1 + x2) / 2;
+            paths.push({ d: `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}` });
+        } else {
+            const midX2 = x2 - 30;
+            paths.push({ d: `M ${x1} ${y1} L ${midX2} ${y1} L ${midX2} ${y2} L ${x2} ${y2}` });
+        }
+    }
+
+    setConnectors(paths);
+};
+
+type IterationRow = {
+  iterationCount: number;
+  id: string;
+  createdBy: string;
+  iterationData: Record<string, any>;
+  order: number;
+  apisScriptsName: string;
+};
+
+function formatIterationDataAll(
+  rows: IterationRow[]
+): { iterationData: Record<string, Record<string, any>> } {
+  const sorted = [...rows].sort((a, b) => a.order - b.order);
+
+  const out: Record<string, Record<string, any>> = {};
+  for (const r of sorted) {
+    out[`iteration${r.order}`] = r.iterationData ?? {};
+  }
+
+  return { iterationData: out };
+}
 
 const FlowCanvas: React.FC<Props> = ({
     flow,
@@ -36,7 +135,8 @@ const FlowCanvas: React.FC<Props> = ({
     setModalCreate,
     environment,
     refetchFlows,
-    setCreateNewFlowOpen
+    setCreateNewFlowOpen,
+    iterationData
 }) => {
     const containerRef = useRef<HTMLDivElement | null>(null);
     const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -56,70 +156,10 @@ const FlowCanvas: React.FC<Props> = ({
     const [selectedTags, setSelectedTags] = useState<any>([]);
     const [selectedUser, setSelectedUser] = useState<any>(null);
 
+
     const isPlainObject = (v: any) => v && typeof v === "object" && !Array.isArray(v);
     const isEmptyObject = (v: any) => isPlainObject(v) && Object.keys(v).length === 0;
-    const recalc = () => {
-        const root = containerRef.current;
-        if (!root) return;
 
-        const rootRect = root.getBoundingClientRect();
-
-        type Measured = {
-            idx: number;
-            left: number;
-            right: number;
-            top: number;
-            midY: number;
-            bottom: number;
-        };
-
-        const items: Measured[] = cardRefs.current
-            .map((el, idx) => {
-                if (!el) return null;
-                const r = el.getBoundingClientRect();
-                return {
-                    idx,
-                    left: r.left,
-                    right: r.right,
-                    top: r.top,
-                    bottom: r.bottom,
-                    midY: r.top + r.height / 2,
-                };
-            })
-            .filter(Boolean) as Measured[];
-
-        if (items.length < 2) {
-            setConnectors([]);
-            return;
-        }
-
-        items.sort((a, b) => {
-            const topDiff = a.top - b.top;
-            if (Math.abs(topDiff) > 20) return topDiff;
-            return a.left - b.left;
-        });
-
-        const paths = [];
-        for (let i = 0; i < items.length - 1; i++) {
-            const a = items[i];
-            const b = items[i + 1];
-
-            const x1 = a.right - rootRect.left;
-            const y1 = a.midY - rootRect.top;
-            const x2 = b.left - rootRect.left - 8;
-            const y2 = b.midY - rootRect.top;
-
-            if (Math.abs(y1 - y2) < 20) {
-                const midX = (x1 + x2) / 2;
-                paths.push({ d: `M ${x1} ${y1} L ${midX} ${y1} L ${midX} ${y2} L ${x2} ${y2}` });
-            } else {
-                const midX2 = x2 - 30;
-                paths.push({ d: `M ${x1} ${y1} L ${midX2} ${y1} L ${midX2} ${y2} L ${x2} ${y2}` });
-            }
-        }
-
-        setConnectors(paths);
-    };
 
     const fetchTags = async () => {
         try {
@@ -152,36 +192,51 @@ const FlowCanvas: React.FC<Props> = ({
         fetchTags();
         fetchUsers();
     }, []);
-    useLayoutEffect(() => {
-        recalc();
-        const ro = new ResizeObserver(() => recalc());
-        const root = containerRef.current;
-        if (root) ro.observe(root);
-        cardRefs.current.forEach((el) => el && ro.observe(el));
-
-        const onResize = () => recalc();
-        window.addEventListener("resize", onResize);
-
-        return () => {
-            ro.disconnect();
-            window.removeEventListener("resize", onResize);
-        };
-    }, [flow.length]);
-
-    useEffect(() => {
-        const id = requestAnimationFrame(recalc);
-        return () => cancelAnimationFrame(id);
-    });
-
-    const handleAccordionToggle = () => {
-        onCloseModalCreate?.();
-    };
 
     const hasEnv = useMemo(() => {
         if (environment == null) return false;
         if (isEmptyObject(environment)) return false;
         return true;
     }, [environment]);
+
+    const visibleFlow: VisualNode[] = useMemo(() => {
+        const nodes: VisualNode[] = [];
+
+        nodes.push(...(flow as VisualNode[]));
+
+        return nodes;
+    }, [flow, environment, hasEnv, iterationData]);
+
+    useLayoutEffect(() => {
+        recalc({ setConnectors, containerRef, cardRefs });
+        const ro = new ResizeObserver(() => recalc({ setConnectors, containerRef, cardRefs }));
+        const root = containerRef.current;
+        if (root) ro.observe(root);
+
+        cardRefs.current.forEach((el) => el && ro.observe(el));
+
+        const onResize = () => recalc({ setConnectors, containerRef, cardRefs });
+        window.addEventListener("resize", onResize);
+
+        return () => {
+            ro.disconnect();
+            window.removeEventListener("resize", onResize);
+        };
+    }, [visibleFlow.length]);
+
+    useEffect(() => {
+        const id = requestAnimationFrame(() => {
+            recalc({ setConnectors, containerRef, cardRefs });
+        });
+        return () => cancelAnimationFrame(id);
+    }, [flow.length]);
+
+    const handleAccordionToggle = () => {
+        onCloseModalCreate?.();
+    };
+
+
+
 
     const handleSaveTest = async () => {
         if (!hasEnv) {
@@ -201,15 +256,27 @@ const FlowCanvas: React.FC<Props> = ({
             toast.error("Please select a user (createdBy)");
             return;
         }
-
-
-
-
         console.log("flow to save:", flow);
 
         const selectedUserName = users.find((u) => u.id === selectedUser)?.name || "Unknown";
 
+        const iterationDataResponse: any =
+            await (async () => {
+                if (!iterationData) return null;
+                try {
+                    const { data } = await axios.post(`${URL_API_ALB}iterationData`, { id: iterationData?.id });
+                    const rows = data?.iterationData ?? [];
+                    console.log("fetched iteration data rows:", rows);
+                    
+                    return formatIterationDataAll(rows);
+                } catch {
+                    toast.error("No se pudo obtener el Iteration Data");
+                    return null;
+                }
+            })();
+
         const apisList = flow.map(node => node.rawNode);
+        
         const payload = {
             tagNames: [selectedTags],
             name: nameFlow,
@@ -221,9 +288,13 @@ const FlowCanvas: React.FC<Props> = ({
             },
             createdBy: selectedUserName,
             temp: false,
-            env: environment || {}
+            env: environment || {},
+            iterationData: iterationDataResponse?.iterationData
         };
 
+        if(iterationDataResponse == null) {
+            delete payload.iterationData;
+        }
         console.log("payload to save:", payload);
 
         try {
@@ -255,10 +326,11 @@ const FlowCanvas: React.FC<Props> = ({
     );
 
 
+
     return (
         <div className="w-full flex flex-col gap-4">
             <div ref={containerRef} className="relative flex items-start gap-6 flex-wrap">
-                {flow.map((n, i) => (
+                {visibleFlow.map((n, i) => (
                     <div key={n.id} ref={setCardRef(i)} className="relative z-30">
                         <FlowCard
                             node={n}
@@ -285,16 +357,15 @@ const FlowCanvas: React.FC<Props> = ({
 
             <div className="self-end flex gap-2 items-center pb-2">
                 <button
-                    disabled={!hasEnv}
                     onClick={() => setModalCreate(true)}
-                    className={`border-primary-blue cursor-pointer text-primary/80 border-2 font-semibold px-5 py-2 rounded-2xl shadow-md ${!hasEnv ? "opacity-50 cursor-not-allowed" : ""}`}
+                    className={`border-primary-blue cursor-pointer text-primary/80 border-2 font-semibold px-5 py-2 rounded-2xl shadow-md
+                        `}
                 >
                     Save Flow
                 </button>
                 <button
-                    disabled={!hasEnv}
                     onClick={onSendFlow}
-                    className={`bg-primary-blue cursor-pointer border-primary-blue border-2 font-semibold text-white px-5 py-2 rounded-2xl shadow-md ${!hasEnv ? "opacity-50 cursor-not-allowed" : ""}`}
+                    className={`bg-primary-blue cursor-pointer border-primary-blue border-2 font-semibold text-white px-5 py-2 rounded-2xl shadow-md `}
                 >
                     Run Flow
                 </button>

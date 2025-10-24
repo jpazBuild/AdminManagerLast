@@ -528,7 +528,8 @@ const CreateForm = () => {
                     Location Information
                 </h2>
 
-                <TabsUnderline defaultValue="tag"
+                <TabsUnderline 
+                    defaultValue="tag"
                     tabs={[
                         {
                             name: 'Tag', value: 'tag',

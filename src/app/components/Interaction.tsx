@@ -5,7 +5,7 @@ import { ChevronDown, ChevronUp, PlusIcon, Save, Trash2, Trash2Icon } from "luci
 import { FaXmark } from "react-icons/fa6";
 import CopyToClipboard from "./CopyToClipboard";
 import TextInputWithClearButton from "./InputClear";
-import SyntaxHighlighter from "react-syntax-highlighter";
+import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { atomOneDark, atomOneLight } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import ButtonTab from "./ButtonTab";
 import { SearchField } from "./SearchField";
