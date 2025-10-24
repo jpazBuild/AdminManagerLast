@@ -1,3 +1,4 @@
+import NoData from "@/app/components/NoData";
 import { IterationHeader } from "../hooks/useIterationHeaders";
 
 type Props = {
@@ -62,7 +63,10 @@ export default function Sidebar({
         {loading ? (
           <div className="text-sm text-[#7B8CA6]">Loading...</div>
         ) : items.length === 0 ? (
-          <div className="text-sm text-[#7B8CA6]">No results</div>
+          <NoData
+            text="No iteration data found"
+
+          />
         ) : (
           <ul className="space-y-2">
             {items.map((h, i) => (
@@ -72,9 +76,9 @@ export default function Sidebar({
                   className="w-full text-left rounded-xl border px-3 py-2 transition border-[#E1E8F0] hover:bg-gray-50"
                   title={h.description || h.name}
                 >
-                  <div className="text-sm font-medium text-[#0A2342] truncate">
+                  {/* <div className="text-sm font-medium text-[#0A2342] truncate">
                     {`Iteration ${i + 1}`}
-                  </div>
+                  </div> */}
                   {!!h.name && (
                     <div className="text-xs text-[#7B8CA6] truncate">{h.name}</div>
                   )}

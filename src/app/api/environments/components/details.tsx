@@ -84,6 +84,8 @@ const EnvironmentDetails: React.FC<EnvironmentDetailsProps> = ({
         await onSave(isNameDirty ? { nameOverride: draftName } : undefined);
     };
 
+
+    
     return (
         <div className="flex flex-col h-full w-3/4 overflow-hidden justify-center">
             <div className="px-6 pt-6 pb-3 flex items-center justify-between">
@@ -219,3 +221,4 @@ const EnvironmentDetails: React.FC<EnvironmentDetailsProps> = ({
 };
 
 export default EnvironmentDetails;
+//test

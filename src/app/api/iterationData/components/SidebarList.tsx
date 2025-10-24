@@ -3,6 +3,7 @@
 import TextInputWithClearButton from "@/app/components/InputClear";
 import { IterationHeader } from "../types";
 import { useRef } from "react";
+import { PlusIcon } from "lucide-react";
 
 type Props = {
   iterations: IterationHeader[];
@@ -30,7 +31,6 @@ export default function SidebarList({
 
   return (
     <div className="w-72 border-r border-primary/10 bg-white flex-shrink-0 flex flex-col overflow-hidden">
-      {/* Search */}
       <div className="flex-shrink-0 p-4 bg-white border-b border-primary/10">
         <TextInputWithClearButton
           id="search-iterations"
@@ -44,10 +44,10 @@ export default function SidebarList({
 
       <div className="flex items-center gap-3 px-4 py-3 border-b border-primary/10 bg-white">
         <button
-          className="px-4 py-2.5 rounded-full bg-[#0A2342] text-white font-semibold shadow hover:bg-[#18345A] transition"
+          className="px-4 py-2.5 rounded-full bg-[#0A2342] flex items-center gap-1 text-white font-semibold shadow hover:bg-[#18345A] transition"
           onClick={onCreateBlank}
         >
-          + Create
+          <PlusIcon className="w-5 h-5"/> Create
         </button>
         <button
           className="px-4 py-2.5 rounded-full border border-[#0A2342] text-[#0A2342] font-semibold hover:bg-[#F5F8FB] transition"
@@ -77,8 +77,7 @@ export default function SidebarList({
                 onClick={() => onPick(it)}
                 title={it.description || it.name}
               >
-                <h3 className="font-medium text-primary/80">{`Iteration ${idx + 1}`}</h3>
-                <p className="text-xs text-gray-500 truncate">{it.name}</p>
+                <h3 className="text-lg font-semibold text-gray-500 truncate">{it.name}</h3>
               </div>
             ))}
           </div>

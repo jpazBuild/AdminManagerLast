@@ -144,7 +144,7 @@ const PackageCard: React.FC<Props> = ({
       </div>
 
       {!isCollapsed && (
-        <div className="px-4 pb-4 min-h-0 h-[60vh]">
+        <div className="px-4 pb-4 min-h-0 h-full max-h-[70vh]">
           <div className="h-full max-h-full overflow-y-auto pr-1">
             {children}
           </div>

@@ -1,21 +1,16 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { DashboardHeader } from "@/app/Layouts/main";
-import TextInputWithClearButton from "@/app/components/InputClear";
-import { CopyPlus, MoreVertical, Trash2Icon } from "lucide-react";
-
+import { CopyPlus, MoreVertical, PlusIcon, Trash2Icon } from "lucide-react";
 import SidebarList from "./components/SidebarList";
 import PackageCard from "./components/PackageCard";
-import VariablesList from "./components/VariablesList";
+import VariablesList, { Row } from "./components/VariablesList";
 import ConfirmModal from "./components/ConfirmModal";
-import { Row } from "./types";
 import selectIterationDataIcon from "../../../assets/apisImages/select-iterationData.svg";
-
-import {SearchField} from "@/app/components/SearchField";
+import { SearchField } from "@/app/components/SearchField";
 import useTags, { Tag } from "../hooks/useTags";
-
 import { useIterationList } from "./hooks/useIterationList";
 import { useIterationEditor } from "./hooks/useIterationEditor";
 import { useToast } from "./hooks/useToast";
@@ -34,19 +29,11 @@ type Draft = {
 };
 
 export default function IterationDataPage() {
-  // Sidebar list
   const { iterations, loadingList, listError, query, setQuery, refresh } = useIterationList();
-
-  // Main editor
   const editor = useIterationEditor();
-
-  // Toast
   const { toast, show, hide } = useToast();
-
-  // Delete confirmation modal
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  // Tags (for SearchField)
   const { tags, isLoadingTags } = useTags();
   const tagOptionsRaw = (tags ?? [])
     .map((t: string | Tag) => (typeof t === "string" ? t : t?.name ?? ""))
@@ -55,34 +42,16 @@ export default function IterationDataPage() {
     .filter((t) => !editor.tagNames.includes(t))
     .map((t) => ({ label: t, value: t }));
 
-  // Local drafts support (duplicados locales, opcional)
   const [drafts, setDrafts] = useState<Draft[]>([]);
-  const addDraftFromMain = () => {
-    const snap = editor.duplicateLocalSnapshot();
-    setDrafts((prev) => [
-      ...prev,
-      {
-        id: newLocalId(),
-        pkgId: snap.pkgId,
-        pkgName: `${snap.pkgName || "Number"} Copy`,
-        checked: snap.checked,
-        tagNames: [...snap.tagNames],
-        rows: snap.rows.map((r) => ({ ...r })),
-      },
-    ]);
-    show("Draft duplicated below.", "success", 1800);
-  };
 
-  // Helper para guardar con validación + toast de faltantes
   const handleSave = async () => {
     const v = editor.validateForSave();
     if (!v.ok) {
-      // Muestra qué falta
       const missingText = v.missingFields.join(", ");
       show(`Missing fields: ${missingText}`, "error", 3500);
       return;
     }
-    const res = await editor.save(); // PUT si es nuevo, PATCH si es existente
+    const res = await editor.save();
     if (res.ok) {
       show(editor.isNew ? "Created." : "Saved.", "success");
       await refresh();
@@ -95,7 +64,6 @@ export default function IterationDataPage() {
   return (
     <DashboardHeader pageType="api">
       <div className="flex gap-2 w-full h-full overflow-hidden">
-        {/* Sidebar */}
         <SidebarList
           iterations={iterations}
           loading={loadingList}
@@ -103,10 +71,10 @@ export default function IterationDataPage() {
           query={query}
           setQuery={setQuery}
           onPick={async (h) => {
-            await editor.loadFromHeader(h); // EXISTENTE -> PATCH
+            await editor.loadFromHeader(h);
           }}
           onCreateBlank={() => {
-            editor.createLocalBlankDraft("New iteration1"); // NUEVO -> PUT
+            editor.createLocalBlankDraft("New iteration1");
             show("Blank package ready to edit.", "success", 1200);
           }}
           onUploadCsv={(file) => {
@@ -118,9 +86,7 @@ export default function IterationDataPage() {
           selectedId={editor.selected?.id}
         />
 
-        {/* Panel derecho */}
         <div className="flex flex-col w-full h-full">
-          {/* Encabezado superior solo cuando hay selección */}
           {editor.selected && (
             <div className="px-6 pt-6 pb-2">
               <div className="flex items-start justify-between">
@@ -143,7 +109,6 @@ export default function IterationDataPage() {
                     Reset changes
                   </button>
 
-                  {/* Save SIEMPRE clickeable; la validación muestra toast si falta algo */}
                   <button
                     onClick={handleSave}
                     className="inline-flex items-center gap-2 bg-[#062241] hover:bg-[#0A2F5C] text-white px-6 h-12 rounded-full font-semibold shadow transition disabled:opacity-60"
@@ -166,7 +131,6 @@ export default function IterationDataPage() {
                 onToggleChecked={editor.toggleChecked}
                 isCollapsed={editor.isCollapsed}
                 toggleCollapse={() => editor.setIsCollapsed((v) => !v)}
-                // header right side: Search tags and 3-dots menu
                 headerExtras={
                   <div className="flex items-center gap-3">
                     <div className="w-full md:w-[420px]">
@@ -180,11 +144,9 @@ export default function IterationDataPage() {
                           if (!v) return;
                           editor.addTag(v);
                         }}
-                        // no clear; es picker
                       />
                     </div>
 
-                    {/* 3-dot menu */}
                     <div className="relative">
                       <button
                         className="p-2 rounded-md hover:bg-gray-100"
@@ -199,7 +161,7 @@ export default function IterationDataPage() {
                             className="flex w-full items-center gap-2 px-4 py-2 text-sm text-[#0A2342] hover:bg-gray-50"
                             onClick={async () => {
                               editor.setMenuOpen(false);
-                              const res = await editor.duplicateAsNew(); // PUT con name "Copy"
+                              const res = await editor.duplicateAsNew();
                               if (res.ok) {
                                 show("Duplicated.", "success");
                                 await refresh();
@@ -217,7 +179,6 @@ export default function IterationDataPage() {
                             className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                             onClick={() => {
                               editor.setMenuOpen(false);
-                              // abre confirm modal
                               setConfirmOpen(true);
                             }}
                           >
@@ -230,8 +191,7 @@ export default function IterationDataPage() {
                   </div>
                 }
               >
-                {/* PILLS (tags seleccionados) */}
-                {editor.tagNames.length > 0 && (
+                {/* {editor.tagNames.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3">
                     {editor.tagNames.map((t) => (
                       <span
@@ -249,14 +209,53 @@ export default function IterationDataPage() {
                       </span>
                     ))}
                   </div>
-                )}
+                )} */}
 
-                <VariablesList
-                  rows={editor.rows}
-                  onUpdate={editor.updateRow}
-                  onRemove={editor.removeRow}
-                  onAdd={editor.addRow}
-                />
+               <div className="mt-4">
+                 {Object.entries(editor.rows).map(([iterKey, vars], idx) => {
+                  const rowsArray: Row[] = Object.entries(vars).map(([k, v]) => {
+                    const clean = k.replace(/^iteration\d+\./i, "");
+                    return { id: `${iterKey}:${k}`, variable: clean, value: v };
+                  });
+                  return (
+                    <div key={iterKey} className="rounded-xl border border-[#E6ECF3] p-4 mb-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-[#0A2342]">
+                          {`Iteration ${idx + 1}`}
+                        </h3>
+                      </div>
+
+                      <VariablesList
+                        rows={rowsArray}
+                        onUpdate={(rowId, patch) => {
+                          const [ik, oldStoredKey] = rowId.split(":");
+                          const currentClean = oldStoredKey.replace(/^iteration\d+\./i, "");
+                          const newVarKey = (patch.variable ?? currentClean).trim();
+                          const value = patch.value as string | undefined;
+                          editor.updateRow(ik, oldStoredKey, {
+                            newVarKey,
+                            value,
+                          });
+                        }}
+                        onRemove={(rowId) => {
+                          const [ik, storedKey] = rowId.split(":");
+                          editor.removeRow(ik, storedKey);
+                        }}
+                        onAdd={() => editor.addRow(iterKey)}
+                      />
+                    </div>
+                  );
+                })}
+
+               </div>
+                <div>
+                  <button
+                    onClick={editor.addIteration}
+                    className="mt-2 text-sm cursor-pointer px-4 py-2 flex gap-1 items-center rounded-full bg-primary/90 text-white hover:bg-primary/95"
+                  >
+                    <PlusIcon className="w-5 h-5"/> Add iteration
+                  </button>
+                </div>
               </PackageCard>
             ) : (
               <div className="flex flex-col items-center justify-center min-h-[50vh] w/full text-center rounded-2xl border border-[#E1E8F0] bg-white p-8">
@@ -272,7 +271,6 @@ export default function IterationDataPage() {
               </div>
             )}
 
-            {/* Drafts locales (si los usas) */}
             {drafts.map((d) => (
               <PackageCard
                 key={d.id}
@@ -315,9 +313,9 @@ export default function IterationDataPage() {
                       prev.map((x) =>
                         x.id === d.id
                           ? {
-                              ...x,
-                              rows: x.rows.map((r) => (r.id === rowId ? { ...r, ...patch } : r)),
-                            }
+                            ...x,
+                            rows: x.rows.map((r) => (r.id === rowId ? { ...r, ...patch } : r)),
+                          }
                           : x
                       )
                     )
@@ -347,7 +345,6 @@ export default function IterationDataPage() {
         </div>
       </div>
 
-      {/* Confirm delete */}
       <ConfirmModal
         open={confirmOpen}
         title="Are you sure you want to delete this package?"
@@ -367,16 +364,14 @@ export default function IterationDataPage() {
         }}
       />
 
-      {/* Toast */}
       {toast.visible && (
         <div className="fixed lg:w-1/2 bottom-4 left-1/2 -translate-x-1/2 z-40">
           <div
             className={`rounded-lg px-4 py-2 shadow flex justify-between items-center border
-            ${
-              toast.variant === "success"
+            ${toast.variant === "success"
                 ? "border-green-200 bg-green-50 text-green-700"
                 : "border-red-200 bg-red-50 text-red-700"
-            }`}
+              }`}
           >
             {toast.msg}
             <button className="ml-2" onClick={hide}>

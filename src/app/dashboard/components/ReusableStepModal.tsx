@@ -9,6 +9,7 @@ import { URL_API_ALB } from '@/config';
 import { checkConnection } from '@/utils/DBBUtils';
 import { SearchField } from '../../components/SearchField';
 import { User } from '@/types/types';
+import ModalCustom from '@/app/components/ModalCustom';
 
 interface ReusableStepModalProps {
     isOpen: boolean;
@@ -138,28 +139,15 @@ const ReusableStepModal: React.FC<ReusableStepModalProps> = ({
         }
     };
 
-    const getModalClasses = () => isDarkMode
-        ? "bg-gray-800 text-white border-gray-600"
-        : "bg-white text-gray-900";
-
-    const getInputClasses = () => isDarkMode
-        ? "bg-gray-700 border-gray-600 text-white placeholder-gray-400"
-        : "bg-white border-gray-300 text-gray-900";
-
-
-    console.log("testing ", { defaultCreator, createdBy, usernames, userOptions });
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className={getModalClasses()}>
-                <DialogHeader>
-                    <DialogTitle>Create Reusable Step</DialogTitle>
-                    <DialogDescription>
-                        Create a reusable step from {selectedSteps?.length} selected steps
-                    </DialogDescription>
-                </DialogHeader>
-
-                <div className="space-y-4">
+        <ModalCustom
+            open={isOpen}
+            onClose={onClose}
+            width="max-w-2/3"
+        >
+              <div className="py-4 flex flex-col gap-4 overflow-x-hidden">
+                    <p className="text-[22px] font-semibold text-start pb-3">Create Reusable Step</p>
                     <div className="space-y-2">
                         {responseTest?.tagNames && responseTest.tagNames.length > 0 ? (
                             <div className="flex gap-2">
@@ -234,18 +222,22 @@ const ReusableStepModal: React.FC<ReusableStepModalProps> = ({
                             ))}
                         </div>
                     </div>
-                </div>
 
-                <DialogFooter>
-                    <Button variant="outline" onClick={onClose} >
+                    <div className='flex justify-end gap-4 mt-4'>
+                        <button className="px-10 py-3 border rounded-md cursor-pointer text-primary transition-colors duration-150">
                         Cancel
-                    </Button>
-                    <Button onClick={handleCreate} className={`${isDarkMode ? 'bg-primary/90 text-white' : 'bg-primary/80 text-white'}`}>
-                        Create Reusable Step
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                    </button>
+                    <button
+                        onClick={handleCreate}
+                        className={`px-10 py-3 rounded-md text-white cursor-pointer hover:opacity-90 font-semibold transition-opacity duration-150 ${
+                            isDarkMode ? 'bg-primary/90' : 'bg-primary/80'
+                        }`}
+                    >
+                        Create
+                    </button>
+                    </div>
+                </div>
+        </ModalCustom>
     );
 };
 

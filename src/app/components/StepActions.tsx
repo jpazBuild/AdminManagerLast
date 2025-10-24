@@ -12,6 +12,7 @@ import InteractionItem from "./Interaction";
 import { URL_API_ALB } from "@/config";
 import { checkConnection } from "@/utils/DBBUtils";
 import { SearchField } from "./SearchField";
+import ModalCustom from "./ModalCustom";
 
 interface StepActionsProps {
     index: number;
@@ -365,163 +366,173 @@ const StepActions: React.FC<StepActionsProps> = ({
                 />
             )}
 
-            <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="w-full max-h-[85vh] min-h-[40vh] overflow-hidden bg-white flex flex-col">
-                    <div className="relative">
-                        {selectedReusable && (
 
-                            <button className="absolute -top-1 flex gap-2 text-primary/80 items-center" onClick={() => setSelectedReusable(null)}>
-                                <ArrowLeft className="h-5 w-5 text-primary/80 hover:text-primary/90 cursor-pointer" /> Back
-                            </button>
 
-                        )}
+            <ModalCustom
+                open={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                width="max-w-3xl"
+            >
+                <div className="relative">
+                    {selectedReusable && (
 
-                    </div>
+                        <button className="absolute -top-1 flex gap-2 text-primary/80 items-center" onClick={() => setSelectedReusable(null)}>
+                            <ArrowLeft className="h-5 w-5 text-primary/80 hover:text-primary/90 cursor-pointer" /> Back
+                        </button>
 
-                    <h2 className="text-lg font-semibold text-primary/80 flex-1 text-center">
-                        {selectedReusable
-                            ? `${selectedReusable.name}`
-                            : "Select a Reusable Step"}
-                    </h2>
+                    )}
 
-                    <div className="flex flex-col overflow-y-auto p-4 space-y-4 min-h-[80vh]">
-                        {!selectedReusable ? (
-                            <>
+                </div>
 
-                                <div className="flex items-center gap-2">
-                                    <TextInputWithClearButton 
-                                        id="filter-reusable"
-                                        type="text"
-                                        label="Filter by name"
-                                        value={nameFilter}
-                                        onChangeHandler={(e) => setNameFilter(e.target.value)}
-                                        placeholder="Filter by name…"
-                                    />
-                                  
-                                </div>
-                                {loading && (
-                                    <div className="text-center text-gray-400">Loading...</div>
-                                )}
+                <h2 className="text-lg font-semibold text-primary/80 flex-1 text-center">
+                    {selectedReusable
+                        ? `${selectedReusable.name}`
+                        : "Select a Reusable Step"}
+                </h2>
 
-                                {filteredReusable.length === 0 && !loading ? (
-                                    <div className="text-sm text-gray-500">No matches.</div>
-                                ) : (
-                                    filteredReusable.map((item) => (
-                                        <div
-                                            key={item.id}
-                                            className="p-3 border rounded cursor-pointer hover:bg-gray-50"
-                                            onClick={() => {
-                                                setSelectedReusable(item);
-                                                fetchReusableSteps(item.id);
-                                            }}
-                                        >
-                                            <div className="font-medium">{item.name}</div>
-                                            <div className="text-xs text-gray-500">
-                                                {item.description || "No description"}
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </>
-                        ) : (
-                            <>
-                                {loading && (
-                                    <div className="text-center text-gray-400">Loading steps...</div>
-                                )}
+                <div className="flex flex-col overflow-y-auto p-4 space-y-4 min-h-[80vh]">
+                    {!selectedReusable ? (
+                        <>
 
-                                <div className="flex gap-2 mb-2">
+                            <div className="flex items-center gap-2">
+                                <TextInputWithClearButton
+                                    id="filter-reusable"
+                                    type="text"
+                                    label="Filter by name"
+                                    value={nameFilter}
+                                    onChangeHandler={(e) => setNameFilter(e.target.value)}
+                                    placeholder="Filter by name…"
+                                />
 
-                                    <button
-                                        className="flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded text-primary hover:bg-primary/10"
-                                        onClick={() => setIsEditingReusable(!isEditingReusable)}
+                            </div>
+                            {loading && (
+                                <div className="text-center text-gray-400">Loading...</div>
+                            )}
+
+                            {filteredReusable.length === 0 && !loading ? (
+                                <div className="text-sm text-gray-500">No matches.</div>
+                            ) : (
+                                filteredReusable.map((item) => (
+                                    <div
+                                        key={item.id}
+                                        className="p-3 border rounded cursor-pointer hover:bg-gray-50"
+                                        onClick={() => {
+                                            setSelectedReusable(item);
+                                            fetchReusableSteps(item.id);
+                                        }}
                                     >
-                                        <Edit className="mr-1 h-3 w-3" />{" "}
-                                        {isEditingReusable ? "Cancel Edit" : "Edit Reusable"}
+                                        <div className="font-medium">{item.name}</div>
+                                        <div className="text-xs text-gray-500">
+                                            {item.description || "No description"}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </>
+                    ) : (
+                        <>
+                            {loading && (
+                                <div className="text-center text-gray-400">Loading steps...</div>
+                            )}
+
+                            <div className="flex gap-2 mb-2">
+
+                                <button
+                                    className="flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded text-primary hover:bg-primary/10"
+                                    onClick={() => setIsEditingReusable(!isEditingReusable)}
+                                >
+                                    <Edit className="mr-1 h-3 w-3" />{" "}
+                                    {isEditingReusable ? "Cancel Edit" : "Edit Reusable"}
+                                </button>
+
+                                {isEditingReusable && (
+                                    <button
+                                        className="flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded text-white bg-primary/90 hover:bg-primary/85"
+                                        onClick={saveReusableChanges}
+                                    >
+                                        <Save className="mr-1 h-3 w-3" /> Save Changes
+
                                     </button>
 
-                                    {isEditingReusable && (
-                                        <button
-                                            className="flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded text-white bg-primary/90 hover:bg-primary/85"
-                                            onClick={saveReusableChanges}
-                                        >
-                                            <Save className="mr-1 h-3 w-3" /> Save Changes
 
-                                        </button>
+                                )}
+                            </div>
 
+                            {selectedReusableSteps.map((step, idx) => (
+                                <div key={idx} className="flex flex-col gap-2 border rounded p-2">
+                                    <ReusableStepActions idx={idx - 1} />
 
-                                    )}
-                                </div>
-
-                                {selectedReusableSteps.map((step, idx) => (
-                                    <div key={idx} className="flex flex-col gap-2 border rounded p-2">
-                                        <ReusableStepActions idx={idx - 1} />
-
-                                        <InteractionItem
-                                            data={{ id: `reusable-${selectedReusable.id}-step-${idx}`, ...step }}
-                                            index={idx}
-                                            {...(isEditingReusable && {
-                                                onDelete: (indexToDelete) => {
-                                                    const newSteps = selectedReusableSteps
-                                                        .filter((_, i) => i !== indexToDelete)
-                                                        .map((s, k) => ({ ...s, indexStep: k + 1 }));
-                                                    insertReusableStep(newSteps);
-                                                },
-                                                onUpdate: (indexToUpdate, updatedStep) => {
-                                                    const newSteps = [...selectedReusableSteps];
-                                                    newSteps[indexToUpdate] = {
-                                                        ...newSteps[indexToUpdate],
-                                                        ...updatedStep,
-                                                    };
-                                                    insertReusableStep(newSteps);
-                                                }
-                                            })}
-                                            isDarkMode={false}
-                                            test={test}
-                                        />
-                                        <ReusableStepActions idx={idx} />
-                                    </div>
-                                ))}
-
-                                <Button
-                                    className="mt-3 font-semibold text-white/90 bg-primary hover:bg-primary/80"
-                                    onClick={() => {
-                                        if (!selectedReusable) return;
-
-                                        const newStep = reusable;
-
-                                        const updatedSteps = [...steps];
-                                        updatedSteps.splice(index + 1, 0, newStep);
-
-                                        const reindexedSteps = updatedSteps.map((step, idx) => ({
-                                            ...step,
-                                            indexStep: idx + 1,
-                                        }));
-
-                                        setResponseTest?.((prev: any) => {
-                                            if (!prev) return prev;
-                                            return { ...prev, stepsData: reindexedSteps };
-                                        });
-
-                                        setTestCasesData?.((prev: any[]) => {
-                                            const updated = [...prev];
-                                            const idxCase = updated.findIndex((tc) => tc.testCaseId === test.testCaseId);
-                                            if (idxCase >= 0) {
-                                                updated[idxCase] = { ...updated[idxCase], stepsData: reindexedSteps };
+                                    <InteractionItem
+                                        data={{ id: `reusable-${selectedReusable.id}-step-${idx}`, ...step }}
+                                        index={idx}
+                                        {...(isEditingReusable && {
+                                            onDelete: (indexToDelete) => {
+                                                const newSteps = selectedReusableSteps
+                                                    .filter((_, i) => i !== indexToDelete)
+                                                    .map((s, k) => ({ ...s, indexStep: k + 1 }));
+                                                insertReusableStep(newSteps);
+                                            },
+                                            onUpdate: (indexToUpdate, updatedStep) => {
+                                                const newSteps = [...selectedReusableSteps];
+                                                newSteps[indexToUpdate] = {
+                                                    ...newSteps[indexToUpdate],
+                                                    ...updatedStep,
+                                                };
+                                                insertReusableStep(newSteps);
                                             }
-                                            return updated;
-                                        });
+                                        })}
+                                        isDarkMode={false}
+                                        test={test}
+                                    />
+                                    <ReusableStepActions idx={idx} />
+                                </div>
+                            ))}
 
-                                        setIsModalOpen(false);
-                                        toast.success(`Reusable "${selectedReusable.name}" added`);
-                                    }}
-                                >
-                                    Add This Reusable
-                                </Button>
-                            </>
-                        )}
-                    </div>
+                            <Button
+                                className="mt-3 font-semibold text-white/90 bg-primary hover:bg-primary/80"
+                                onClick={() => {
+                                    if (!selectedReusable) return;
+
+                                    const newStep = reusable;
+
+                                    const updatedSteps = [...steps];
+                                    updatedSteps.splice(index + 1, 0, newStep);
+
+                                    const reindexedSteps = updatedSteps.map((step, idx) => ({
+                                        ...step,
+                                        indexStep: idx + 1,
+                                    }));
+
+                                    setResponseTest?.((prev: any) => {
+                                        if (!prev) return prev;
+                                        return { ...prev, stepsData: reindexedSteps };
+                                    });
+
+                                    setTestCasesData?.((prev: any[]) => {
+                                        const updated = [...prev];
+                                        const idxCase = updated.findIndex((tc) => tc.testCaseId === test.testCaseId);
+                                        if (idxCase >= 0) {
+                                            updated[idxCase] = { ...updated[idxCase], stepsData: reindexedSteps };
+                                        }
+                                        return updated;
+                                    });
+
+                                    setIsModalOpen(false);
+                                    toast.success(`Reusable "${selectedReusable.name}" added`);
+                                }}
+                            >
+                                Add This Reusable
+                            </Button>
+                        </>
+                    )}
+                </div>
+
+            </ModalCustom>
+            {/* <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+                <DialogContent className="w-full max-h-[85vh] min-h-[40vh] overflow-hidden bg-white flex flex-col">
+                  
                 </DialogContent>
-            </Dialog>
+            </Dialog> */}
         </div>
     );
 };

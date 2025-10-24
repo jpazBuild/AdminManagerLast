@@ -211,6 +211,8 @@ export const useFlowRunner = () => {
                     }
 
                     const { data } = await axios.post(`${URL_API_ALB}apisScripts`, { id: flowId });
+                    console.log("Fetched APIs script data for flow:", flowId, data);
+                    
                     const payloadObj = {
                         action: "runApis",
                         id: flowId
