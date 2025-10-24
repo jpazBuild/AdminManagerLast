@@ -180,7 +180,7 @@ const CollectionsPage = () => {
     const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
     const [selectedCollectionUid, setSelectedCollectionUid] = useState<string | null>(null);
     const [loadingByCollection, setLoadingByCollection] = useState<Record<string, boolean>>({});
-    const { elements: elementsPostman } = useFetchElementsPostman();
+    const { elements: elementsPostman, loading: loadingElements } = useFetchElementsPostman();
     const [openFolder, setOpenFolder] = useState<Record<string, boolean>>({});
     const [activeTab, setActiveTab] = useState<"request" | "header" | "test">("request");
     const [activeTabRequest, setActiveTabRequest] = useState<"graphql" | "variables" | "headers" | "body">("headers");
@@ -637,10 +637,6 @@ const CollectionsPage = () => {
     }, [selectedRequest?.node, variablesRaw, variablesParsed]);
 
 
-    console.log("singlePieces for render:", singlePieces);
-
-
-
     return (
         <DashboardHeader pageType="api" callback={(mobileSidebarOpen) => {
             setMobileSidebarOpen(mobileSidebarOpen);
@@ -662,20 +658,26 @@ const CollectionsPage = () => {
                             active={selectedTypeOrigin === "BD"}
                         >
                             <div className={selectedTypeOrigin === "BD" ? "bg-gray-100 text-gray-400" : ""}>
-                                <SearchField
-                                    label="Team"
-                                    value={selectedWorkspaceId ?? ""}
-                                    onChange={setSelectedWorkspaceId}
-                                    placeholder="Search Team"
-                                    options={
-                                        (elementsPostman?.teams?.[0]?.workspaces ?? []).map((ws: any) => ({
-                                            label: ws.name,
-                                            value: String(ws.id ?? ws.uid ?? ws.workspaceId),
-                                        }))
-                                    }
-                                    disabled={selectedTypeOrigin === "BD"}
-                                    className={selectedTypeOrigin === "BD" ? "cursor-not-allowed" : ""}
-                                />
+                                {loadingElements && (
+                                    <div className="animate-pulse h-10 w-full rounded-md bg-gray-200 mb-2"></div>
+                                )}
+                                {!loadingElements && (
+                                    <SearchField
+                                        label="Team"
+                                        value={selectedWorkspaceId ?? ""}
+                                        onChange={setSelectedWorkspaceId}
+                                        placeholder="Search Team"
+                                        options={
+                                            (elementsPostman?.teams?.[0]?.workspaces ?? []).map((ws: any) => ({
+                                                label: ws.name,
+                                                value: String(ws.id ?? ws.uid ?? ws.workspaceId),
+                                            }))
+                                        }
+                                        disabled={selectedTypeOrigin === "BD"}
+                                        className={selectedTypeOrigin === "BD" ? "cursor-not-allowed" : ""}
+                                    />
+                                )}
+
                             </div>
                         </TooltipLocation>
 

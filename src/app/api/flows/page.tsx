@@ -56,7 +56,7 @@ const FlowsPage: React.FC = () => {
     const [collectionQuery, setCollectionQuery] = useState<string>("");
     const [openCollection, setOpenCollection] = useState<Record<string, boolean>>({});
     const [loadingByCollection, setLoadingByCollection] = useState<Record<string, boolean>>({});
-    const { elements: elementsPostman } = useFetchElementsPostman();
+    const { elements: elementsPostman,loading:loadingElements } = useFetchElementsPostman();
     const { getCollection, cache: collectionsCache, error: collectionError } = useFetchCollection();
     const typeOrigin = useMemo(() => [{ name: "Postman" }, { name: "BD" }], []);
     const [dataDetailCollections, setDataDetailCollections] = useState<Detail[]>([]);
@@ -479,6 +479,7 @@ const FlowsPage: React.FC = () => {
                             collectionError={collectionError}
                             dataDetailByUid={dataDetailByUid}
                             renderCollectionTree={renderCollectionTree}
+                            loadingElements={loadingElements}
                         />
                     </div>
 

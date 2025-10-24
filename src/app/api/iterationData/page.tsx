@@ -86,7 +86,7 @@ export default function IterationDataPage() {
           selectedId={editor.selected?.id}
         />
 
-        <div className="flex flex-col w-full h-full">
+        <div className="flex flex-col w-full h-full max-h-[80vh]">
           {editor.selected && (
             <div className="px-6 pt-6 pb-2">
               <div className="flex items-start justify-between">
@@ -121,7 +121,7 @@ export default function IterationDataPage() {
             </div>
           )}
 
-          <div className="px-6 pb-8 flex flex-col gap-6 w-full h-full">
+          <div className="px-6 pb-8 flex flex-col gap-6 w-full">
             {editor.selected ? (
               <PackageCard
                 pkgName={editor.pkgName}
@@ -258,7 +258,7 @@ export default function IterationDataPage() {
                 </div>
               </PackageCard>
             ) : (
-              <div className="flex flex-col items-center justify-center min-h-[50vh] w/full text-center rounded-2xl border border-[#E1E8F0] bg-white p-8">
+              <div className="min-h-[80vh] flex flex-col items-center justify-center h-full w-full my-auto text-center rounded-2xl border border-[#E1E8F0] bg-white p-8">
                 <Image
                   src={selectIterationDataIcon}
                   alt="Select a collection"

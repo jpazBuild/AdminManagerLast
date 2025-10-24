@@ -43,6 +43,7 @@ interface CollectionsAsideProps {
     dataDetailByUid: Record<string, any>;
 
     renderCollectionTree: (colDetail: any, colUid: string, colName: string) => React.ReactNode;
+    loadingElements: boolean;
 }
 
 const CollectionsAside: React.FC<CollectionsAsideProps> = ({
@@ -59,14 +60,15 @@ const CollectionsAside: React.FC<CollectionsAsideProps> = ({
     onOpenCollection,
     collectionError,
     dataDetailByUid,
-    renderCollectionTree
+    renderCollectionTree,
+    loadingElements
 }) => {
     const selectedWS = elementsPostman?.teams?.[0]?.workspaces?.find(
         (t: any) => String(t.id ?? t.uid ?? t.workspaceId) === String(selectedWorkspaceId)
     );
 
     const collections = selectedWS?.collections ?? [];
-
+    
     return (
         <div className="flex gap-2 w-full h-full">
             <div className="w-72 border-r border-primary/10 bg-white flex-shrink-0 flex flex-col overflow-hidden">
@@ -85,7 +87,10 @@ const CollectionsAside: React.FC<CollectionsAsideProps> = ({
                         active={selectedTypeOrigin === "BD"}
                     >
                         <div className={selectedTypeOrigin === "BD" ? "bg-gray-100 text-gray-400" : ""}>
-                            <SearchField
+                            {loadingElements && (
+                                <div className="animate-pulse h-8 w-full bg-gray-200 rounded-md mb-2"></div>
+                            )}
+                            {!loadingElements && (<SearchField
                                 label="Team"
                                 value={selectedWorkspaceId ?? ""}
                                 onChange={onChangeWorkspaceId}
@@ -98,7 +103,7 @@ const CollectionsAside: React.FC<CollectionsAsideProps> = ({
                                 }
                                 disabled={selectedTypeOrigin === "BD"}
                                 className={selectedTypeOrigin === "BD" ? "cursor-not-allowed" : ""}
-                            />
+                            />)}
                         </div>
                     </TooltipLocation>
 
