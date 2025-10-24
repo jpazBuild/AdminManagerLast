@@ -531,9 +531,9 @@ const DashboardPage = () => {
                         <div className={`flex ${isMobile ? "flex-col" : ""} md:justify-center lg:justify-center items-center gap-2 pb-2 w-full`}>
                             <button
                                 onClick={handleSearch}
-                                disabled={isSearchButtonDisabled || isLoadingSearch || selectedTag === "" || selectedCreatedBy === "" || selectedGroup === "" 
-                                    || searchTestCaseName === "" || searchTestCaseId === ""
-                                }
+                                // disabled={isSearchButtonDisabled || isLoadingSearch || selectedTag === "" || selectedCreatedBy === "" || selectedGroup === "" 
+                                //     || searchTestCaseName === "" || searchTestCaseId === ""
+                                // }
                                 className={` w-full justify-center md:w-50 lg:w-50 px-4 py-2 shadow-md cursor-pointer font-semibold tracking-wide rounded-xl  text-white flex items-center gap-2
                                     ${isLoadingSearch ? "bg-primary/10 !cursor-not-allowed" : ""}
                                     ${isDarkMode ? "bg-blue-700 hover:bg-blue-800" : `
