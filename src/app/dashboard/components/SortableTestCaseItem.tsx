@@ -525,9 +525,6 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
     const uniqueFields = useMemo(() => Array.from(new Set(testFields)), [testFields]);
 
-
-    console.log("Rendering SortableTestCaseItem for test:", test);
-
     const allStepsWithReusableIds = useMemo(() => {
         if (!responseTest?.stepsData) return '';
 
@@ -670,7 +667,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                     onClose={handleAccordionToggle}
                     width="max-w-2/3"
                 >
-                    <div className="flex flex-col w-full overflow-y-auto px-6 pb-6 pt-2">
+                    <div className="flex flex-col w-full px-6 pb-6 pt-2">
                         <TabsUnderline value={viewMode} setValue={handleViewModeChange} defaultValue="data" tabs={[
                             {
                                 name: 'Data', value: 'Data', icon: <File className="ml-1 h-5 w-5" />,
@@ -737,8 +734,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                             {
                                 name: 'Steps', value: 'Steps', icon: <Eye className="ml-1 h-5 w-5" />,
                                 content: (
-                                    <div className="w-full overflow-y-auto text-primary/80">
-
+                                    <div className="w-full text-primary/80">
                                         <div className={styleClasses.stepsStickyHeader}>
                                             <div className="flex flex-wrap items-center gap-4 justify-between">
                                                 <div className="flex items-center gap-2">
@@ -789,14 +785,6 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                                             className={getStepSelectionClasses(i)}
                                                             onClick={() => handleStepSelection(i)}
                                                         >
-                                                            {selectionMode && (
-                                                                <div className="absolute top-2 left-2 z-10">
-                                                                    {/* <Checkbox
-                                                                        checked={selectedStepsForReusable.includes(i)}
-                                                                        onCheckedChange={() => handleStepSelection(i)}
-                                                                    /> */}
-                                                                </div>
-                                                            )}
 
                                                             <InteractionItem
                                                                 data={{ id: `${test.testCaseId || test.id}-step-${i}`, ...step }}

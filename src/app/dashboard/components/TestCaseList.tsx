@@ -597,7 +597,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                         open={viewUploadedJSON}
                         onClose={() => setViewUploadedJSON(false)}
                         width="lg:max-w-2xl w-full"
-                    >   
+                    >
                         <h2 className="text-center break-words pb-4 font-semibold">Import Dynamic Data from JSON</h2>
                         <JSONDropzone
                             onJSONParsed={handleParsedJSON}
@@ -698,96 +698,88 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
             </div>
 
             {ddModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center min-h-[80vh]">
-                    <div
-                        className="absolute inset-0 bg-black/50"
-                        onClick={() => setDdModalOpen(false)}
-                    />
-                    <div className={`relative min-h-[50vh] z-10 w-[95%] max-w-3xl rounded-2xl shadow-xl
-                        ${isDarkMode ? "bg-gray-800 text-white border border-gray-600" : "bg-white text-primary border border-gray-200"}`}>
-                        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-primary/80">Choose Dynamic Data</h3>
-                            <button
-                                className="text-sm underline"
-                                onClick={() => setDdModalOpen(false)}
-                            >
-                                <AiOutlineClose className="h-5 w-5" />
-                            </button>
+
+
+                <ModalCustom
+                    open={ddModalOpen}
+                    onClose={() => setDdModalOpen(false)}
+                    width="lg:max-w-3xl w-full"
+                >
+                    <h3 className="text-lg font-semibold text-primary/80">Choose Dynamic Data</h3>
+
+
+                    <div className="p-4 space-y-3">
+                        <div>
+                            <TextInputWithClearButton
+                                value={ddQuery}
+                                label="Search dynamic data"
+                                onChangeHandler={(e) => setDdQuery(e.target.value)}
+                                placeholder="Search by name, group or tag…"
+                                id={"Search dynamic data"}
+                                isSearch={true}
+                            />
+
                         </div>
 
-                        <div className="p-4 space-y-3">
-                            <div>
-                                <TextInputWithClearButton
-                                    value={ddQuery}
-                                    label="Search dynamic data"
-                                    onChangeHandler={(e) => setDdQuery(e.target.value)}
-                                    placeholder="Search by name, group or tag…"
-                                    id={"Search dynamic data"}
-                                    isSearch={true}
-                                />
+                        {ddLoading && <div className="text-sm opacity-80">Loading headers…</div>}
+                        {ddError && <div className="text-sm text-red-600">{ddError}</div>}
 
-                            </div>
-
-                            {ddLoading && <div className="text-sm opacity-80">Loading headers…</div>}
-                            {ddError && <div className="text-sm text-red-600">{ddError}</div>}
-
-                            {!ddLoading && !ddError && (
-                                <div className="max-h-[50vh] overflow-y-auto space-y-2 pr-1">
-                                    {filteredHeaders.length === 0 && (
-                                        <NoData text="No dynamic data found." />
-                                    )}
-                                    {filteredHeaders.map((h) => (
-                                        <div
-                                            key={String(h.id)}
-                                            className={`rounded-xl border p-3 flex items-center justify-between gap-3
+                        {!ddLoading && !ddError && (
+                            <div className="max-h-[50vh] overflow-y-auto space-y-2 pr-1">
+                                {filteredHeaders.length === 0 && (
+                                    <NoData text="No dynamic data found." />
+                                )}
+                                {filteredHeaders.map((h) => (
+                                    <div
+                                        key={String(h.id)}
+                                        className={`rounded-xl border p-3 flex items-center justify-between gap-3
                                             ${isDarkMode ? "border-gray-600 bg-gray-700/50" : "border-gray-200 bg-gray-50"}`}
-                                        >
-                                            <div className="min-w-0">
-                                                <div className="flex items-center gap-2">
-                                                    <p className="font-medium truncate">{h?.name ?? "(No Name)"}</p>
-                                                    <CopyToClipboard text={h.name ?? ""} isDarkMode={isDarkMode} />
-                                                </div>
-
-                                                <div className="mt-1 flex flex-col items-center gap-2 text-xs">
-                                                    <span className="opacity-70">ID: {String(h.id)}</span>
-                                                    <div className="self-start flex items-center gap-1 flex-wrap">
-                                                        {h.groupName && (
-                                                            <span className="px-2 py-0.5 rounded-2xl bg-primary/90 text-white">
-                                                                {h.groupName}
-                                                            </span>
-                                                        )}
-                                                        {(h.tagNames ?? []).map((t, i) => (
-                                                            <span
-                                                                key={i}
-                                                                className="px-2 py-0.5 rounded-2xl bg-primary/60 text-white"
-                                                            >
-                                                                {t}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                                {h.description && (
-                                                    <p className="mt-1 text-xs opacity-80 line-clamp-2">{h.description}</p>
-                                                )}
-
+                                    >
+                                        <div className="min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-medium truncate">{h?.name ?? "(No Name)"}</p>
+                                                <CopyToClipboard text={h.name ?? ""} isDarkMode={isDarkMode} />
                                             </div>
 
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                className="rounded-xl"
-                                                onClick={() => handlePickDynamicData(h)}
-                                                disabled={ddPickLoading === h.id}
-                                            >
-                                                {ddPickLoading === h.id ? "Importing…" : "Import"}
-                                            </Button>
+                                            <div className="mt-1 flex flex-col items-center gap-2 text-xs">
+                                                <span className="opacity-70">ID: {String(h.id)}</span>
+                                                <div className="self-start flex items-center gap-1 flex-wrap">
+                                                    {h.groupName && (
+                                                        <span className="px-2 py-0.5 rounded-2xl bg-primary/90 text-white">
+                                                            {h.groupName}
+                                                        </span>
+                                                    )}
+                                                    {(h.tagNames ?? []).map((t, i) => (
+                                                        <span
+                                                            key={i}
+                                                            className="px-2 py-0.5 rounded-2xl bg-primary/60 text-white"
+                                                        >
+                                                            {t}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            {h.description && (
+                                                <p className="mt-1 text-xs opacity-80 line-clamp-2">{h.description}</p>
+                                            )}
+
                                         </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            className="rounded-xl"
+                                            onClick={() => handlePickDynamicData(h)}
+                                            disabled={ddPickLoading === h.id}
+                                        >
+                                            {ddPickLoading === h.id ? "Importing…" : "Import"}
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
-                </div>
+                </ModalCustom>
             )
             }
 
