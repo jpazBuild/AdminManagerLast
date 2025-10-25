@@ -76,7 +76,8 @@ const DashboardPage = () => {
         stopped,
         setLoading,
         setStopped,
-        runSingleTest
+        runSingleTest,
+        stopAll
     } = useTestExecution();
 
     const handleDarkModeChange = (isDark: boolean) => {
@@ -427,8 +428,16 @@ const DashboardPage = () => {
         return user ? user.id : null;
     }, [users]);
 
-    console.log("selectedTag", selectedTag);
-    
+    const handleRunPending = useCallback(async (testsToRun: any[]) => {
+        setExecuteRun(true);
+        if (testsToRun.length === 0) {
+            toast.error("No pending tests");
+            return;
+        }
+        const testdataIn = await testData?.data;
+        await executeTests(testsToRun, testdataIn, maxBrowsers, isHeadless);
+    }, [testData, maxBrowsers, isHeadless, executeTests]);
+
     return (
         <DashboardHeader typeFixed={false} onDarkModeChange={handleDarkModeChange}>
             <div className={`p-4 flex justify-center items-center w-full h-full flex-col gap-4 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-primary"} transition-colors duration-300`}>
@@ -605,22 +614,28 @@ const DashboardPage = () => {
                         )
                     }
 
+                    {dataTestCases.length > 0 && (
+                        <TestReports
+                            stopped={stopped}
+                            setStopped={setStopped}
+                            setLoading={setLoading}
+                            loading={loading}
+                            testData={testData}
+                            reports={reports}
+                            idReports={idReports}
+                            progress={progress}
+                            selectedCases={selectedCases}
+                            selectedTest={selectedTests}
+                            darkMode={isDarkMode}
+                            onPlayTest={handlePlaySingle}
+                            onRunAll={handleRunTests}
+                            onRunPending={handleRunPending}
+                            stopAll={stopAll}
+                        />
+                    )
 
-                    <TestReports
-                        stopped={stopped}
-                        setStopped={setStopped}
-                        setLoading={setLoading}
-                        loading={loading}
-                        testData={testData}
-                        reports={reports}
-                        idReports={idReports}
-                        progress={progress}
-                        selectedCases={selectedCases}
-                        selectedTest={selectedTests}
-                        darkMode={isDarkMode}
-                        onPlayTest={handlePlaySingle}
-                        onRunAll={handleRunTests}
-                    />
+                    }
+
                 </div>
             </div>
         </DashboardHeader>

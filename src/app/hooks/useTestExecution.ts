@@ -53,6 +53,8 @@ export const useTestExecution = () => {
   const loadingRef = useRef<Record<string, boolean>>({});
   const isHeadlessRef = useRef<boolean>(true);
   const socketsRef = useRef<Record<string, WebSocket | undefined>>({});
+  const killSwitchRef = useRef<boolean>(false);
+
 
   useEffect(() => { testDataRef.current = testData; }, [testData]);
   useEffect(() => { stoppedRef.current = stopped; }, [stopped]);
@@ -62,7 +64,6 @@ export const useTestExecution = () => {
   const updateProgress = useCallback((testId: string, completedSteps: number) => {
     setStepsCountMap(prevSteps => {
       const total = prevSteps[testId];
-      console.log("total steps for", testId, "is", total, "completedSteps:", completedSteps);
 
       if (!total || total === 0) return prevSteps;
 
@@ -98,6 +99,7 @@ export const useTestExecution = () => {
     runningTestsRef.current.delete(testId);
     socketsRef.current[testId] = undefined;
     setActiveTests(activeTestsRef.current);
+    if (killSwitchRef.current) return;
     processQueue();
   }, []);
 
@@ -205,9 +207,6 @@ export const useTestExecution = () => {
               } else {
                 updatedSteps.push(stepData);
               }
-
-              console.log("updatedSteps for", id, ":", updatedSteps);
-
               const completedCount = updatedSteps.filter(s => !isIgnorableProgressStep(s)).length;
               updateProgress(id, completedCount);
 
@@ -271,6 +270,7 @@ export const useTestExecution = () => {
   }, [runTestCase]);
 
   const processQueue = useCallback(() => {
+    if (killSwitchRef.current) return;
     if (processingQueueRef.current) return;
 
     const activeCount = activeTestsRef.current;
@@ -320,6 +320,7 @@ export const useTestExecution = () => {
     stoppedRef.current = {};
     isHeadlessRef.current = headless;
     testDataRef.current = {};
+    killSwitchRef.current = false;
   }, []);
 
   const queueAddTests = useCallback(
@@ -440,6 +441,73 @@ export const useTestExecution = () => {
     }
   };
 
+  const isRunningById = useCallback((testId: string) => {
+    const pct = (progress.find((p) => p.testCaseId === testId)?.percent ?? 0);
+    return pct > 0 && pct < 100 && !stoppedRef.current[testId];
+  }, [progress]);
+
+  const stopAll = useCallback((
+    targets: Array<string | { id?: any; testCaseId?: any }>,
+    options?: { onlyRunning?: boolean }
+  ) => {
+    killSwitchRef.current = true;
+
+    const ids: string[] = targets
+      .map((t) => typeof t === "string" ? t : String(t?.id ?? t?.testCaseId ?? ""))
+      .filter(Boolean);
+
+    const socketById: Record<string, WebSocket | undefined> = {};
+    const connById: Record<string, string | undefined> = {};
+
+    for (const r of reports) {
+      const id = String(r?.testCaseId || r?.id || "");
+      if (!id) continue;
+      socketById[id] = r?.socket;
+      connById[id] = r?.connectionId ?? connectionMap[id];
+    }
+
+    const stoppedRunning: string[] = [];
+    const skipped: string[] = [];
+
+    ids.forEach((id) => {
+      const pct = (progress.find((p) => p.testCaseId === id)?.percent ?? 0);
+      const isRunning = pct > 0 && pct < 100 && !stoppedRef.current[id];
+      if (!isRunning) {
+        skipped.push(id);
+        return;
+      }
+      const socket = socketsRef.current[id] ?? socketById[id];
+      const connectionId = connectionMap[id] ?? connById[id] ?? "";
+      try {
+        stopTest(id, connectionId, socket);
+        stoppedRunning.push(id);
+      } catch (e) {
+        console.error(`❌ Error deteniendo ${id}`, e);
+      }
+    });
+
+    const pendingIds = Array.from(pendingSetRef.current);
+    pendingTestsRef.current = [];
+    pendingSetRef.current.clear();
+    processingQueueRef.current = false;
+
+    if (pendingIds.length) {
+      setStopped(prev => {
+        const next = { ...prev };
+        pendingIds.forEach(id => { next[id] = true; });
+        return next;
+      });
+      setLoading(prev => {
+        const next = { ...prev };
+        pendingIds.forEach(id => { next[id] = false; });
+        return next;
+      });
+    }
+
+    return { stoppedRunning, cancelledPending: pendingIds, skipped };
+  }, [reports, connectionMap, progress, stopTest]);
+
+
   return {
     reports,
     loading,
@@ -460,5 +528,6 @@ export const useTestExecution = () => {
 
     setStopped,
     setLoading,
+    stopAll
   };
 };
