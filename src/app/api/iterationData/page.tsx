@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { DashboardHeader } from "@/app/Layouts/main";
-import { CopyPlus, MoreVertical, PlusIcon, Trash2Icon } from "lucide-react";
+import { CopyPlus, MoreVertical, PlusCircleIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import SidebarList from "./components/SidebarList";
 import PackageCard from "./components/PackageCard";
 import VariablesList, { Row } from "./components/VariablesList";
@@ -91,10 +91,10 @@ export default function IterationDataPage() {
             <div className="px-6 pt-6 pb-2">
               <div className="flex items-start justify-between">
                 <div>
-                  <h1 className="text-[32px] font-bold leading-tight text-[#0A2342]">
+                  <h1 className="text-[24px] font-semibold leading-tight text-primary">
                     Data packages
                   </h1>
-                  <p className="text-[#7B8CA6] mt-1">Selected sets will be used in iterations.</p>
+                  <p className="text-primary/50 mt-1">Selected sets will be used in iterations.</p>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -103,7 +103,7 @@ export default function IterationDataPage() {
                       editor.reset();
                       show("Changes reset.", "success", 2000);
                     }}
-                    className="inline-flex items-center gap-2 px-6 h-12 rounded-full border border-[#0A2342] text-[#0A2342] font-semibold hover:bg-[#F5F8FB] transition disabled:opacity-60"
+                    className="cursor-pointer items-center gap-2 px-6 py-1.5 rounded-full border border-primary/50 text-primary font-semibold hover:bg-[#F5F8FB] transition disabled:opacity-60"
                     disabled={!editor.isDirty && !editor.isNew}
                   >
                     Reset changes
@@ -111,7 +111,7 @@ export default function IterationDataPage() {
 
                   <button
                     onClick={handleSave}
-                    className="inline-flex items-center gap-2 bg-[#062241] hover:bg-[#0A2F5C] text-white px-6 h-12 rounded-full font-semibold shadow transition disabled:opacity-60"
+                    className="cursor-pointer items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-1.5 rounded-full font-semibold shadow transition disabled:opacity-60"
                     disabled={editor.saving}
                   >
                     {editor.saving ? "Saving..." : "Save"}
@@ -251,9 +251,9 @@ export default function IterationDataPage() {
                 <div>
                   <button
                     onClick={editor.addIteration}
-                    className="mt-2 text-sm cursor-pointer px-4 py-2 flex gap-1 items-center rounded-full bg-primary/90 text-white hover:bg-primary/95"
+                    className="mt-2 text-sm cursor-pointer px-4 py-2 flex gap-1 items-center rounded-full bg-gray-200 text-primary font-semibold hover:bg-gray-300"
                   >
-                    <PlusIcon className="w-5 h-5"/> Add iteration
+                    <PlusCircleIcon className="w-5 h-5"/> New iteration
                   </button>
                 </div>
               </PackageCard>

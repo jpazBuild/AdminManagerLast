@@ -54,7 +54,7 @@ const fmtDate = (ts?: number) =>
 
 
 const CreateForm = () => {
-    const [activeTab, setActiveTab] = useState<Tab>("tag");
+    const [activeTab, setActiveTab] = useState<any>("tag");
 
     const [users, setUsers] = useState<User[]>([]);
     const [loadingUsers, setLoadingUsers] = useState(false);
@@ -521,6 +521,9 @@ const CreateForm = () => {
 
     console.log("filteredTags :", filteredTags);
 
+    const handleActiveTab = (tab:any) => {
+        setActiveTab(tab);
+    };
     return (
         <DashboardHeader>
             <div className="sticky top-0 h-full self-center flex flex-col w-full lg:w-2/3 justify-center overflow-y-auto">
@@ -529,6 +532,8 @@ const CreateForm = () => {
                 </h2>
 
                 <TabsUnderline 
+                    value={activeTab}
+                    setValue={handleActiveTab}
                     defaultValue="tag"
                     tabs={[
                         {

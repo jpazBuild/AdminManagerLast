@@ -52,21 +52,21 @@ export default function EmptyStateSelectAnimation() {
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-900 text-white">Example tag</span>
-                  <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-800/90 text-white">Example Group</span>
-                  <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-200 text-slate-700">Example Module</span>
-                  <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-slate-200 text-slate-500">Example Submodule</span>
+                  <span className="px-3 py-1.5 rounded-full text-[11px] font-semibold bg-primary text-white">Example tag</span>
+                  <span className="px-3 py-1.5 rounded-full text-[11px] font-semibold bg-primary/80 text-white">Example Group</span>
+                  <span className="px-3 py-1.5 rounded-full text-[11px] font-semibold bg-primary/50 text-white">Example Module</span>
+                  <span className="px-3 py-1.5 rounded-full text-[11px] font-semibold bg-primary/20 text-primary">Example Submodule</span>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-4 shrink-0">
-              <div className="text-right">
+              <div className="text-right flex flex-col gap-2">
                 <div className="text-[12px] text-slate-500">Automation</div>
                 <div className="text-[13px] font-medium text-slate-700">10/10/2025, 10:10</div>
               </div>
 
-            
+
             </div>
           </div>
 

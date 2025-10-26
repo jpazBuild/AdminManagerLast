@@ -19,6 +19,10 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 import { SearchField } from "@/app/components/SearchField";
+import ModalCustom from "@/app/components/ModalCustom";
+import { RiInformation2Line } from "react-icons/ri";
+import PaginationResults from "../components/PaginationResults";
+import { usePagination } from "@/app/hooks/usePagination";
 
 type ReusableHeader = {
     id: string;
@@ -477,8 +481,16 @@ const Reusables = () => {
         }
     };
 
+    const {
+        page, setPage,
+        pageSize, setPageSize,
+        totalItems,
+        items: paginatedSelectedTests,
+    } = usePagination(filteredReusables, 10);
+
+
     return (
-        <DashboardHeader onDarkModeChange={handleDarkModeChange}>
+        <DashboardHeader hiddenSide={deleteOpen} onDarkModeChange={handleDarkModeChange}>
             <div className={`p-4 flex justify-center items-center w-full flex-col gap-4 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-primary"} transition-colors duration-300`}>
                 <div className="w-full max-w-5xl flex flex-col gap-4 mb-4 mt-2">
 
@@ -517,7 +529,7 @@ const Reusables = () => {
                             <Loader className="animate-spin h-8 w-8 mb-4" />
                             <h3 className="text-lg font-medium">Loading reusables...</h3>
                         </div>
-                    ) : reusables.length === 0 ? (
+                    ) : paginatedSelectedTests.length === 0 ? (
                         <div className="text-center text-sm opacity-70 py-10">No reusables found.</div>
                     ) : (
                         <div className="space-y-3 min-h-screen">
@@ -533,9 +545,17 @@ const Reusables = () => {
                                 />
                             </div>
                             <p className="text-xs opacity-70">
-                                Showing {filteredReusables.length} of {allReusables.length}
+                                Showing {paginatedSelectedTests.length} of {allReusables.length}
                             </p>
-                            {filteredReusables.map((reusable) => {
+
+                            <PaginationResults
+                                totalItems={totalItems}
+                                pageSize={pageSize}
+                                setPageSize={setPageSize}
+                                page={page}
+                                setPage={setPage}
+                            />
+                            {paginatedSelectedTests.map((reusable) => {
                                 const isOpen = !!expanded[reusable.id];
                                 const isLoading = !!loadingById[reusable.id];
                                 const error = errorById[reusable.id];
@@ -763,55 +783,50 @@ const Reusables = () => {
                 </div>
             </div>
 
-            <Dialog open={deleteOpen} onOpenChange={(open) => {
-                if (!open && !isDeleting) {
-                    setDeleteOpen(false);
-                    setReusableToDelete(null);
-                } else {
-                    setDeleteOpen(open);
-                }
-            }}>
-                <DialogContent className="max-w-md text-primary">
-                    <DialogHeader>
-                        <DialogTitle>Delete reusable</DialogTitle>
-                        <DialogDescription>
-                            {reusableToDelete
-                                ? <>You’re about to delete <span className="font-semibold">{reusableToDelete.name}</span>. This action cannot be undone.</>
-                                : "This action cannot be undone."}
-                        </DialogDescription>
-                    </DialogHeader>
 
-                    <DialogFooter className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            disabled={isDeleting}
+            <ModalCustom
+                open={deleteOpen}
+
+                onClose={() => {
+                    if (!isDeleting) {
+                        setDeleteOpen(false);
+                        setReusableToDelete(null);
+                    }
+                }}
+
+            >
+                <div className="w-full flex flex-col gap-4 p-4">
+                    <RiInformation2Line className="h-8 w-8 text-red-600 mx-auto" />
+                    <p className="text-center font-semibold text-xl">Are you sure you want to delete this</p>
+                    <div className="flex gap-2 mt-4 text-[16px] text-primary/80">
+                        {reusableToDelete
+                            ? <>You’re about to delete <span className="font-semibold">{reusableToDelete.name}.</span> This action cannot be undone.</>
+                            : "This action cannot be undone."}
+                    </div>
+
+                    <div className="flex gap-2 mt-6 w-full">
+                        <button
                             onClick={() => {
                                 if (isDeleting) return;
                                 setDeleteOpen(false);
                                 setReusableToDelete(null);
                             }}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            onClick={confirmDeleteReusable}
-                            disabled={isDeleting}
-                            className="text-white bg-red-600 hover:bg-red-700 disabled:bg-red-500 disabled:cursor-not-allowed"
-                        >
-                            {isDeleting ? (
-                                <span className="inline-flex items-center gap-2">
-                                    <Loader className="h-4 w-4 animate-spin" />
-                                    Deleting…
-                                </span>
-                            ) : (
-                                "Delete"
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                            className="border border-primary/40 p-2 rounded-md w-full"
+                        >Cancel</button>
+                        <button
+                            className="bg-red-600 w-full hover:bg-red-700 disabled:bg-red-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-md"
+                        >{isDeleting ? (
+                            <span className=" items-center gap-2">
+                                <Loader className="h-4 w-4 animate-spin" />
+                                Deleting…
+                            </span>
+                        ) : (
+                            "Delete"
+                        )}</button>
+                    </div>
+                </div>
 
+            </ModalCustom>
             <Dialog open={createOpen} onOpenChange={(open) => {
                 if (!open && !isCreating) {
                     setCreateOpen(false);

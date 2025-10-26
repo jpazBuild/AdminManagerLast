@@ -16,6 +16,8 @@ import { FaSync } from "react-icons/fa";
 import CopyToClipboard from "../components/CopyToClipboard";
 import { Switch } from "@/components/ui/switch";
 import ButtonTab from "../components/ButtonTab";
+import PaginationResults from "../dashboard/components/PaginationResults";
+import { usePagination } from "../hooks/usePagination";
 
 type DynamicHeader = {
   id: string | number;
@@ -453,6 +455,15 @@ const DynamicDataCrudPage = () => {
           }
         }
       };
+
+  const {
+    page, setPage,
+    pageSize, setPageSize,
+    totalItems,
+    items: paginatedSelectedTests,
+  } = usePagination(dynamicDataHeaders, 10);
+
+
   return (
     <DashboardHeader onDarkModeChange={setDarkMode}>
       <div className="p-4 space-y-6">
@@ -521,7 +532,7 @@ const DynamicDataCrudPage = () => {
                   isActive={createMode === 'dropzone'}
                   onClick={() => setCreateMode('dropzone')}
                   isDarkMode={darkMode}
-                  
+
                 />
                 <ButtonTab
                   label="Edit JSON (Editor)"
@@ -529,7 +540,7 @@ const DynamicDataCrudPage = () => {
                   isActive={createMode === 'editor'}
                   onClick={() => setCreateMode('editor')}
                   isDarkMode={darkMode}
-                  
+
                 />
               </div>
 
@@ -633,7 +644,15 @@ const DynamicDataCrudPage = () => {
         </div>
 
         <div className="space-y-4">
-          {dynamicDataHeaders.map((item) => {
+
+          <PaginationResults
+            totalItems={totalItems}
+            pageSize={pageSize}
+            setPageSize={setPageSize}
+            page={page}
+            setPage={setPage}
+          />
+          {paginatedSelectedTests.map((item) => {
             const id = item.id;
             const key = String(id);
             const isOpen = !!expanded[key];
@@ -937,11 +956,11 @@ const DynamicDataCrudPage = () => {
                                   <p className="text-sm text-gray-500">No dynamicData available.</p>
                                 )}
                                 <div className="w-56 flex mb-2 gap-2 p-2 border border-dashed border-gray-300 rounded-xl">
-                                <CopyToClipboard
-                                  text={JSON.stringify(ef?.dynamicData ?? [], null, 2)}
-                                  isDarkMode={darkMode}
-                                />
-                                <p className="text-primary/70">Copy all dynamic data</p>
+                                  <CopyToClipboard
+                                    text={JSON.stringify(ef?.dynamicData ?? [], null, 2)}
+                                    isDarkMode={darkMode}
+                                  />
+                                  <p className="text-primary/70">Copy all dynamic data</p>
                                 </div>
                                 {(ef?.dynamicData ?? []).map((obj: any, i: number) => {
                                   const objId = String(obj?.id ?? `idx-${i}`);
@@ -960,7 +979,7 @@ const DynamicDataCrudPage = () => {
                                     });
                                   };
 
-                                 
+
                                   const deleteItemAt = (idx: number) => {
                                     setEditForms(fs => {
                                       const f = fs[key]; if (!f) return fs;

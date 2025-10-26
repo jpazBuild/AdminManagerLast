@@ -3,7 +3,7 @@
 import TextInputWithClearButton from "@/app/components/InputClear";
 import { IterationHeader } from "../types";
 import { useRef } from "react";
-import { PlusIcon } from "lucide-react";
+import { PlusIcon, UploadCloud, UploadIcon } from "lucide-react";
 
 type Props = {
   iterations: IterationHeader[];
@@ -44,17 +44,17 @@ export default function SidebarList({
 
       <div className="flex items-center gap-3 px-4 py-3 border-b border-primary/10 bg-white">
         <button
-          className="px-4 py-2.5 rounded-full bg-[#0A2342] flex items-center gap-1 text-white font-semibold shadow hover:bg-[#18345A] transition"
+          className="cursor-pointer px-4 py-1.5 transition flex items-center gap-2 text-[14px] font-semibold bg-gray-300 rounded-full tracking-wide"
           onClick={onCreateBlank}
         >
-          <PlusIcon className="w-5 h-5"/> Create
+          <PlusIcon className="w-4 h-4" /> Create
         </button>
         <button
-          className="px-4 py-2.5 rounded-full border border-[#0A2342] text-[#0A2342] font-semibold hover:bg-[#F5F8FB] transition"
+          className="cursor-pointer px-4 py-1.5 transition flex items-center gap-2 text-[14px] font-semibold bg-gray-300 rounded-full tracking-wide"
           onClick={triggerUpload}
           title="Upload CSV"
         >
-          Upload CSV
+          <UploadIcon className="w-4 h-4" /> Upload CSV
         </button>
         <input
           ref={fileRef}

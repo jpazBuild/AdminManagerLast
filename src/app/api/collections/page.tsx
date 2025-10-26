@@ -4,7 +4,7 @@ import Image from "next/image";
 import TextInputWithClearButton from "@/app/components/InputClear";
 import { SearchField } from "@/app/components/SearchField";
 import { DashboardHeader } from "@/app/Layouts/main";
-import { ChevronRight, ChevronDown, Folder, Trash2Icon, Code2Icon, FileJson, PlusIcon } from "lucide-react";
+import { ChevronRight, ChevronDown, Folder, Trash2Icon, PlusIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import colletEmptyState from "../../../assets/apisImages/select-collection.svg"
 import TooltipLocation from "@/app/components/ToolTip";
@@ -80,83 +80,118 @@ const pick = (obj: any, keys: string[]) =>
     keys.reduce((acc, k) => (obj && k in obj ? ((acc as any)[k] = obj[k], acc) : acc), {} as any);
 
 const computePiecesFromMessages = (msgs: any[]) => {
-    const sorted = msgs.slice().sort((a, b) => a.ts - b.ts);
-    const byName: Record<string, ExecPiece> = {};
+  const sorted = msgs.slice().sort((a, b) => a.ts - b.ts);
+  const byName: Record<string, ExecPiece> = {};
 
-    const ensure = (name?: string | null): ExecPiece | null => {
-        if (!name) return null;
-        if (!byName[name]) byName[name] = { name };
-        return byName[name];
-    };
+  const ensure = (name?: string | null): ExecPiece | null => {
+    if (!name) return null;
+    if (!byName[name]) byName[name] = { name };
+    return byName[name];
+  };
 
-    for (const m of sorted) {
-        const resp = m?.payload?.response;
-        const item = m?.payload?.item;
+  const coalesceResponse = (p: any) => {
+    const r = p?.response;
+    if (r && typeof r === "object") return r;
+    const rr = p?.raw?.response;
+    if (rr && typeof rr === "object") return rr;
+    return null;
+  };
 
-        if (typeof item === "string") {
-            let match = item.match(/^(?:Running request|Request completed):\s*(.+)$/i);
-            if (match?.[1]) {
-                const e = ensure(match[1].trim());
-                if (e && /^Running request:/i.test(item)) {
-                    e.request = e.request ?? { success: undefined, status: null, detail: {} };
-                }
-            }
-            match = item.match(/^(?:Running test script|Test script completed):\s*(.+)$/i);
-            if (match?.[1]) {
-                const e = ensure(match[1].trim());
-                if (e && /^Running test script:/i.test(item)) {
-                    e.test = e.test ?? { success: undefined, detail: {} };
-                }
-            }
+  for (const m of sorted) {
+    const payload = m?.payload ?? {};
+    const resp = coalesceResponse(payload);
+    const item = payload?.item;
+
+    if (typeof item === "string") {
+      let match = item.match(/^(?:Running request|Request completed):\s*(.+)$/i);
+      if (match?.[1]) {
+        const e = ensure(match[1].trim());
+        if (e && /^Running request:/i.test(item)) {
+          e.request = e.request ?? { success: undefined, status: null, detail: {} };
         }
-
-        if (resp && (resp.name || resp.type)) {
-            const rName: string | null = resp.name ?? null;
-            const rType: string | null = resp.type ?? null;
-
-            if (rName && rType === "request") {
-                const e = ensure(rName);
-                if (!e) continue;
-
-                const nextReq = {
-                    success: typeof resp.success === "boolean" ? resp.success : e.request?.success ?? undefined,
-                    status:
-                        typeof resp.status === "number"
-                            ? resp.status
-                            : typeof e.request?.status === "number"
-                                ? e.request?.status
-                                : null,
-                    detail: deepMerge(e.request?.detail ?? {}, pick(resp, ["request", "response", "env"])),
-                };
-                e.request = nextReq;
-            }
-
-            if (rName && rType === "script" && resp.listen === "test") {
-                const e = ensure(rName);
-                if (!e) continue;
-
-                const nextTest = {
-                    success: typeof resp.success === "boolean" ? resp.success : e.test?.success ?? undefined,
-                    detail: deepMerge(e.test?.detail ?? {}, resp),
-                };
-                e.test = nextTest;
-            }
+      }
+      match = item.match(/^(?:Running test script|Test script completed):\s*(.+)$/i);
+      if (match?.[1]) {
+        const e = ensure(match[1].trim());
+        if (e && /^Running test script:/i.test(item)) {
+          e.test = e.test ?? { success: undefined, detail: {} };
         }
+      }
     }
 
-    const pieces = Object.values(byName);
-    const totalSteps = pieces.reduce((acc, p) => acc + (p.request ? 1 : 0) + (p.test ? 1 : 0), 0) || 0;
-    const doneSteps = pieces.reduce(
-        (acc, p) =>
-            acc +
-            (typeof p.request?.success === "boolean" ? 1 : 0) +
-            (typeof p.test?.success === "boolean" ? 1 : 0),
-        0
-    );
-    const progressPct = totalSteps ? Math.round((doneSteps / totalSteps) * 100) : 0;
+    if (resp && (resp.name || resp.type)) {
+      const rName: string | null = resp.name ?? null;
+      const rType: string | null = resp.type ?? null;
 
-    return { pieces, progressPct, sorted };
+      if (rName && rType === "request") {
+        const e = ensure(rName);
+        if (!e) continue;
+
+        const statusFromResp =
+          typeof resp.status === "number"
+            ? resp.status
+            : typeof resp.response?.status === "number"
+              ? resp.response.status
+              : typeof e.request?.status === "number"
+                ? e.request.status
+                : null;
+
+        const successFromResp =
+          typeof resp.success === "boolean"
+            ? resp.success
+            : m?.kind === "error"
+              ? false
+              : e.request?.success ?? undefined;
+
+        const baseDetail = deepMerge(e.request?.detail ?? {}, pick(resp, ["request", "response", "env", "error", "message"]));
+        const extraErr: Record<string, any> = {};
+        if (payload?.error) extraErr.error = payload.error;
+        if (payload?.message && typeof payload.message === "string") extraErr.message = payload.message;
+        if (resp?.response?.message) extraErr.apiMessage = resp.response.message;
+        if (payload?.raw?.response?.error) extraErr.errorRaw = payload.raw.response.error;
+        if (payload?.raw?.response?.response?.message) extraErr.apiMessageRaw = payload.raw.response.response.message;
+        if (payload?.raw?.response?.env?.__error) extraErr.transportError = payload.raw.response.env.__error;
+
+        const nextReq = {
+          success: successFromResp,
+          status: statusFromResp,
+          detail: deepMerge(baseDetail, extraErr),
+        };
+        e.request = nextReq;
+      }
+
+      if (rName && rType === "script" && resp.listen === "test") {
+        const e = ensure(rName);
+        if (!e) continue;
+
+        const nextTest = {
+          success: typeof resp.success === "boolean" ? resp.success : e.test?.success ?? undefined,
+          detail: deepMerge(e.test?.detail ?? {}, resp),
+        };
+        e.test = nextTest;
+      }
+    }
+  }
+
+  const pieces = Object.values(byName);
+
+  const totalSteps =
+    pieces.reduce((acc, p) => acc + (p.request ? 1 : 0) + (p.test ? 1 : 0), 0) || 0;
+
+  const doneSteps = pieces.reduce(
+    (acc, p) =>
+      acc +
+      (typeof p.request?.success === "boolean" ? 1 : 0) +
+      (typeof p.test?.success === "boolean" ? 1 : 0),
+    0
+  );
+
+  const progressPct = totalSteps ? Math.round((doneSteps / totalSteps) * 100) : 0;
+
+  return { pieces, progressPct, sorted };
 };
+
+
 
 const CollectionsPage = () => {
     const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
@@ -446,11 +481,6 @@ const CollectionsPage = () => {
 
     const variablesRaw = selectedRequest?.node?.request?.body?.graphql?.variables;
     const variablesParsed = useMemo(() => parseMaybeJson(variablesRaw), [variablesRaw]);
-
-    console.log(" selectedRequest:", selectedRequest, { variablesRaw, variablesParsed });
-    console.log({ requestHeaders });
-
-
     const memoHeaders = useMemo(
         () =>
             selectedRequest?.node?.request?.header?.map((h: any) => ({
@@ -636,7 +666,7 @@ const CollectionsPage = () => {
         setVariablesErr(null);
     }, [selectedRequest?.node, variablesRaw, variablesParsed]);
 
-
+    
     return (
         <DashboardHeader pageType="api" callback={(mobileSidebarOpen) => {
             setMobileSidebarOpen(mobileSidebarOpen);

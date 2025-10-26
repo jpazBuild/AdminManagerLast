@@ -327,10 +327,29 @@ const DashboardPage = () => {
 
             const response = await axios.post(`${URL_API_ALB}getTestHeaders`, await searchParams);
 
-            await setDataTestCases(response.data || []);
+            if (response?.data?.responseSignedUrl) {
+                const url = response.data.responseSignedUrl as string;
+
+                const res = await fetch(url, {
+                    method: "GET"
+                });
+
+                if (!res.ok) {
+                    throw new Error(`Falló la descarga desde S3: ${res.status} ${res.statusText}`);
+                }
+                const contentType = res.headers.get("content-type") || "";
+
+                const jsonData = contentType?.includes("application/json")
+                    ? await res?.json()
+                    : JSON.parse(await res?.text() || "null");
+
+                setDataTestCases(jsonData || []);
+            } else {
+                setDataTestCases(response.data || []);
+            }
+
 
         } catch (error) {
-            console.error("Error fetching test cases:", error);
             toast.error("Error fetching test cases. Please try again later.");
             setDataTestCases([]);
         } finally {
@@ -438,146 +457,171 @@ const DashboardPage = () => {
         await executeTests(testsToRun, testdataIn, maxBrowsers, isHeadless);
     }, [testData, maxBrowsers, isHeadless, executeTests]);
 
+    const handleSubmitSearch = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!isLoadingSearch && !isSearchButtonDisabled) {
+            handleSearch();
+        }
+    };
+
     return (
         <DashboardHeader typeFixed={false} onDarkModeChange={handleDarkModeChange}>
             <div className={`p-4 flex justify-center items-center w-full h-full flex-col gap-4 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-primary"} transition-colors duration-300`}>
                 <div className="w-full lg:w-2/3 flex flex-col gap-4 mb-4 mt-2 justify-center items-center">
                     <h2 className="font-medium tracking-wide text-center text-[20px] w-full">Find test cases</h2>
 
-                    <div className="w-full flex flex-col gap-2">
-                        <SearchField
-                            label="Search Test by tags"
-                            value={selectedTag}
-                            onChange={setSelectedTag}
-                            placeholder="Search by tags..."
-                            className="w-full"
-                            disabled={isLoadingSearch}
-                            options={tags?.map((tag: any) => ({
-                                label: String(tag?.name),
-                                value: String(tag?.name),
-                            }))}
-                        />
+                    <form onSubmit={handleSubmitSearch} className="w-full flex flex-col gap-2">
 
-                        <SearchField
-                            label="Search Test by groups"
-                            value={selectedGroup}
-                            onChange={setSelectedGroup}
-                            placeholder="Search by groups..."
-                            className="w-full"
-                            disabled={isLoadingGroups || errorGroups}
-                            options={groups?.map((group: any) => ({
-                                label: String(group?.name),
-                                value: String(group?.name),
-                            }))}
-                        />
+                        <div className="w-full flex flex-col gap-2">
 
-                        <SearchField
-                            label="Search Test by modules"
-                            value={selectedModule}
-                            onChange={setSelectedModule}
-                            placeholder="Search by modules..."
-                            className="w-full"
-                            disabled={!selectedGroup || modules.length === 0 || isLoadingModules || errorModules}
-                            options={modules?.map((module: any) => ({
-                                label: String(module?.name),
-                                value: String(module?.name),
-                            }))}
-                        />
+                            {isLoadingTags ? (
+                                <div className="h-10 w-full bg-gray-200 rounded-md animate-pulse"></div>
+                            ) : (
+                                <>
+                                    <SearchField
+                                        label="Search Test by tags"
+                                        value={selectedTag}
+                                        onChange={setSelectedTag}
+                                        placeholder="Search by tags..."
+                                        className="w-full"
+                                        disabled={isLoadingSearch}
+                                        options={tags?.map((tag: any) => ({
+                                            label: String(tag?.name),
+                                            value: String(tag?.name),
+                                        }))}
+                                    />
+                                </>
+                            )}
 
 
-                        {isLoadingSubmodules ? (
-                            <div className="flex w-full items-center gap-2">
-                                <Loader className="h-5 w-5 text-primary/80 animate-spin" />
-                                <span className="text-primary/80">Loading submodules...</span>
-                            </div>
-                        ) : (
+                            {isLoadingGroups ? (
+                                <div className="h-10 w-full rounded-md bg-gray-200 animate-pulse"></div>
+                            ) : (
+                                <SearchField
+                                    label="Search Test by groups"
+                                    value={selectedGroup}
+                                    onChange={setSelectedGroup}
+                                    placeholder="Search by groups..."
+                                    className="w-full"
+                                    disabled={isLoadingGroups || errorGroups}
+                                    options={groups?.map((group: any) => ({
+                                        label: String(group?.name),
+                                        value: String(group?.name),
+                                    }))}
+                                />
+                            )
 
-                            <SearchField
-                                label="Search Test by submodules"
-                                value={selectedSubmodule}
-                                onChange={setSelectedSubmodule}
-                                placeholder="Search by submodules..."
-                                className="w-full"
-                                disabled={!selectedModule || submodules.length === 0 || isLoadingSubmodules}
-                                options={submodules?.map((submodule: any) => ({
-                                    label: String(submodule?.name),
-                                    value: String(submodule?.id),
-                                }))}
-                            />
-                        )}
-                    </div>
+                            }
 
-                    <SearchField
-                        label="Search Test by created by"
-                        value={selectedCreatedBy}
-                        onChange={(value) => setSelectedCreatedBy(value)}
-                        placeholder="Select creator..."
-                        className="w-full"
-                        options={userOptions}
-                    />
+                            {isLoadingModules ? (
+                                <div className="h-10 w-full bg-gray-200 animate-pulse rounded-md"></div>
+                            ) : (
+                                <SearchField
+                                    label="Search Test by modules"
+                                    value={selectedModule}
+                                    onChange={setSelectedModule}
+                                    placeholder="Search by modules..."
+                                    className="w-full"
+                                    disabled={!selectedGroup || modules.length === 0 || isLoadingModules || errorModules}
+                                    options={modules?.map((module: any) => ({
+                                        label: String(module?.name),
+                                        value: String(module?.name),
+                                    }))}
+                                />
+                            )
 
-                    <TextInputWithClearButton
-                        id="search-test-case-name"
-                        label="Search Test by name"
-                        value={searchTestCaseName}
-                        onChangeHandler={(e) => setSearchTestCaseName(e.target.value)}
-                        placeholder="Search by test case name..."
-                        className="w-full"
-                        isSearch={true}
-                    />
+                            }
 
-                    <TextInputWithClearButton
-                        id="search-test-case-id"
-                        label="Search Test by id"
-                        value={searchTestCaseId}
-                        onChangeHandler={(e) => setSearchTestCaseId(e.target.value)}
-                        placeholder="Search by test case id..."
-                        className="w-full"
-                        isSearch={true}
-                    />
 
-                    <div className="flex items-center gap-2 flex-col w-full">
-                        <div className={`flex ${isMobile ? "flex-col" : ""} md:justify-center lg:justify-center items-center gap-2 pb-2 w-full`}>
-                            <button
-                                onClick={handleSearch}
-                                // disabled={isSearchButtonDisabled || isLoadingSearch || selectedTag === "" || selectedCreatedBy === "" || selectedGroup === "" 
-                                //     || searchTestCaseName === "" || searchTestCaseId === ""
-                                // }
-                                className={` w-full justify-center md:w-50 lg:w-50 px-4 py-2 shadow-md cursor-pointer font-semibold tracking-wide rounded-xl  text-white flex items-center gap-2
-                                    ${isLoadingSearch ? "bg-primary/10 !cursor-not-allowed" : ""}
-                                    ${isDarkMode ? "bg-blue-700 hover:bg-blue-800" : `
-                                        ${selectedTag === "" ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed" : "bg-primary text-white"}
-                                        ${selectedGroup === "" ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed" : "bg-primary text-white"}
-                                        ${selectedCreatedBy === "" ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed" : "bg-primary text-white"}
-                                        ${searchTestCaseName === "" ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed" : "bg-primary text-white"}
-                                        ${searchTestCaseId === "" ? "bg-gray-400 hover:bg-gray-400 cursor-not-allowed" : "bg-primary text-white"}
-                                        `}
-                                    
-                                    `}
-                            >
-                                {isLoadingSearch ? (
-                                    <>
-                                        <Loader className="h-5 w-5 text-xl text-primary/80 animate-spin" />
-                                        <span className="text-white">Searching...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <FaSearch />
-                                        Search {isSearchButtonDisabled}
-                                    </>
-                                )}
-                            </button>
 
-                            {(selectedGroup || selectedTag || selectedModule || selectedSubmodule || searchTestCaseName || selectedCreatedBy) && (
-                                <button
-                                    onClick={clearFilters}
-                                    className="w-full px-4 border text-md border-primary/60 py-2 justify-center text-primary/70 flex md:w-50 lg:w-50 items-center gap-2 shadow-md cursor-pointer font-semibold tracking-wide rounded-xl"
-                                >
-                                    <Filter /> Clear Filters
-                                </button>
+                            {isLoadingSubmodules ? (
+                                <div className="h-10 w-full bg-gray-200 animate-pulse rounded-md"></div>
+
+                            ) : (
+
+                                <SearchField
+                                    label="Search Test by submodules"
+                                    value={selectedSubmodule}
+                                    onChange={setSelectedSubmodule}
+                                    placeholder="Search by submodules..."
+                                    className="w-full"
+                                    disabled={!selectedModule || submodules.length === 0 || isLoadingSubmodules}
+                                    options={submodules?.map((submodule: any) => ({
+                                        label: String(submodule?.name),
+                                        value: String(submodule?.id),
+                                    }))}
+                                />
                             )}
                         </div>
-                    </div>
+
+                        {loadingUsers ? (
+                            <div className="h-10 w-full bg-gray-200 rounded-md animate-pulse"></div>
+                        ) : (
+                            <SearchField
+                                label="Search Test by created by"
+                                value={selectedCreatedBy}
+                                onChange={(value) => setSelectedCreatedBy(value)}
+                                placeholder="Select creator..."
+                                className="w-full"
+                                options={userOptions}
+                            />
+                        )}
+
+
+                        <TextInputWithClearButton
+                            id="search-test-case-name"
+                            label="Search Test by name"
+                            value={searchTestCaseName}
+                            onChangeHandler={(e) => setSearchTestCaseName(e.target.value)}
+                            placeholder="Search by test case name..."
+                            className="w-full"
+                            isSearch={true}
+                        />
+
+                        <TextInputWithClearButton
+                            id="search-test-case-id"
+                            label="Search Test by id"
+                            value={searchTestCaseId}
+                            onChangeHandler={(e) => setSearchTestCaseId(e.target.value)}
+                            placeholder="Search by test case id..."
+                            className="w-full"
+                            isSearch={true}
+                        />
+
+                        <div className="flex items-center gap-2 flex-col w-full">
+                            <div className={`flex ${isMobile ? "flex-col" : ""} md:justify-center lg:justify-center items-center gap-2 pb-2 w-full`}>
+                                <button
+                                    type="submit"
+                                    className={` w-full justify-center md:w-50 lg:w-50 px-4 py-2 shadow-md cursor-pointer font-semibold tracking-wide rounded-xl  text-white flex items-center gap-2
+                                    ${isLoadingSearch ? "bg-primary/10 cursor-not-allowed" : ""}
+                                    ${isDarkMode ? "bg-blue-700 hover:bg-blue-800" : `bg-primary hover:bg-primary/90`}
+                                    `}
+                                >
+                                    {isLoadingSearch ? (
+                                        <>
+                                            <Loader className="h-5 w-5 text-xl text-primary/80 animate-spin" />
+                                            <span className="text-white">Searching...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <FaSearch />
+                                            Search {isSearchButtonDisabled}
+                                        </>
+                                    )}
+                                </button>
+
+                                {(selectedGroup || selectedTag || selectedModule || selectedSubmodule || searchTestCaseName || selectedCreatedBy) && (
+                                    <button
+                                        type="button"
+                                        onClick={clearFilters}
+                                        className="w-full px-4 border text-md border-primary/60 py-2 justify-center text-primary/70 flex md:w-50 lg:w-50 items-center gap-2 shadow-md cursor-pointer font-semibold tracking-wide rounded-xl"
+                                    >
+                                        <Filter /> Clear Filters
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </form>
                 </div>
 
                 <div className="w-full lg:w-2/3 flex flex-col gap-4 justify-center items-center">
@@ -638,7 +682,7 @@ const DashboardPage = () => {
 
                 </div>
             </div>
-        </DashboardHeader>
+        </DashboardHeader >
     );
 };
 

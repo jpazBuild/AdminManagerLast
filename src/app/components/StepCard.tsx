@@ -8,6 +8,7 @@ import TextInputWithClearButton from "./InputClear";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import ButtonTab from "./ButtonTab";
+import ModalCustom from "./ModalCustom";
 
 interface Step {
     status?: string;
@@ -133,18 +134,14 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
             )}
 
             {openModalApi && step?.apisScriptsResult && (
-                <Dialog open={openModalApi}>
-                    <DialogContent
-                        className="sm:max-w-3xl max-w-lg max-h-[90vh] overflow-y-auto bg-white"
-                    >
-                        <button
-                            className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
-                            onClick={() => setOpenModalApi(false)}
-                            aria-label="Close"
-                        >
-                            <AiOutlineClose className="w-5 h-5" />
-                        </button>
 
+
+                <ModalCustom
+                    open={openModalApi}
+                    onClose={() => setOpenModalApi(false)}
+                    width="!w-2/3"
+                >
+                    <div className="w-full">
                         <h2 className="text-xl font-bold text-primary/85">
                             API/Script Execution Details
                         </h2>
@@ -304,8 +301,9 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
                                 )}
                             </div>
                         </div>
-                    </DialogContent>
-                </Dialog>
+                    </div>
+                </ModalCustom>
+               
             )}
 
             {step?.result && (

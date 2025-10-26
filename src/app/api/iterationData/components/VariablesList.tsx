@@ -2,7 +2,7 @@
 
 import React from "react";
 import TextInputWithClearButton from "@/app/components/InputClear";
-import { Trash2Icon } from "lucide-react";
+import { PlusIcon, Trash2Icon } from "lucide-react";
 
 export type Row = { id: string; variable: string; value: string };
 
@@ -54,13 +54,13 @@ const VariablesList: React.FC<Props> = ({ rows, onUpdate, onRemove, onAdd }) => 
         ))}
       </div>
 
-      <div className="sticky bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-[#E6ECF3] py-2">
+      <div className="sticky bottom-0 left-0 right-0 border-t border-primary/20 py-2">
         <div className="flex">
           <button
             onClick={onAdd}
-            className="inline-flex items-center gap-2 rounded-full border border-[#E1E8F0] px-4 py-2 text-[#0A2342] hover:bg-[#F5F8FB]"
+            className="items-center cursor-pointer flex gap-2 px-5 py-1.5 font-semibold rounded-full hover:bg-gray-200"
           >
-            ＋ add row
+            <PlusIcon className="w-5 h-5"/> Add row
           </button>
         </div>
       </div>

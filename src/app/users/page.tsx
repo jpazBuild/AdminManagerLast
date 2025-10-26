@@ -8,6 +8,8 @@ import axios from "axios";
 import TextInputWithClearButton from "../components/InputClear";
 import { FaSync } from "react-icons/fa";
 import { Edit2, Trash2Icon } from "lucide-react";
+import PaginationResults from "../dashboard/components/PaginationResults";
+import { usePagination } from "../hooks/usePagination";
 
 type User = {
     id: string | number;
@@ -83,11 +85,11 @@ const UsersPage = () => {
             return;
         }
         try {
-            const payload: any = { 
+            const payload: any = {
                 name: editForm.name.trim(),
                 id: id,
-                updatedBy:"user"
-             };
+                updatedBy: "user"
+            };
             const res = await axios.patch(`${URL_API_ALB}users`, { id, ...payload });
             if (res.status !== 200) throw new Error(`PATCH /users/${id} failed: ${res.status}`);
             setEditingId(null);
@@ -113,6 +115,14 @@ const UsersPage = () => {
     useEffect(() => {
         fetchUsers();
     }, []);
+
+    const {
+        page, setPage,
+        pageSize, setPageSize,
+        totalItems,
+        items: paginatedSelectedTests,
+    } = usePagination(filtered, 10);
+
 
     return (
         <DashboardHeader onDarkModeChange={setDarkMode}>
@@ -177,8 +187,15 @@ const UsersPage = () => {
                         </span>
                     </div>
 
-                    <div className="flex flex-col gap-4 pt-2">
-                        {filtered.map((u) => (
+                    <div className="flex flex-col gap-4 pt-2 px-2">
+                        <PaginationResults
+                            totalItems={totalItems}
+                            pageSize={pageSize}
+                            setPageSize={setPageSize}
+                            page={page}
+                            setPage={setPage}
+                        />
+                        {paginatedSelectedTests.map((u) => (
                             <div key={u.id} className="shadow-md p-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                                 {editingId === u.id ? (
                                     <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -221,7 +238,7 @@ const UsersPage = () => {
                                                 className="rounded-2xl px-3 py-1 border border-primary/70  flex gap-2 text-primary text-[14px] items-center hover:border-gray-400 shadow-sm"
                                                 onClick={() => startEdit(u)}
                                             >
-                                                <Edit2 className="w-3 h-3"/> Edit
+                                                <Edit2 className="w-3 h-3" /> Edit
                                             </button>
                                             {deleteConfirmId === u.id ? (
                                                 <div className="flex gap-2 shadow-md p-1 rounded-md bg-gray-50">
@@ -243,7 +260,7 @@ const UsersPage = () => {
                                                     className="rounded-2xl px-3 py-1 border border-primary/50 flex gap-2 text-primary text-[14px] items-center hover:border-gray-400 shadow-sm"
                                                     onClick={() => setDeleteConfirmId(u.id)}
                                                 >
-                                                    <Trash2Icon className="w-3 h-3"/> Eliminar
+                                                    <Trash2Icon className="w-3 h-3" /> Eliminar
                                                 </button>
                                             )}
                                         </div>

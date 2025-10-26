@@ -45,9 +45,30 @@ export const useFetchCollection = () => {
             }
             const data = res.data;
 
+            if (data?.responseSignedUrl) {
+              const url = data?.responseSignedUrl as string;
 
-            setCache((prev) => ({ ...prev, [collectionUid]: data }));
-            return data;
+              const res = await fetch(url, {
+                method: "GET"
+              });
+
+              if (!res.ok) {
+                throw new Error(`Falló la descarga desde S3: ${res.status} ${res.statusText}`);
+              }
+              const contentType = res.headers.get("content-type") || "";
+
+              const jsonData = contentType?.includes("application/json")
+                ? await res?.json()
+                : JSON.parse(await res?.text() || "null");
+
+              setCache((prev) => ({ ...prev, [collectionUid]: jsonData }));
+              return jsonData;
+            } else {
+              setCache((prev) => ({ ...prev, [collectionUid]: data }));
+              return data;
+            }
+
+
           } catch (err) {
             console.error("Error fetching collection, attempt", attempt + 1, "of", maxRetries, err);
 

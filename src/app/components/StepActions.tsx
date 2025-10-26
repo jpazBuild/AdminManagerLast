@@ -528,11 +528,6 @@ const StepActions: React.FC<StepActionsProps> = ({
                 </div>
 
             </ModalCustom>
-            {/* <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="w-full max-h-[85vh] min-h-[40vh] overflow-hidden bg-white flex flex-col">
-                  
-                </DialogContent>
-            </Dialog> */}
         </div>
     );
 };
