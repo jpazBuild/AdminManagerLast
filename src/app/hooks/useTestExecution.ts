@@ -23,6 +23,10 @@ const isIgnorableProgressStep = (step: any) => {
   return IGNORE_PROGRESS_RE.test(msg);
 };
 
+const COUNTABLE_ACTIONS = new Set([
+  "navigate", "click", "change", "check", "wait", "assert", "apis"
+]);
+
 export const useTestExecution = () => {
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState<Record<string, boolean>>({});
@@ -136,7 +140,18 @@ export const useTestExecution = () => {
         return;
       }
 
-      setStepsCountMap(prev => ({ ...prev, [testId]: test?.[0]?.stepsData?.length || 0 }));
+      const rawSteps = test?.[0]?.stepsData ?? [];
+
+      const totalCount = rawSteps.filter((s: any) => {
+        const a = String(s?.action ?? "").toLowerCase();
+        if (!COUNTABLE_ACTIONS.has(a)) return false;
+        if (/^browser started$/i.test(s?.action)) return false;
+        if (/^browser closed$/i.test(s?.action)) return false;
+        if (/^test execution completed$/i.test(s?.action)) return false;
+        return true;
+      }).length;
+
+      setStepsCountMap(prev => ({ ...prev, [testId]: totalCount }));
 
       const rawData = testDataRef.current?.[testId] ?? {};
       const payload = {
@@ -223,6 +238,11 @@ export const useTestExecution = () => {
             });
           }
 
+          console.log("response received:", { id, routeKey, response });
+          console.log("condición de finalización:", routeKey === "executeTest" &&
+            response?.action &&
+            (response.action === "Test execution completed" || response.action === "Test execution failed"));
+
           if (
             routeKey === "executeTest" &&
             response?.action &&
@@ -233,6 +253,16 @@ export const useTestExecution = () => {
             const msg = response?.description || "Test finalizado.";
 
             updateProgress(id, stepsCountMap[id] || 0);
+
+            if (response?.action === "Test execution completed") {
+              console.log(`✅ Test ${id} completed successfully.`);
+
+              setProgress(prev => {
+                const updated = prev.filter(p => p.testCaseId !== id);
+                return [...updated, { testCaseId: id, percent: 100 }];
+              });
+            }
+
             setLoading(prev => ({ ...prev, [id]: false }));
 
             setReports(prev => {
@@ -243,7 +273,6 @@ export const useTestExecution = () => {
                 ...(report || { testCaseId: id, connectionId, data: [], socket }),
                 data: [...((report?.data as any[]) || []), { finalStatus, message: msg }],
               };
-
 
               if (idx >= 0) {
                 updated[idx] = newEntry;

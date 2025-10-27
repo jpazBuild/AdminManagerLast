@@ -827,19 +827,23 @@ const Reusables = () => {
                 </div>
 
             </ModalCustom>
-            <Dialog open={createOpen} onOpenChange={(open) => {
-                if (!open && !isCreating) {
-                    setCreateOpen(false);
-                    resetCreateForm();
-                } else {
-                    setCreateOpen(open);
-                }
-            }}>
-                <DialogContent className="max-w-3xl text-primary">
-                    <DialogHeader>
-                        <DialogTitle>Create reusable</DialogTitle>
-                        <DialogDescription>Fill the fields and add steps to create a new reusable.</DialogDescription>
-                    </DialogHeader>
+
+
+            <ModalCustom
+                open={createOpen}
+                onClose={() => {
+                    if (!isCreating) {
+                        setCreateOpen(false);
+                        resetCreateForm();
+                    }
+                }}
+                width="sm:max-w-3xl"
+            >
+                <div className="w-full flex flex-col gap-4 p-4">
+                    <h2 className="text-xl font-semibold text-primary/90 text-center">Create Reusable</h2>
+                    <div className="text-md px-1 text-center text-primary/50">
+                        Fill the fields and add steps to create a new reusable.
+                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="grid gap-1">
@@ -943,35 +947,20 @@ const Reusables = () => {
                         )}
                     </div>
 
-                    <DialogFooter className="flex gap-2 mt-2">
-                        <Button
-                            variant="outline"
-                            disabled={isCreating}
-                            onClick={() => {
-                                if (isCreating) return;
-                                setCreateOpen(false);
-                                resetCreateForm();
-                            }}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={submitCreate}
-                            disabled={isCreating}
-                            className="text-white"
-                        >
-                            {isCreating ? (
-                                <span className="inline-flex items-center gap-2">
-                                    <Loader className="h-4 w-4 animate-spin" />
-                                    Creating…
-                                </span>
-                            ) : (
-                                "Create"
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                    <div className="flex gap-2 mt-6 w-full">
+                        <button  disabled={isCreating}
+                        onClick={() => {
+                            if (isCreating) return;
+                            setCreateOpen(false);
+                            resetCreateForm();
+                        }} 
+                        className="w-full border border-primary/60 font-semibold rounded-md px-4 py-2">Cancel</button>
+                        <button  onClick={submitCreate}
+                        disabled={isCreating}
+                        className="w-full bg-primary/90 text-white font-semibold rounded-md px-4 py-2">Create</button>
+                    </div>    
+                </div>
+            </ModalCustom>
         </DashboardHeader>
     );
 };

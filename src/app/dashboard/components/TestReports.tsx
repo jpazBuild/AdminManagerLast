@@ -6,7 +6,6 @@ import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 import ReportUI from "../../components/Report";
 import { useTestExecution } from "../../hooks/useTestExecution";
 import { StopCircle, Download as DownloadIcon, Play } from "lucide-react";
-import { handleDownloadHTMLReport } from "../../hooks/HTMLReport";
 import { ExecutionSummary } from "../../components/ExecutionSummary";
 import { downloadRenderedHtml, downloadRenderedPdf } from "./ReportsHistoricTestCaseList";
 import { flushSync } from "react-dom";
@@ -223,14 +222,14 @@ const TestReports = ({ reports, setLoading, progress, selectedTest, testData, st
     return pct > 0 && pct < 100 && !stopped[id];
   };
 
+  console.log("reports render", { reports, progress,selectedTest });
+
   return (
     <div className="space-y-6 mt-6 flex flex-col overflow-y-auto w-full">
       {selectedTest.length === 0 && (
-       <EmptyStateSelectAnimation />
+        <EmptyStateSelectAnimation />
 
       )}
-
-
 
       {totalTests > 0 && (
         <div className="space-y-2">

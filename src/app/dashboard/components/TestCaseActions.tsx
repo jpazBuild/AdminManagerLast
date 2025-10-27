@@ -8,6 +8,8 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { TestCase } from "../../../types/types";
+import ModalCustom from "@/app/components/ModalCustom";
+import { RiInformation2Line } from "react-icons/ri";
 
 interface Props {
     test: any;
@@ -59,66 +61,80 @@ const TestCaseActions = ({
 
     return (
         <div className="flex gap-2 px-2 bg-transparent w-full pt-2">
-            <Dialog open={openDeleteDialog} onOpenChange={setOpenDeleteDialog}>
-                <DialogContent className="sm:max-w-md bg-white flex flex-col justify-center">
-                    <DialogHeader className="flex flex-col gap-2 justify-center">
-                        <DialogTitle className={`text-lg !text-primary/80 text-center font-semibold ${baseText} break-words`}>
-                            Are you sure you want to delete this test case?
-                        </DialogTitle>
-                    </DialogHeader>
 
-                    <div className={`text-sm px-1 break-words text-center text-primary/50 ${baseTextMuted}`}>
+            <ModalCustom
+                open={openDeleteDialog}
+                onClose={() => setOpenDeleteDialog(false)}
+                width="sm:max-w-md"
+            >
+                <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-2 justify-center">
+                        <RiInformation2Line className="w-8 h-8 text-primary/60 mx-auto" />
+                        <h2 className={`text-lg text-primary/80 text-center font-semibold ${baseText}`}>
+                            Are you sure you want to delete this test case?
+                        </h2>
+                    </div>
+
+                    <div className={`text-md px-1 text-center text-primary/50 ${baseTextMuted}`}>
                         You are about to delete the test case <strong>{test?.testCaseName}</strong>.
                     </div>
 
-                    <DialogFooter className="w-full mt-4 flex justify-center gap-2">
+                    <div className="w-full mt-4 flex justify-center gap-2">
                         <button
                             onClick={() => setOpenDeleteDialog(false)}
-                            className="w-full border border-gray-300 px-4 py-2 rounded hover:bg-gray-100"
+                            className="w-full border border-gray-300 px-4 py-2 font-semibold rounded hover:bg-gray-100"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={onConfirmDelete}
                             disabled={!!isLoadingDelete}
-                            className="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 disabled:opacity-60"
+                            className="w-full bg-red-500 text-white font-semibold px-4 py-2 rounded hover:bg-red-600 disabled:opacity-60"
                         >
                             {isLoadingDelete ? "Deleting..." : "Yes, Delete"}
                         </button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                    </div>
+                </div>
 
-            <Dialog open={openUpdateDialog} onOpenChange={setOpenUpdateDialog}>
-                <DialogContent className="sm:max-w-lg bg-white">
-                    <DialogHeader className="flex flex-col gap-1">
-                        <DialogTitle className={`text-lg font-semibold !text-primary/80 text-center ${baseText}`}>
+            </ModalCustom>
+
+
+
+            <ModalCustom 
+                open={openUpdateDialog}
+                onClose={() => setOpenUpdateDialog(false)}
+                width="sm:max-w-lg"
+            >
+
+                <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-2 justify-center">
+                        <RiInformation2Line className="w-8 h-8 text-primary/60 mx-auto" />
+                        <h2 className={`text-lg text-primary/80 text-center font-semibold ${baseText}`}>
                             Are you sure you want to save these changes?
-                        </DialogTitle>
-                        <p className={`text-sm text-primary/50  text-center ${baseTextMuted}`}>
-                            Once saved, these changes cannot be undone.
-                        </p>
-                    </DialogHeader>
+                        </h2>
+                    </div>
 
+                    <div className={`text-md px-1 text-center text-primary/50 ${baseTextMuted}`}>
+                        Once saved, these changes cannot be undone.
+                    </div>
 
-                    <DialogFooter className="mt-4 flex gap-2">
+                    <div className="w-full mt-4 flex justify-center gap-2">
                         <button
                             onClick={() => setOpenUpdateDialog(false)}
-                            className="w-full border border-gray-300 px-4 py-2 rounded hover:bg-gray-100"
+                            className="w-full border border-gray-300 font-semibold  px-4 py-2 rounded hover:bg-gray-100"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={onConfirmUpdate}
                             disabled={!!isLoadingUpdate}
-                            className="w-full bg-primary/90 text-white px-4 py-2 rounded hover:bg-primary/95 disabled:opacity-60"
+                            className="w-full bg-primary/90 font-semibold  text-white px-4 py-2 rounded hover:bg-primary/95 disabled:opacity-60"
                         >
                             {isLoadingUpdate ? "Saving..." : "Save changes"}
                         </button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
+                    </div>
+                </div>
+            </ModalCustom>
             <div className="w-full place-self-start flex justify-start gap-2 pt-1 ml-auto">
                 {onUpdate && (
                     <button

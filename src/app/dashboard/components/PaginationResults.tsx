@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SearchField } from "@/app/components/SearchField";
 
-const PAGE_SIZE_OPTIONS = [5, 10, 15, 20];
+const PAGE_SIZE_OPTIONS = [5, 10, 15, 20,50];
 
 type PaginationResultsProps = {
   totalItems: number;

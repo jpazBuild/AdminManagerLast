@@ -564,7 +564,6 @@ const SortableTestCaseItem: React.FC<Props> = ({
     }, [dynamicValues, test.id]);
 
 
-    console.log("Rendering SortableTestCaseItem:", { test, isOpen, viewMode, responseTest });
     
     const handleViewModeChange = (value: string) => {
         console.log("Changing view mode to:", value);

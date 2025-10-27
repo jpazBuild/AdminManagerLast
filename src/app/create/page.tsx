@@ -16,6 +16,7 @@ import NoData from "../components/NoData";
 import TagActionsMenu from "./components/TagActionsMenu";
 import CopyToClipboard from "../components/CopyToClipboard";
 import TabsUnderline from "../dashboard/components/TabsLine";
+import ModalCustom from "../components/ModalCustom";
 
 type Group = { id: string; name: string; createdByName?: string; createdAt?: number };
 type Tag = { id: string; name: string; createdByName?: string; createdAt?: number };
@@ -521,17 +522,17 @@ const CreateForm = () => {
 
     console.log("filteredTags :", filteredTags);
 
-    const handleActiveTab = (tab:any) => {
+    const handleActiveTab = (tab: any) => {
         setActiveTab(tab);
     };
     return (
-        <DashboardHeader>
+        <DashboardHeader hiddenSide={openDeleteDialog}>
             <div className="sticky top-0 h-full self-center flex flex-col w-full lg:w-2/3 justify-center overflow-y-auto">
                 <h2 className=" text-2xl font-semibold mb-2 text-primary/80 text-center">
                     Location Information
                 </h2>
 
-                <TabsUnderline 
+                <TabsUnderline
                     value={activeTab}
                     setValue={handleActiveTab}
                     defaultValue="tag"
@@ -560,7 +561,7 @@ const CreateForm = () => {
                                 <button
                                     disabled={creatingTag}
                                     onClick={createTagHandler}
-                                    className="cursor-pointer font-bold bg-[#3956E8]/80 disabled:opacity-60 shadow-md text-white py-2 px-4 rounded-md transition-colors w-48"
+                                    className="cursor-pointer font-bold bg-primary/90 shadow-md disabled:opacity-60 shadow-md text-white py-2 px-4 rounded-md transition-colors w-48"
                                 >
                                     {creatingTag ? "Saving…" : "Save Tag"}
                                 </button>
@@ -865,119 +866,20 @@ const CreateForm = () => {
                     ]}
                 />
 
-                {/* // {isEditOpen && (
-                //     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                //         <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl p-6 space-y-4">
-                //             <div className="flex items-center justify-between">
-                //                 <h4 className="text-lg font-semibold text-primary/80">
-                //                     Edit {editEntityType}
-                //                 </h4>
-                //                 <button
-                //                     onClick={() => setIsEditOpen(false)}
-                //                     className="px-2 py-1 rounded hover:bg-black/5"
-                //                 >
-                //                     ✕
-                //                 </button>
-                //             </div>
 
-                //             <TextInputWithClearButton
-                //                 label="Enter Name"
-                //                 id="edit-name"
-                //                 type="text"
-                //                 inputMode="text"
-                //                 placeholder="Name"
-                //                 onChangeHandler={(e: any) => onEditField("name", e.target.value)}
-                //                 value={editEntity?.name || ""}
-                //             />
-
-                //             {editEntityType === "module" && (
-                //                 <SearchField
-                //                     label="Group"
-                //                     value={editModuleGroupValue}
-                //                     onChange={(v: string) => {
-                //                         onEditField("groupId", v);
-                //                         const match = (groupOptions || []).find((o) => o.value === v);
-                //                         if (match) onEditField("groupName", match.label);
-                //                     }}
-                //                     options={groupOptions}
-                //                     placeholder={loadingGroups ? "Loading groups…" : "Select group"}
-                //                 />
-                //             )}
-
-                //             {editEntityType === "submodule" && (
-                //                 <div className="grid gap-3 sm:grid-cols-2">
-                //                     <SearchField
-                //                         label="Group"
-                //                         value={
-                //                             editEntity?.groupId ||
-                //                             (groupOptions.find((o) => o.label === editEntity?.groupName)?.value ??
-                //                                 "")
-                //                         }
-                //                         onChange={(v: string) => {
-                //                             onEditField("groupId", v);
-                //                             const match = (groupOptions || []).find((o) => o.value === v);
-                //                             if (match) onEditField("groupName", match.label);
-                //                         }}
-                //                         options={groupOptions}
-                //                         placeholder={loadingGroups ? "Loading groups…" : "Select group"}
-                //                     />
-                //                     <SearchField
-                //                         label="Parent Module"
-                //                         value={
-                //                             editEntity?.moduleId ||
-                //                             (modules.find((m) => m.name === editEntity?.moduleName)?.id ?? "")
-                //                         }
-                //                         onChange={(v: string) => {
-                //                             onEditField("moduleId", v);
-                //                             const match = modules.find((m) => m.id === v);
-                //                             if (match) onEditField("moduleName", match.name);
-                //                         }}
-                //                         options={editModuleOptions}
-                //                         placeholder={loadingModules ? "Loading modules…" : "Select module"}
-                //                     />
-                //                 </div>
-                //             )}
-
-                //             <SearchField
-                //                 label="Created By"
-                //                 value={editEntity?.createdBy || ""}
-                //                 onChange={(v: string) => onEditField("createdBy", v)}
-                //                 options={userOptions}
-                //                 placeholder={loadingUsers ? "Loading users…" : "Select creator"}
-                //             />
-
-                //             <div className="flex justify-end gap-2 pt-2">
-                //                 <button
-                //                     onClick={() => setIsEditOpen(false)}
-                //                     className="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300"
-                //                 >
-                //                     Cancel
-                //                 </button>
-                //                 <button
-                //                     onClick={submitEdit}
-                //                     className="px-3 py-2 rounded bg-primary/80 text-white hover:bg-primary"
-                //                 >
-                //                     Save
-                //                 </button>
-                //             </div>
-                //         </div>
-                //     </div>
-                // )} */}
-
-
-                <Dialog open={openDeleteDialog} onOpenChange={setOpenDeleteDialog}>
-                    <DialogContent className="sm:max-w-md bg-white flex flex-col justify-center">
-                        <DialogHeader className="flex flex-col gap-2 justify-center">
-                            <DialogTitle className={`text-lg !text-primary/80 text-center font-semibold break-words`}>
-                                Are you sure you want to delete?
-                            </DialogTitle>
-                        </DialogHeader>
-                        <div>
-                            <div className={`text-sm px-1 break-words text-center text-primary/50`}>
-                                You are about to delete the {dataToDelete?.type} with ID: <strong>{dataToDelete?.id}</strong>.
-                            </div>
+                <ModalCustom
+                    open={openDeleteDialog}
+                    onClose={() => setOpenDeleteDialog(false)}
+                    width="sm:max-w-md"
+                >
+                    <div className="flex flex-col gap-4">
+                        <h3 className="text-lg font-semibold text-primary/80 text-center">
+                            Are you sure you want to delete?
+                        </h3>
+                        <div className="text-sm px-1 break-words text-center text-primary/50">
+                            You are about to delete the {dataToDelete?.type} with ID: <strong>{dataToDelete?.id}</strong>.
                         </div>
-                        <DialogFooter className="w-full mt-4 flex justify-center gap-2">
+                        <div className="w-full flex justify-center gap-4">
                             <button
                                 onClick={() => setOpenDeleteDialog(false)}
                                 className="w-full border border-gray-300 px-4 py-2 rounded hover:bg-gray-100"
@@ -991,9 +893,9 @@ const CreateForm = () => {
                             >
                                 {isLoadingDelete ? "Deleting..." : "Yes, Delete"}
                             </button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
+                        </div>
+                    </div>
+                </ModalCustom>
             </div>
         </DashboardHeader>
     );

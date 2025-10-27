@@ -53,7 +53,7 @@ const ModalCustom: React.FC<ModalProps> = ({ open, onClose, children, width = "m
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center"
+      className="fixed inset-0 z-50 flex items-center justify-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
@@ -67,7 +67,7 @@ const ModalCustom: React.FC<ModalProps> = ({ open, onClose, children, width = "m
 
       <div
         ref={panelRef}
-        className={`relative z-[101] w-full ${width} rounded-xl bg-white p-4 shadow-2xl transition-all duration-150 ${
+        className={`relative z-50 w-full ${width} rounded-xl bg-white p-4 shadow-2xl transition-all duration-150 ${
           show ? "scale-100 opacity-100" : "scale-95 opacity-0"
         }`}
         onClick={(e) => e.stopPropagation()}

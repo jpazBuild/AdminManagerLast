@@ -836,7 +836,6 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
 
                                                     {vm === "env" && (() => {
                                                         const entries = Object.entries(env ?? {});
-                                                        console.log("entries", { entries });
 
                                                         return (
                                                             <div className="space-y-2">

@@ -27,14 +27,6 @@ const deepMerge = (a: any, b: any): any => {
 const pick = (obj: any, keys: string[]) =>
   keys.reduce((acc, k) => (obj && k in obj ? ((acc as any)[k] = obj[k], acc) : acc), {} as any);
 
-// type ExecPiece = {
-//   name: string;
-//   request?: { success?: boolean; status?: number | null; detail?: any; _error?: any };
-//   response?: any;
-//   test?: { success?: boolean; detail?: any };
-// };
-
-
 type SuccessFlag = true | false | "skipped";
 
 type ExecPiece = {
@@ -53,120 +45,6 @@ const normalizeSuccess = (
   return fallback;
 };
 
-// function buildPiecesFromMessages(msgs: any[]): { pieces: ExecPiece[]; progressPct: number } {
-//   const byName: Record<string, ExecPiece> = {};
-//   const ensure = (name?: string | null): ExecPiece | null => {
-//     if (!name) return null;
-//     if (!byName[name]) byName[name] = { name };
-//     return byName[name];
-//   };
-
-//   console.log("Building pieces from messages:", msgs);
-
-//   for (const m of msgs) {
-//     const kind = m?.kind;
-//     const resp = m?.payload?.response;
-//     const item = m?.payload?.item;
-
-//     console.log("Processing message:", { kind, resp, item });
-
-//     if (typeof item === "string") {
-//       let match = item.match(/^(?:Running request|Request completed):\s*(.+)$/i);
-//       if (match?.[1]) {
-//         const e = ensure(match[1].trim());
-//         if (e && /^Running request:/i.test(item)) {
-//           e.request = e.request ?? { success: undefined, status: null, detail: {} };
-//         }
-//       }
-//       match = item.match(/^(?:Running test script|Test script completed):\s*(.+)$/i);
-//       if (match?.[1]) {
-//         const e = ensure(match[1].trim());
-//         if (e && /^Running test script:/i.test(item)) {
-//           e.test = e.test ?? { success: undefined, detail: {} };
-//         }
-//       }
-//     }
-
-//     if (resp && (resp.name || resp.type)) {
-//       const rName: string | null = resp.name ?? null;
-//       const rType: string | null = resp.type ?? null;
-//       console.log("Response details:", { rName, rType, resp });
-
-//       if(rName && rType === "resp"){
-//         const e = ensure(rName);
-//         if(!e) continue;
-//         e.response = resp;
-//         continue;
-//       }
-//       if (rName && rType === "request") {
-//         const e = ensure(rName);
-//         console.log("test in ",{ rName, e });
-
-//         if (!e) continue;
-//         e.request = {
-//           success: typeof resp.success === "boolean" ? resp.success : e.request?.success ?? undefined,
-//           status:
-//             typeof resp.status === "number"
-//               ? resp.status
-//               : typeof e.request?.status === "number"
-//                 ? e.request?.status
-//                 : null,
-//           detail: deepMerge(e.request?.detail ?? {}, pick(resp, ["request", "response", "env"])),
-//         };
-//       }
-
-//       if (rName && rType === "script" && resp.listen === "test") {
-//         const e = ensure(rName);
-//         if (!e) continue;
-//         e.test = {
-//           success: typeof resp.success === "boolean" ? resp.success : e.test?.success ?? undefined,
-//           detail: deepMerge(e.test?.detail ?? {}, resp),
-//         };
-//       }
-//     }
-
-//     if (kind === "error") {
-//       const rawResp = m?.payload?.raw?.response;
-//       const nameFromError: string | null = rawResp?.name ?? null;
-//       if (nameFromError) {
-//         const e = ensure(nameFromError);
-//         if (!e) continue;
-//         const mergedDetail = deepMerge(e.request?.detail ?? {}, pick(rawResp, ["request", "response", "env"]));
-//         const topErr =
-//           m?.payload?.raw?.env?.__error ||
-//           m?.payload?.error ||
-//           m?.payload?.message;
-
-//         e.request = {
-//           success: false,
-//           status:
-//             typeof rawResp?.status === "number"
-//               ? rawResp.status
-//               : typeof e.request?.status === "number"
-//                 ? e.request?.status
-//                 : null,
-//           detail: mergedDetail,
-//           _error: topErr,
-//         };
-//       }
-//     }
-//   }
-
-//   const list = Object.values(byName);
-//   const totalSteps = list.reduce((acc, p) => acc + (p.request ? 1 : 0) + (p.test ? 1 : 0), 0) || 0;
-//   const doneSteps =
-//     list.reduce(
-//       (acc, p) =>
-//         acc +
-//         (typeof p.request?.success === "boolean" ? 1 : 0) +
-//         (typeof p.test?.success === "boolean" ? 1 : 0),
-//       0
-//     ) || 0;
-//   const pct = totalSteps ? Math.round((doneSteps / totalSteps) * 100) : 0;
-
-//   return { pieces: list, progressPct: pct };
-// }
-
 function buildPiecesFromMessages(msgs: any[]): { pieces: ExecPiece[]; progressPct: number } {
   const byName: Record<string, ExecPiece> = {};
   const ensure = (name?: string | null): ExecPiece | null => {
@@ -175,14 +53,12 @@ function buildPiecesFromMessages(msgs: any[]): { pieces: ExecPiece[]; progressPc
     return byName[name];
   };
 
-  console.log("Building pieces from messages:", msgs);
 
   for (const m of msgs) {
     const kind = m?.kind;
     const resp = m?.payload?.response;
     const item = m?.payload?.item;
 
-    console.log("Processing message:", { kind, resp, item });
 
     if (typeof item === "string") {
       let match = item.match(/^(?:Running request|Request completed):\s*(.+)$/i);
@@ -204,13 +80,11 @@ function buildPiecesFromMessages(msgs: any[]): { pieces: ExecPiece[]; progressPc
     if (resp && (resp.name || resp.type)) {
       const rName: string | null = resp.name ?? null;
       const rType: string | null = resp.type ?? null;
-      console.log("Response details:", { rName, rType, resp });
 
       if (rName && rType === "resp") {
         const e = ensure(rName);
         if (!e) continue;
         e.response = resp;
-        // Si el success "skipped" viniera en este objeto "resp", también lo reflejamos en request si existe
         if (e.request) {
           e.request.success = normalizeSuccess(resp.success, e.request.success);
         }
@@ -255,7 +129,7 @@ function buildPiecesFromMessages(msgs: any[]): { pieces: ExecPiece[]; progressPc
           m?.payload?.message;
 
         e.request = {
-          success: false, // error => fallo
+          success: false,
           status:
             typeof rawResp?.status === "number"
               ? rawResp.status
@@ -271,7 +145,6 @@ function buildPiecesFromMessages(msgs: any[]): { pieces: ExecPiece[]; progressPc
 
   const list = Object.values(byName);
 
-  // Cuenta como "hecho" si success es boolean (true/false) O "skipped"
   const isDone = (s?: SuccessFlag) => s === true || s === false || s === "skipped";
 
   const totalSteps = list.reduce(
@@ -532,14 +405,6 @@ const ListFlows = ({
             const progressPct = activeIter?.progressPct ?? 0;
 
             const piecesForStatus = activeIter?.pieces ?? [];
-            // const hasPieceFail = piecesForStatus.some(p => p.request?.success === false || p.test?.success === false);
-            // const hasFail = !!lastErrMsg || hasPieceFail;
-            // const allOk =
-            //   piecesForStatus.length > 0 &&
-            //   piecesForStatus.every(p =>
-            //     (p.request ? p.request.success === true : true) &&
-            //     (p.test ? p.test.success === true : true)
-            //   );
 
             const isOkLike = (s?: SuccessFlag) => s === true || s === "skipped";
             const hasFail = piecesForStatus.some(p => p.request?.success === false || p.test?.success === false);
@@ -550,7 +415,6 @@ const ListFlows = ({
                 (p.test ? isOkLike(p.test.success) : true)
               );
             
-            console.log("p er flow render:", {flowId, piecesForStatus, hasFail, allOk });
             
             const flowMeta = flows.find((f: any) => f.id === flowId);
             const flowName = flowMeta?.name || flowId;
@@ -559,7 +423,6 @@ const ListFlows = ({
               p => p.request?.success === "skipped" || p.test?.success === "skipped"
             );
             const hasSkipped = !hasFail && anySkipped;
-            console.log("flow render:", { flowId, flowName, expanded, hasSkipped });
             
             return (
               <div key={flowId} className="space-y-4">
@@ -684,7 +547,6 @@ const ListFlows = ({
                                 ? `${chipBase} border-slate-400 text-slate-500`
                                 : `${chipBase} border-primary/70 text-primary/70`;
 
-                        console.log({ api, reqState, testState });
                          const anySkipped = piecesForStatus.some(
                             p => p.request?.success === "skipped" || p.test?.success === "skipped"
                           );

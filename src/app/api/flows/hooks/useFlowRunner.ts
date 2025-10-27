@@ -211,7 +211,6 @@ export const useFlowRunner = () => {
                     }
 
                     const { data } = await axios.post(`${URL_API_ALB}apisScripts`, { id: flowId });
-                    console.log("Fetched APIs script data for flow:", flowId, data);
                     
                     const payloadObj = {
                         action: "runApis",
@@ -219,7 +218,6 @@ export const useFlowRunner = () => {
                     };
 
                     const payloadStr = JSON.stringify(payloadObj);
-                    console.log(`[flow:${flowId}] sending payload`, payloadObj);
 
                     ws.send(payloadStr);
 
@@ -261,7 +259,6 @@ export const useFlowRunner = () => {
                     }
 
                     const payloadStr = JSON.stringify(payload);
-                    console.log(`[flow:${flowId}] sending custom payload`, payload);
 
                     ws.send(payloadStr);
 

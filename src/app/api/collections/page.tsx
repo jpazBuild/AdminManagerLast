@@ -383,7 +383,6 @@ const CollectionsPage = () => {
             setLoadingByCollection(prev => ({ ...prev, [name]: false }));
         }
     };
-    console.log("dataDetailCollections:", dataDetailCollections);
 
     const dataDetailByUid = useMemo<Record<string, Detail>>(
         () =>

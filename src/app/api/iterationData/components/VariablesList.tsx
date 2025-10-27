@@ -14,7 +14,6 @@ type Props = {
 };
 
 const VariablesList: React.FC<Props> = ({ rows, onUpdate, onRemove, onAdd }) => {
-  console.log("VariablesList rows:", rows);
   
   return (
     <div className="flex flex-col min-h-0">

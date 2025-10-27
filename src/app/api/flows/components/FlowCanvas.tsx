@@ -292,8 +292,6 @@ const FlowCanvas: React.FC<Props> = ({
         if(iterationDataResponse == null) {
             delete payload.iterationData;
         }
-        console.log("payload to save:", payload);
-
         try {
             setSaving(true);
             const { status, data } = await axios.put(`${URL_API_ALB}apisScripts`, payload);

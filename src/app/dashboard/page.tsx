@@ -7,7 +7,6 @@ import { SearchField } from "../components/SearchField";
 import axios from "axios";
 import { FaChrome, FaSearch } from "react-icons/fa";
 import { toast } from "sonner";
-import { FiPlay } from "react-icons/fi";
 import TestCaseList from "./components/TestCaseList";
 import TestSettings from "./components/TestSettings";
 import TestReports from "./components/TestReports";
@@ -17,9 +16,6 @@ import { URL_API_ALB } from "@/config";
 import { checkConnection } from "@/utils/DBBUtils";
 import TextInputWithClearButton from "../components/InputClear";
 import { User } from "@/types/types";
-import { TbWorld } from "react-icons/tb";
-import ButtonTab from "../components/ButtonTab";
-import TabsUnderlineDemo from "./components/TabsLine";
 
 interface TestCase {
     id: string;
@@ -64,7 +60,6 @@ const DashboardPage = () => {
     const [isLoadingTags, setIsLoadingTags] = useState<boolean>(false);
     const [loadingUsers, setLoadingUsers] = useState<boolean>(false);
     const [users, setUsers] = useState<any[]>([]);
-    const [viewMode, setViewMode] = useState<'list' | 'reports'>('list');
 
     const {
         reports,

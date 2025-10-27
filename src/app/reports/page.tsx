@@ -13,6 +13,9 @@ import { SearchField } from "../components/SearchField";
 import TextInputWithClearButton from "../components/InputClear";
 import { useTestLocationInformation } from "../hooks/useTestLocationInformation";
 import { buildStandaloneHtml } from "@/utils/buildHtmlreport";
+import axios from "axios";
+import PaginationResults from "../dashboard/components/PaginationResults";
+import { usePagination } from "../hooks/usePagination";
 
 type ReportEvent = {
   data: StepData;
@@ -309,24 +312,37 @@ const Reports = () => {
           });
         }
 
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(cleanFilters),
-        });
+        const res = await axios.post(url, cleanFilters);
+        let data: ReportIndexApiResponse;
 
-        const data: ReportIndexApiResponse = await res.json();
+        if (res?.data?.responseSignedUrl) {
+          const urlDataReports = String(res.data.responseSignedUrl);
 
-        const flat: ReportItem[] = Object.entries(data).flatMap(([testCaseId, manifests]) =>
-          manifests.map((m) => {
-            const headerVal = Array.isArray(m.header) ? m.header[0] : m.header;
+          const responseReports = await fetch(urlDataReports, { method: "GET" });
+          if (!responseReports.ok) {
+            throw new Error(`Falló la descarga desde S3: ${responseReports.status} ${responseReports.statusText}`);
+          }
+
+          const ct = responseReports.headers.get("content-type") || "";
+          const jsonData = ct.includes("application/json")
+            ? await responseReports.json()
+            : JSON.parse((await responseReports.text()) || "null");
+
+          data = (jsonData ?? {}) as ReportIndexApiResponse;
+        } else {
+          data = (res?.data ?? {}) as ReportIndexApiResponse;
+        }
+
+        const flat: ReportItem[] = Object.entries(data || {}).flatMap(([testCaseId, manifests]) =>
+          (manifests || []).map((m: any) => {
+            const headerVal = Array.isArray(m?.header) ? m.header[0] : m?.header;
             return {
               testCaseId,
-              urlReport: m.urlReport,
-              status: m.status,
-              timestamp: m.timestamp,
+              urlReport: m?.urlReport,
+              status: m?.status,
+              timestamp: m?.timestamp,
               header: headerVal,
-            };
+            } as ReportItem;
           })
         );
 
@@ -382,17 +398,15 @@ const Reports = () => {
     setSelectedImage("");
   };
 
-  
+
   const downloadRenderedHtml = useCallback(
     async (reportName: string, file: ReportFile, urlReport: string, header?: any) => {
-      console.log("header to download", header);
 
       const hostEl = containerRefs.current[urlReport];
       if (!hostEl) {
         toast.error("Nothing to export for this report");
         return;
       }
-      console.log("header to export", header);
 
       const clone = hostEl.cloneNode(true) as HTMLElement;
 
@@ -443,7 +457,13 @@ const Reports = () => {
     loadedReportsRef.current = new Set();
   }, [setSelectedTag, setSelectedGroup, setSelectedModule, setSelectedSubmodule]);
 
-  
+  const {
+    page, setPage,
+    pageSize, setPageSize,
+    totalItems,
+    items: paginatedSelectedTests,
+  } = usePagination(reportItems, 10);
+
   return (
     <DashboardHeader onDarkModeChange={setDarkMode}>
       <div className="p-6 w-full lg:w-2/3 mx-auto">
@@ -453,7 +473,7 @@ const Reports = () => {
           <div className="px-6 py-4 border-b border-gray-200">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 text-gray-700 hover:text-gray-900 font-medium"
+              className="flex items-center gap-2 cursor-pointer text-gray-700 hover:text-gray-900 font-medium transition"
             >
               <FilterIcon className="h-5 w-5" />
               Filters
@@ -614,9 +634,16 @@ const Reports = () => {
           </div>
         )}
 
-        {reportItems.map(({ testCaseId, header, urlReport, status, timestamp }) => {
+
+        <PaginationResults
+          totalItems={totalItems}
+          pageSize={pageSize}
+          setPageSize={setPageSize}
+          page={page}
+          setPage={setPage}
+        />
+        {paginatedSelectedTests.map(({ testCaseId, header, urlReport, status, timestamp }) => {
           const file = allReports[urlReport];
-          console.log("header to show", header);
 
           return (
             <Disclosure key={urlReport}>
