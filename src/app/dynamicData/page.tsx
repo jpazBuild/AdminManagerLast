@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { DashboardHeader } from "../Layouts/main";
 import { URL_API_ALB } from "@/config";
-import { ChevronDown, ChevronUp, Trash2, PencilLine, Save, X, ChevronRight, ArrowDown, ArrowUp, Copy } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash2, PencilLine, Save, X, ChevronRight, ArrowDown, ArrowUp, Copy, PlusIcon, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -107,7 +107,7 @@ const DynamicDataCrudPage = () => {
   const [editingMap, setEditingMap] = useState<Record<string, boolean>>({});
   const [editForms, setEditForms] = useState<Record<string, EditForm>>({});
   const isEditing = (id: string | number) => !!editingMap[String(id)];
-
+  const [viewCreate, setViewCreate] = useState(false);
   const [editJsonTextMap, setEditJsonTextMap] = useState<Record<string, string>>({});
   const [editJsonErrorMap, setEditJsonErrorMap] = useState<Record<string, string | null>>({});
   const [createMode, setCreateMode] = useState<'dropzone' | 'editor'>('dropzone');
@@ -506,616 +506,366 @@ const DynamicDataCrudPage = () => {
   return (
     <DashboardHeader onDarkModeChange={setDarkMode}>
       <div className="p-4 space-y-6">
-        <h1 className="text-2xl font-semibold text-primary/80">Dynamic Data</h1>
+        <div className="flex items-center justify-between">
+          {!viewCreate && (
+            <>
+              <h1 className="text-2xl font-bold text-primary/80">Dynamic Data Management</h1>
+              <button onClick={() => setViewCreate(true)} className="cursor-pointer flex gap-2 px-4 py-2 rounded-2xl bg-gray-300 shadow-2xl hover:bg-gray-200"><PlusIcon className="w-5 h-5" /> Create</button>
 
-        <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <h2 className="text-lg font-medium mb-3 text-primary/70">Create Dynamic Data</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <SearchField
-                label="Select Group"
-                value={createForm.groupName}
-                onChange={(v) => setCreateForm((f) => ({ ...f, groupName: v }))}
-                placeholder="Search group..."
-                className="w-full"
-                disabled={loadingCats}
-                options={groupOptions}
-              />
-            </div>
+            </>
 
-            <div>
-              <TextInputWithClearButton
-                label="Name"
-                id="name"
-                placeholder="Test Dynamic Data 1"
-                value={createForm.name}
-                onChangeHandler={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
-              />
-            </div>
+          )}
 
-            <div className="md:col-span-2 flex flex-wrap gap-3">
-              <TextInputWithClearButton
-                label="Description"
-                id="description"
-                placeholder="Descripción"
-                value={createForm.description}
-                onChangeHandler={(e) => setCreateForm((f) => ({ ...f, description: e.target.value }))}
-              />
-              <SearchField
-                label="Select tag"
-                value={ARRAY_TO_TAGS(createForm.tagNames)}
-                onChange={(v) => setCreateForm((f) => ({ ...f, tagNames: v ? [v] : [] }))}
-                placeholder="Search tag..."
-                className="w-full"
-                disabled={loadingCats}
-                options={tagOptions}
-              />
-              <SearchField
-                label="Select Created By"
-                value={createForm.createdBy}
-                onChange={(v) => setCreateForm((f) => ({ ...f, createdBy: v }))}
-                placeholder="Select Created By..."
-                className="w-full"
-                disabled={loadingCats}
-                options={userOptions}
-              />
-            </div>
-
-            <div className="md:col-span-2 flex flex-col">
-
-
-              <div className="flex items-center gap-2 mb-3 justify-center">
-                <ButtonTab
-                  label="Upload JSON (Dropzone)"
-                  value="dropzone"
-                  isActive={createMode === 'dropzone'}
-                  onClick={() => setCreateMode('dropzone')}
-                  isDarkMode={darkMode}
-
-                />
-                <ButtonTab
-                  label="Edit JSON (Editor)"
-                  value="editor"
-                  isActive={createMode === 'editor'}
-                  onClick={() => setCreateMode('editor')}
-                  isDarkMode={darkMode}
-
-                />
-              </div>
-
-              <div className="mt-2 self-center w-full flex flex-col justify-center">
-                {createMode === 'dropzone' ? (
-                  <>
-                    <div className="mt-2 self-center">
-                      <JSONDropzone
-                        inputId="jsondz-create"
-                        onJSONParsed={(json) =>
-                          setCreateForm(f => ({ ...f, dynamicData: Array.isArray(json) ? json : [] }))
-                        }
-                        onClear={() => setCreateForm(f => ({ ...f, dynamicData: [] }))}
-                        isDarkMode={darkMode}
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <Label className="text-primary/70">dynamicData</Label>
-                      <span className="text-xs text-gray-500">Should be an array of objects</span>
-                    </div>
-                    <textarea
-                      className="mt-3 w-full text-primary/90 bg-primary/5 max-h-[700px] overflow-y-auto resize-none rounded-xl border border-gray-300 px-3 py-2 font-mono text-xs"
-                      value={createJsonText}
-                      rows={18}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setCreateJsonText(val);
-                        try {
-                          const parsed = JSON.parse(val);
-                          if (!Array.isArray(parsed)) throw new Error("JSON should be an array.");
-                          setCreateJsonError(null);
-                        } catch (err: any) {
-                          setCreateJsonError(err?.message || "JSON invalid");
-                        }
-                      }}
-                      onInput={(e) => {
-                        const el = e.currentTarget;
-                        el.style.height = "auto";
-                        const newH = Math.min(el.scrollHeight, MAX_H);
-                        el.style.height = `${newH}px`;
-                        el.style.overflowY = el.scrollHeight > MAX_H ? "auto" : "hidden";
-                      }}
-                      onBlur={applyCreateJsonText}
-                      placeholder='[{"key":"value"}]'
-                    />
-                    {createJsonError && (
-                      <p className="mt-1 text-xs text-red-600">{createJsonError}</p>
-                    )}
-                    <div className="mt-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="rounded-xl border border-gray-300"
-                        onClick={applyCreateJsonText}
-                      >
-                        Apply JSON
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {createMode === 'dropzone' && createForm.dynamicData.length > 0 && (
-                <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3 max-h-64 overflow-auto">
-                  <pre className="text-xs whitespace-pre-wrap break-all">
-                    {createForm.dynamicData.length > 0 && (
-                      JSON.stringify(createForm.dynamicData, null, 2)
-                    )}
-                  </pre>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <Button
-              onClick={handleCreate}
-              disabled={creating}
-              variant="outline"
-              className="rounded-2xl shadow-md bg-primary/90 hover:bg-primary/80 hover:text-white text-white/95"
-            >
-              {creating ? "Creating..." : "Create"}
-            </Button>
-          </div>
-        </section>
-
-        <div className="flex items-center gap-2 justify-between">
-          <Button
-            onClick={fetchHeaders}
-            variant="outline"
-            className="rounded-2xl border border-gray-300 hover:border-gray-400"
-          >
-            {loadingHeaders ? <><FaSync className="w-4 h-4 mr-2 animate-pulse" /> Loading ...</> : <><FaSync className="w-4 h-4 mr-2" /> Refresh List</>}
-          </Button>
-          <span className="text-sm text-gray-500">
-            {loadingHeaders ? "Loading ..." : `${dynamicDataHeaders.length} ítem(s)`}
-          </span>
+          {viewCreate && (
+            <>
+              <h1 className="text-2xl font-bold text-primary/80">Create Dynamic Data</h1>
+              <button onClick={() => setViewCreate(false)} className="cursor-pointer flex gap-2 px-4 py-2 rounded-2xl bg-gray-300 shadow-2xl hover:bg-gray-200"><ArrowLeft className="w-5 h-5" /> Back to list</button>
+            </>
+          )}
         </div>
 
-        <TextInputWithClearButton
-          label="Search Dynamic Data"
-          id="search-dynamic-data"
-          value={searchDD}
-          onChangeHandler={(e) => setSearchDD(e.target.value)}
-          placeholder="Buscar por nombre, grupo, tags, descripción..."
-        />
-        <div className="space-y-4 min-h-[500px]">
+        {viewCreate && (
+          <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <h2 className="text-lg font-medium mb-3 text-primary/70">Create Dynamic Data</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <SearchField
+                  label="Select Group"
+                  value={createForm.groupName}
+                  onChange={(v) => setCreateForm((f) => ({ ...f, groupName: v }))}
+                  placeholder="Search group..."
+                  className="w-full"
+                  disabled={loadingCats}
+                  options={groupOptions}
+                />
+              </div>
 
-          <PaginationResults
-            totalItems={totalItems}
-            pageSize={pageSize}
-            setPageSize={setPageSize}
-            page={page}
-            setPage={setPage}
-          />
-          {paginatedSelectedTests.map((item) => {
-            const id = item.id;
-            const key = String(id);
-            const isOpen = !!expanded[key];
-            const state = details[key];
-            const ef = editForms[key];
+              <div>
+                <TextInputWithClearButton
+                  label="Name"
+                  id="name"
+                  placeholder="Test Dynamic Data 1"
+                  value={createForm.name}
+                  onChangeHandler={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))}
+                />
+              </div>
 
-            return (
-              <div key={key} className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => toggleExpand(id)}
-                    className="flex-1 flex items-center justify-between hover:bg-gray-50 rounded-xl px-2 py-2"
-                  >
-                    <div className="flex flex-col">
-                      <p className="self-start text-[18px] font-medium text-primary/80 truncate">
-                        {item?.name ?? "(Sin nombre)"}
-                      </p>
-                      <div className="self-start mt-1 flex flex-col items-center gap-2">
-                        <span className="text-xs text-gray-500">ID: {String(id)}</span>
-                        <div className="self-start flex items-center gap-2 flex-wrap">
-                          {item?.groupName && (
-                            <span className="text-xs text-white bg-primary/70 px-2 py-1 rounded-2xl">
-                              {item.groupName}
-                            </span>
-                          )}
-                          {Array.isArray(item?.tagNames) &&
-                            item.tagNames.map((tag, i) => (
-                              <span
-                                key={`${key}-tag-${i}`}
-                                className="text-xs bg-primary/80 text-white rounded-2xl px-2 py-1"
-                              >
-                                {tag}
-                              </span>
-                            ))}
-                        </div>
-                      </div>
-                    </div>
-                    <span className="ml-3 inline-flex h-6 w-6 items-center justify-center rounded-full">
-                      {!isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-                    </span>
-                  </button>
+              <div className="md:col-span-2 flex flex-wrap gap-3">
+                <TextInputWithClearButton
+                  label="Description"
+                  id="description"
+                  placeholder="Descripción"
+                  value={createForm.description}
+                  onChangeHandler={(e) => setCreateForm((f) => ({ ...f, description: e.target.value }))}
+                />
+                <SearchField
+                  label="Select tag"
+                  value={ARRAY_TO_TAGS(createForm.tagNames)}
+                  onChange={(v) => setCreateForm((f) => ({ ...f, tagNames: v ? [v] : [] }))}
+                  placeholder="Search tag..."
+                  className="w-full"
+                  disabled={loadingCats}
+                  options={tagOptions}
+                />
+                <SearchField
+                  label="Select Created By"
+                  value={createForm.createdBy}
+                  onChange={(v) => setCreateForm((f) => ({ ...f, createdBy: v }))}
+                  placeholder="Select Created By..."
+                  className="w-full"
+                  disabled={loadingCats}
+                  options={userOptions}
+                />
+              </div>
+
+              <div className="md:col-span-2 flex flex-col">
+
+
+                <div className="flex items-center gap-2 mb-3 justify-center">
+                  <ButtonTab
+                    label="Upload JSON (Dropzone)"
+                    value="dropzone"
+                    isActive={createMode === 'dropzone'}
+                    onClick={() => setCreateMode('dropzone')}
+                    isDarkMode={darkMode}
+
+                  />
+                  <ButtonTab
+                    label="Edit JSON (Editor)"
+                    value="editor"
+                    isActive={createMode === 'editor'}
+                    onClick={() => setCreateMode('editor')}
+                    isDarkMode={darkMode}
+
+                  />
                 </div>
 
-                {isOpen && (
-                  <div className="px-4 pb-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                      {item?.createdByName && (
-                        <div className="text-sm">
-                          <TextInputWithClearButton
-                            label="Created by"
-                            id={`created-by-${key}`}
-                            value={item.createdByName}
-                            onChangeHandler={() => { }}
-                            placeholder="Created by"
-                            disabled
-                            readOnly
-                          />
-                        </div>
+                <div className="mt-2 self-center w-full flex flex-col justify-center">
+                  {createMode === 'dropzone' ? (
+                    <>
+                      <div className="mt-2 self-center">
+                        <JSONDropzone
+                          inputId="jsondz-create"
+                          onJSONParsed={(json) =>
+                            setCreateForm(f => ({ ...f, dynamicData: Array.isArray(json) ? json : [] }))
+                          }
+                          onClear={() => setCreateForm(f => ({ ...f, dynamicData: [] }))}
+                          isDarkMode={darkMode}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <Label className="text-primary/70">dynamicData</Label>
+                        <span className="text-xs text-gray-500">Should be an array of objects</span>
+                      </div>
+                      <textarea
+                        className="mt-3 w-full text-primary/90 bg-primary/5 max-h-[700px] overflow-y-auto resize-none rounded-xl border border-gray-300 px-3 py-2 font-mono text-xs"
+                        value={createJsonText}
+                        rows={18}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCreateJsonText(val);
+                          try {
+                            const parsed = JSON.parse(val);
+                            if (!Array.isArray(parsed)) throw new Error("JSON should be an array.");
+                            setCreateJsonError(null);
+                          } catch (err: any) {
+                            setCreateJsonError(err?.message || "JSON invalid");
+                          }
+                        }}
+                        onInput={(e) => {
+                          const el = e.currentTarget;
+                          el.style.height = "auto";
+                          const newH = Math.min(el.scrollHeight, MAX_H);
+                          el.style.height = `${newH}px`;
+                          el.style.overflowY = el.scrollHeight > MAX_H ? "auto" : "hidden";
+                        }}
+                        onBlur={applyCreateJsonText}
+                        placeholder='[{"key":"value"}]'
+                      />
+                      {createJsonError && (
+                        <p className="mt-1 text-xs text-red-600">{createJsonError}</p>
                       )}
-                      {item?.description && (
-                        <div className="text-sm md:col-span-2">
-                          <TextInputWithClearButton
-                            label="Description"
-                            id={`description-${key}`}
-                            value={item.description}
-                            onChangeHandler={() => { }}
-                            placeholder="Description"
-                            disabled
-                            readOnly
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    {!isEditing(item.id) && (
-                      <div className="flex justify-end items-center mb-3 gap-2">
+                      <div className="mt-2">
                         <Button
+                          type="button"
                           variant="outline"
-                          className="rounded-xl px-3 py-2 border border-gray-300"
-                          onClick={() => {
-                            const st = details[key];
-                            if (!st?.data) { toast.info("Abre la tarjeta..."); toggleExpand(id); return; }
-                            startEdit(item, st?.data);
-                          }}
-                          title="Editar"
+                          className="rounded-xl border border-gray-300"
+                          onClick={applyCreateJsonText}
                         >
-                          <PencilLine className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="rounded-xl px-3 py-2 border border-red-300 text-red-600 hover:border-red-400"
-                          onClick={() => deleteItem(id)}
-                          title="Eliminar"
-                        >
-                          <Trash2 className="w-4 h-4" />
+                          Apply JSON
                         </Button>
                       </div>
-                    )}
+                    </>
+                  )}
+                </div>
 
-                    {state?.loading && <div className="text-sm text-gray-500">Loading detail…</div>}
-                    {!state?.loading && state?.error && (
-                      <div className="text-sm text-red-600">Error: {state?.error}</div>
-                    )}
+                {createMode === 'dropzone' && createForm.dynamicData.length > 0 && (
+                  <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3 max-h-64 overflow-auto">
+                    <pre className="text-xs whitespace-pre-wrap break-all">
+                      {createForm.dynamicData.length > 0 && (
+                        JSON.stringify(createForm.dynamicData, null, 2)
+                      )}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            </div>
 
-                    {!state?.loading && !state?.error && (
-                      <>
-                        {!isEditing(item.id) && (
-                          <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 max-h-[700px] overflow-y-auto">
-                            {!(details[key]?.data?.dynamicData || []).length && (
-                              <p className="text-sm text-gray-500">No dynamicData available.</p>
-                            )}
-                            {(details[key]?.data?.dynamicData ?? []).map((obj: any, i: number) => {
-                              const objId = String(obj?.id ?? i);
-                              const open = !!openDynamicIds[objId];
+            <div className="mt-4">
+              <Button
+                onClick={handleCreate}
+                disabled={creating}
+                variant="outline"
+                className="rounded-2xl shadow-md bg-primary/90 hover:bg-primary/80 hover:text-white text-white/95"
+              >
+                {creating ? "Creating..." : "Create"}
+              </Button>
+            </div>
+          </section>
 
+        )}
 
-                              return (
-                                <div
-                                  key={`${key}-obj-${objId}`}
-                                  className="relative mb-3 rounded-md border border-gray-200 bg-gray-100 shadow-sm overflow-hidden py-4"
-                                >
-                                  <div className="text-white/90 absolute top-0 left-0 bg-primary/90 p-2 rounded-l-md rounded-br-full text-[12px] font-semibold">{obj.order}</div>
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleDynamicId(objId)}
-                                    className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-50 mt-2"
-                                    aria-expanded={open}
-                                    aria-controls={`dd-panel-${objId}`}
+        {!viewCreate && (
+          <>
+            <div className="flex items-center gap-2 justify-between">
+              <Button
+                onClick={fetchHeaders}
+                variant="outline"
+                className="rounded-2xl border border-gray-300 hover:border-gray-400"
+              >
+                {loadingHeaders ? <><FaSync className="w-4 h-4 mr-2 animate-pulse" /> Loading ...</> : <><FaSync className="w-4 h-4 mr-2" /> Refresh List</>}
+              </Button>
+              <span className="text-sm text-gray-500">
+                {loadingHeaders ? "Loading ..." : `${dynamicDataHeaders.length} ítem(s)`}
+              </span>
+            </div>
+
+            <TextInputWithClearButton
+              label="Search Dynamic Data"
+              id="search-dynamic-data"
+              value={searchDD}
+              onChangeHandler={(e) => setSearchDD(e.target.value)}
+              placeholder="Buscar por nombre, grupo, tags, descripción..."
+            />
+            <div className="space-y-4 min-h-[500px]">
+
+              <PaginationResults
+                totalItems={totalItems}
+                pageSize={pageSize}
+                setPageSize={setPageSize}
+                page={page}
+                setPage={setPage}
+              />
+              {paginatedSelectedTests.map((item) => {
+                const id = item.id;
+                const key = String(id);
+                const isOpen = !!expanded[key];
+                const state = details[key];
+                const ef = editForms[key];
+
+                return (
+                  <div key={key} className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleExpand(id)}
+                        className="flex-1 flex items-center justify-between hover:bg-gray-50 rounded-xl px-2 py-2"
+                      >
+                        <div className="flex flex-col">
+                          <p className="self-start text-[18px] font-medium text-primary/80 truncate">
+                            {item?.name ?? "(Sin nombre)"}
+                          </p>
+                          <div className="self-start mt-1 flex flex-col items-center gap-2">
+                            <span className="text-xs text-gray-500">ID: {String(id)}</span>
+                            <div className="self-start flex items-center gap-2 flex-wrap">
+                              {item?.groupName && (
+                                <span className="text-xs text-white bg-primary/70 px-2 py-1 rounded-2xl">
+                                  {item.groupName}
+                                </span>
+                              )}
+                              {Array.isArray(item?.tagNames) &&
+                                item.tagNames.map((tag, i) => (
+                                  <span
+                                    key={`${key}-tag-${i}`}
+                                    className="text-xs bg-primary/80 text-white rounded-2xl px-2 py-1"
                                   >
-                                    <div className="flex items-center gap-2 text-primary/80">
-                                      <span className={`transition-transform duration-200 ${open ? "rotate-90" : "rotate-0"}`}>
-                                        <ChevronRight className="w-5 h-5" />
-                                      </span>
-                                      <span className="font-medium text-sm">
-                                        {obj?.id ?? `Item #${i + 1}`}
-                                      </span>
-                                    </div>
-                                    <span className="text-xs text-gray-500">
-                                      {Object.keys(obj.input ?? {}).length} fields
-                                    </span>
-                                  </button>
-                                  {open && (
-                                    <div id={`dd-panel-${objId}`} className="px-3 pb-3">
-                                      {Object.keys(obj.input ?? {}).length === 0 && (
-                                        <p className="text-sm text-gray-500">No fields available.</p>
-                                      )}
-                                      {Object.entries(obj.input ?? {}).map(([fieldKey, fieldVal]) => (
-                                        <div key={`${objId}-field-${fieldKey}`} className="mb-2">
-                                          <TextInputWithClearButton
-                                            id={`${objId}-input-${fieldKey}`}
-                                            label={fieldKey}
-                                            value={String(fieldVal ?? "")}
-                                            readOnly
-                                            onChangeHandler={() => { }}
-                                            placeholder={`Value for ${fieldKey}`}
-                                          />
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
+                                    {tag}
+                                  </span>
+                                ))}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="ml-3 inline-flex h-6 w-6 items-center justify-center rounded-full">
+                          {!isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                        </span>
+                      </button>
+                    </div>
+
+                    {isOpen && (
+                      <div className="px-4 pb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                          {item?.createdByName && (
+                            <div className="text-sm">
+                              <TextInputWithClearButton
+                                label="Created by"
+                                id={`created-by-${key}`}
+                                value={item.createdByName}
+                                onChangeHandler={() => { }}
+                                placeholder="Created by"
+                                disabled
+                                readOnly
+                              />
+                            </div>
+                          )}
+                          {item?.description && (
+                            <div className="text-sm md:col-span-2">
+                              <TextInputWithClearButton
+                                label="Description"
+                                id={`description-${key}`}
+                                value={item.description}
+                                onChangeHandler={() => { }}
+                                placeholder="Description"
+                                disabled
+                                readOnly
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        {!isEditing(item.id) && (
+                          <div className="flex justify-end items-center mb-3 gap-2">
+                            <Button
+                              variant="outline"
+                              className="rounded-xl px-3 py-2 border border-gray-300"
+                              onClick={() => {
+                                const st = details[key];
+                                if (!st?.data) { toast.info("Abre la tarjeta..."); toggleExpand(id); return; }
+                                startEdit(item, st?.data);
+                              }}
+                              title="Editar"
+                            >
+                              <PencilLine className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              className="rounded-xl px-3 py-2 border border-red-300 text-red-600 hover:border-red-400"
+                              onClick={() => deleteItem(id)}
+                              title="Eliminar"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
                           </div>
                         )}
 
-                        {isEditing(item.id) && ef && (
-                          <div className="mt-4 space-y-3">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              <div>
-                                <TextInputWithClearButton
-                                  label="Name"
-                                  id={`edit-name-${key}`}
-                                  value={ef.name}
-                                  onChangeHandler={(e) =>
-                                    setEditForms(fs => ({ ...fs, [key]: { ...fs[key], name: e.target.value } }))
-                                  }
-                                  placeholder="Test Dynamic Data 1"
-                                />
-                              </div>
-                              <div className="md:col-span-2">
-                                <TextInputWithClearButton
-                                  label="Description"
-                                  id={`edit-description-${key}`}
-                                  value={ef.description}
-                                  onChangeHandler={(e) =>
-                                    setEditForms(fs => ({ ...fs, [key]: { ...fs[key], description: e.target.value } }))
-                                  }
-                                  placeholder="Descripción"
-                                />
-                              </div>
-                              <SearchField
-                                label="Group"
-                                value={ef.groupName}
-                                onChange={(v) =>
-                                  setEditForms(fs => ({ ...fs, [key]: { ...fs[key], groupName: v } }))
-                                }
-                                placeholder="Search group..."
-                                className="w-full"
-                                disabled={loadingCats}
-                                options={groupOptions}
-                              />
-                              <div>
-                                <SearchField
-                                  label="Tag"
-                                  value={ARRAY_TO_TAGS(ef.tagNames)}
-                                  onChange={(v) =>
-                                    setEditForms(fs => ({ ...fs, [key]: { ...fs[key], tagNames: v ? [v] : [] } }))
-                                  }
-                                  placeholder="Search tag..."
-                                  className="w-full"
-                                  disabled={loadingCats}
-                                  options={tagOptions}
-                                />
-                              </div>
-                              <div>
-                                <SearchField
-                                  label="Created By"
-                                  value={userIdToName[ef.createdBy] || ""}
-                                  onChange={(v) =>
-                                    setEditForms(fs => ({ ...fs, [key]: { ...fs[key], createdBy: v } }))
-                                  }
-                                  placeholder="Select user..."
-                                  className="w-full"
-                                  disabled={loadingCats}
-                                  options={userOptions}
-                                />
-                              </div>
-                            </div>
+                        {state?.loading && <div className="text-sm text-gray-500">Loading detail…</div>}
+                        {!state?.loading && state?.error && (
+                          <div className="text-sm text-red-600">Error: {state?.error}</div>
+                        )}
 
-                            {(() => {
-                              const onChangeView = handleChangeView(key, ef);
-                              const isCards = editViewMode === "cards";
-                              return (
-                                <div className="flex items-center gap-3 mb-2">
-                                  <span className={isCards ? "text-gray-500 text-sm" : "text-primary/90 text-sm border-b-2"}>JSON</span>
-                                  <Switch
-                                    checked={isCards}
-                                    onCheckedChange={(checked) => onChangeView(checked ? "cards" : "json")}
-                                  />
-                                  <span className={isCards ? "text-primary/90 text-sm border-b-2" : "text-gray-500 text-sm"}>UI</span>
-                                </div>
-                              );
-                            })()}
-
-                            {editViewMode === 'json' ? (
-                              <>
-                                <div className="flex items-center justify-between">
-                                  <Label className="text-primary/70">dynamicData</Label>
-                                  <span className="text-xs text-gray-500">Should be an array of objects</span>
-                                </div>
-                                <div className="max-h-[700px] flex overflow-y-auto">
-                                  <textarea
-                                    className="mt-3 w-full text-primary/90 bg-primary/5 max-h-[700px] overflow-y-auto resize-none rounded-xl border border-gray-300 px-3 py-2 font-mono text-xs"
-                                    value={editJsonTextMap[key] ?? "[]"}
-                                    rows={20}
-                                    onInput={(e) => {
-                                      const el = e.currentTarget;
-                                      el.style.height = "auto";
-                                      const newH = Math.min(el.scrollHeight, MAX_H);
-                                      el.style.height = `${newH}px`;
-                                      el.style.overflowY = el.scrollHeight > MAX_H ? "auto" : "hidden";
-                                    }}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setEditJsonTextMap((m) => ({ ...m, [key]: val }));
-                                      try {
-                                        const parsed = JSON.parse(val);
-                                        if (!Array.isArray(parsed)) throw new Error("JSON should be an array.");
-                                        setEditJsonErrorMap((m) => ({ ...m, [key]: null }));
-                                      } catch (err: any) {
-                                        setEditJsonErrorMap((m) => ({
-                                          ...m,
-                                          [key]: err?.message || "JSON invalid",
-                                        }));
-                                      }
-                                    }}
-                                    onBlur={() => applyEditJsonTextToState(key)}
-                                  />
-                                </div>
-                                {editJsonErrorMap[key] && (
-                                  <p className="mt-1 text-xs text-red-600">{editJsonErrorMap[key]}</p>
-                                )}
-                                <div className="mt-2">
-                                  <Button
-                                    variant="outline"
-                                    className="rounded-xl border border-gray-300"
-                                    onClick={() => {
-                                      const ok = applyEditJsonTextToState(key);
-                                      if (ok) toast.success("JSON applied to state.");
-                                    }}
-                                  >
-                                    Apply JSON
-                                  </Button>
-                                </div>
-                              </>
-                            ) : (
-                              <div className="mt-2 space-y-3 max-h-[700px] overflow-y-auto">
-                                {(ef?.dynamicData ?? []).length === 0 && (
+                        {!state?.loading && !state?.error && (
+                          <>
+                            {!isEditing(item.id) && (
+                              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 max-h-[700px] overflow-y-auto">
+                                {!(details[key]?.data?.dynamicData || []).length && (
                                   <p className="text-sm text-gray-500">No dynamicData available.</p>
                                 )}
-                                <div className="w-56 flex mb-2 gap-2 p-2 border border-dashed border-gray-300 rounded-xl">
-                                  <CopyToClipboard
-                                    text={JSON.stringify(ef?.dynamicData ?? [], null, 2)}
-                                    isDarkMode={darkMode}
-                                  />
-                                  <p className="text-primary/70">Copy all dynamic data</p>
-                                </div>
-                                {(ef?.dynamicData ?? []).map((obj: any, i: number) => {
-                                  const objId = String(obj?.id ?? `idx-${i}`);
-                                  const open = !!openEditItemIds[objId];
+                                {(details[key]?.data?.dynamicData ?? []).map((obj: any, i: number) => {
+                                  const objId = String(obj?.id ?? i);
+                                  const open = !!openDynamicIds[objId];
 
-                                  const moveItem = (idx: number, dir: -1 | 1) => {
-                                    setEditForms(fs => {
-                                      const f = fs[key]; if (!f) return fs;
-                                      const arr = [...(f.dynamicData ?? [])];
-                                      const newIdx = idx + dir;
-                                      if (newIdx < 0 || newIdx >= arr.length) return fs;
-                                      [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
-                                      const reindexed = reindexDynamicData(arr);
-                                      setEditJsonTextMap(m => ({ ...m, [key]: JSON.stringify(reindexed, null, 2) }));
-                                      return { ...fs, [key]: { ...f, dynamicData: reindexed } };
-                                    });
-                                  };
-
-
-                                  const deleteItemAt = (idx: number) => {
-                                    setEditForms(fs => {
-                                      const f = fs[key]; if (!f) return fs;
-                                      const arr = [...(f.dynamicData ?? [])];
-                                      const removed = arr.splice(idx, 1);
-                                      const reindexed = reindexDynamicData(arr);
-                                      setEditJsonTextMap(m => ({ ...m, [key]: JSON.stringify(reindexed, null, 2) }));
-                                      setOpenEditItemIds(prev => {
-                                        const copy = { ...prev };
-                                        const rem = removed?.[0];
-                                        if (rem?.id) delete copy[String(rem.id)];
-                                        return copy;
-                                      });
-                                      return { ...fs, [key]: { ...f, dynamicData: reindexed } };
-                                    });
-                                  };
 
                                   return (
                                     <div
-                                      key={`${key}-card-${objId}`}
-                                      className="relative rounded-md border border-gray-200 shadow-sm overflow-hidden py-3 bg-gray-100"
+                                      key={`${key}-obj-${objId}`}
+                                      className="relative mb-3 rounded-md border border-gray-200 bg-gray-100 shadow-sm overflow-hidden py-4"
                                     >
-                                      <div className="text-white/90 absolute top-0 left-0 bg-primary/90 p-2 rounded-l-md rounded-br-full text-[12px] font-semibold">
-                                        {obj.order}
-                                      </div>
-
-                                      <div className="flex items-center justify-between px-3 py-2 mt-4">
-                                        <button
-                                          type="button"
-                                          onClick={() => toggleEditItem(objId)}
-                                          className="flex items-center gap-2 text-primary/80 hover:opacity-80"
-                                          aria-expanded={open}
-                                          aria-controls={`edit-card-panel-${objId}`}
-                                        >
+                                      <div className="text-white/90 absolute top-0 left-0 bg-primary/90 p-2 rounded-l-md rounded-br-full text-[12px] font-semibold">{obj.order}</div>
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleDynamicId(objId)}
+                                        className="w-full flex items-center justify-between px-3 py-2 hover:bg-gray-50 mt-2"
+                                        aria-expanded={open}
+                                        aria-controls={`dd-panel-${objId}`}
+                                      >
+                                        <div className="flex items-center gap-2 text-primary/80">
                                           <span className={`transition-transform duration-200 ${open ? "rotate-90" : "rotate-0"}`}>
                                             <ChevronRight className="w-5 h-5" />
                                           </span>
                                           <span className="font-medium text-sm">
                                             {obj?.id ?? `Item #${i + 1}`}
                                           </span>
-                                        </button>
-
-                                        <div className="flex items-center gap-1">
-                                          <Button
-                                            type="button"
-                                            variant="outline"
-                                            className="h-8 w-8 p-0 rounded-lg border-primary/50"
-                                            onClick={() => moveItem(i, -1)}
-                                            disabled={i === 0}
-                                            title="Move up"
-                                          >
-                                            <ArrowUp className="w-4 h-4" />
-                                          </Button>
-                                          <Button
-                                            type="button"
-                                            variant="outline"
-                                            className="h-8 w-8 p-0 rounded-lg border-primary/50"
-                                            onClick={() => moveItem(i, +1)}
-                                            disabled={i === (ef?.dynamicData?.length ?? 1) - 1}
-                                            title="Move down"
-                                          >
-                                            <ArrowDown className="w-4 h-4" />
-                                          </Button>
-                                          <div className="h-8 w-8 p-0 rounded-lg border border-primary/50 flex items-center justify-center" title="Copy JSON to clipboard">
-                                            <CopyToClipboard
-                                              text={JSON.stringify(obj, null, 2)}
-                                              isDarkMode={darkMode}
-
-                                            />
-                                          </div>
-
-                                          <Button
-                                            type="button"
-                                            variant="outline"
-                                            className="h-8 w-8 p-0 rounded-lg border-red-300 text-red-600 hover:border-red-400"
-                                            onClick={() => {
-                                              deleteItemAt(i);
-                                              toast.success("Item deleted.");
-                                            }}
-                                            title="Delete item"
-                                          >
-                                            <Trash2 className="w-4 h-4" />
-                                          </Button>
                                         </div>
-                                      </div>
-
+                                        <span className="text-xs text-gray-500">
+                                          {Object.keys(obj.input ?? {}).length} fields
+                                        </span>
+                                      </button>
                                       {open && (
-                                        <div id={`edit-card-panel-${objId}`} className="px-3 pb-3">
-                                          {Object.keys(obj?.input ?? {}).length === 0 && (
-                                            <p className="text-sm text-gray-500">No input available.</p>
+                                        <div id={`dd-panel-${objId}`} className="px-3 pb-3">
+                                          {Object.keys(obj.input ?? {}).length === 0 && (
+                                            <p className="text-sm text-gray-500">No fields available.</p>
                                           )}
                                           {Object.entries(obj.input ?? {}).map(([fieldKey, fieldVal]) => (
                                             <div key={`${objId}-field-${fieldKey}`} className="mb-2">
@@ -1123,18 +873,8 @@ const DynamicDataCrudPage = () => {
                                                 id={`${objId}-input-${fieldKey}`}
                                                 label={fieldKey}
                                                 value={String(fieldVal ?? "")}
-                                                onChangeHandler={(e) => {
-                                                  const val = e.target.value;
-                                                  setEditForms(fs => {
-                                                    const f = fs[key]; if (!f) return fs;
-                                                    const arr = [...(f.dynamicData ?? [])];
-                                                    const objToUpdate = { ...arr[i] };
-                                                    objToUpdate.input = { ...objToUpdate.input, [fieldKey]: val };
-                                                    arr[i] = objToUpdate;
-                                                    setEditJsonTextMap(m => ({ ...m, [key]: JSON.stringify(arr, null, 2) }));
-                                                    return { ...fs, [key]: { ...f, dynamicData: arr } };
-                                                  });
-                                                }}
+                                                readOnly
+                                                onChangeHandler={() => { }}
                                                 placeholder={`Value for ${fieldKey}`}
                                               />
                                             </div>
@@ -1144,69 +884,353 @@ const DynamicDataCrudPage = () => {
                                     </div>
                                   );
                                 })}
-
-                                <div className="flex mb-2">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="rounded-xl"
-                                    onClick={() => {
-                                      setInsertAfterIndex(null);
-                                      setShowCustomDynamic(true);
-                                    }}
-                                  >
-                                    + Add item
-                                  </Button>
-                                </div>
-                                {showCustomDynamic && (
-                                  <AddCustomStep
-                                    setOpen={setShowCustomDynamic}
-                                    onAdd={(custom) => {
-                                      const toInsert = Array.isArray(custom) ? custom : [custom];
-                                      const docKey = String(ef.id ?? "");
-                                      insertCustomDynamic(toInsert, insertAfterIndex, docKey);
-                                    }}
-                                  />
-                                )}
                               </div>
                             )}
 
-                            <div className="flex items-center gap-2 pt-1">
-                              <Button
-                                variant="outline"
-                                className="rounded-xl bg-primary/90 hover:bg-primary/80 hover:text-white text-white/95 border border-primary/80"
-                                onClick={() => saveEdit(key)}
-                              >
-                                <Save className="w-4 h-4 mr-1" /> Save
-                              </Button>
-                              <Button
-                                variant="outline"
-                                className="rounded-xl border border-gray-300"
-                                onClick={() => cancelEdit(key)}
-                              >
-                                <X className="w-4 h-4 mr-1" /> Cancel
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )}
+                            {isEditing(item.id) && ef && (
+                              <div className="mt-4 space-y-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <div>
+                                    <TextInputWithClearButton
+                                      label="Name"
+                                      id={`edit-name-${key}`}
+                                      value={ef.name}
+                                      onChangeHandler={(e) =>
+                                        setEditForms(fs => ({ ...fs, [key]: { ...fs[key], name: e.target.value } }))
+                                      }
+                                      placeholder="Test Dynamic Data 1"
+                                    />
+                                  </div>
+                                  <div className="md:col-span-2">
+                                    <TextInputWithClearButton
+                                      label="Description"
+                                      id={`edit-description-${key}`}
+                                      value={ef.description}
+                                      onChangeHandler={(e) =>
+                                        setEditForms(fs => ({ ...fs, [key]: { ...fs[key], description: e.target.value } }))
+                                      }
+                                      placeholder="Descripción"
+                                    />
+                                  </div>
+                                  <SearchField
+                                    label="Group"
+                                    value={ef.groupName}
+                                    onChange={(v) =>
+                                      setEditForms(fs => ({ ...fs, [key]: { ...fs[key], groupName: v } }))
+                                    }
+                                    placeholder="Search group..."
+                                    className="w-full"
+                                    disabled={loadingCats}
+                                    options={groupOptions}
+                                  />
+                                  <div>
+                                    <SearchField
+                                      label="Tag"
+                                      value={ARRAY_TO_TAGS(ef.tagNames)}
+                                      onChange={(v) =>
+                                        setEditForms(fs => ({ ...fs, [key]: { ...fs[key], tagNames: v ? [v] : [] } }))
+                                      }
+                                      placeholder="Search tag..."
+                                      className="w-full"
+                                      disabled={loadingCats}
+                                      options={tagOptions}
+                                    />
+                                  </div>
+                                  <div>
+                                    <SearchField
+                                      label="Created By"
+                                      value={userIdToName[ef.createdBy] || ""}
+                                      onChange={(v) =>
+                                        setEditForms(fs => ({ ...fs, [key]: { ...fs[key], createdBy: v } }))
+                                      }
+                                      placeholder="Select user..."
+                                      className="w-full"
+                                      disabled={loadingCats}
+                                      options={userOptions}
+                                    />
+                                  </div>
+                                </div>
 
-                    {!details[key] && (
-                      <div className="text-sm text-gray-500">Open to card for details</div>
+                                {(() => {
+                                  const onChangeView = handleChangeView(key, ef);
+                                  const isCards = editViewMode === "cards";
+                                  return (
+                                    <div className="flex items-center gap-3 mb-2">
+                                      <span className={isCards ? "text-gray-500 text-sm" : "text-primary/90 text-sm border-b-2"}>JSON</span>
+                                      <Switch
+                                        checked={isCards}
+                                        onCheckedChange={(checked) => onChangeView(checked ? "cards" : "json")}
+                                      />
+                                      <span className={isCards ? "text-primary/90 text-sm border-b-2" : "text-gray-500 text-sm"}>UI</span>
+                                    </div>
+                                  );
+                                })()}
+
+                                {editViewMode === 'json' ? (
+                                  <>
+                                    <div className="flex items-center justify-between">
+                                      <Label className="text-primary/70">dynamicData</Label>
+                                      <span className="text-xs text-gray-500">Should be an array of objects</span>
+                                    </div>
+                                    <div className="max-h-[700px] flex overflow-y-auto">
+                                      <textarea
+                                        className="mt-3 w-full text-primary/90 bg-primary/5 max-h-[700px] overflow-y-auto resize-none rounded-xl border border-gray-300 px-3 py-2 font-mono text-xs"
+                                        value={editJsonTextMap[key] ?? "[]"}
+                                        rows={20}
+                                        onInput={(e) => {
+                                          const el = e.currentTarget;
+                                          el.style.height = "auto";
+                                          const newH = Math.min(el.scrollHeight, MAX_H);
+                                          el.style.height = `${newH}px`;
+                                          el.style.overflowY = el.scrollHeight > MAX_H ? "auto" : "hidden";
+                                        }}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          setEditJsonTextMap((m) => ({ ...m, [key]: val }));
+                                          try {
+                                            const parsed = JSON.parse(val);
+                                            if (!Array.isArray(parsed)) throw new Error("JSON should be an array.");
+                                            setEditJsonErrorMap((m) => ({ ...m, [key]: null }));
+                                          } catch (err: any) {
+                                            setEditJsonErrorMap((m) => ({
+                                              ...m,
+                                              [key]: err?.message || "JSON invalid",
+                                            }));
+                                          }
+                                        }}
+                                        onBlur={() => applyEditJsonTextToState(key)}
+                                      />
+                                    </div>
+                                    {editJsonErrorMap[key] && (
+                                      <p className="mt-1 text-xs text-red-600">{editJsonErrorMap[key]}</p>
+                                    )}
+                                    <div className="mt-2">
+                                      <Button
+                                        variant="outline"
+                                        className="rounded-xl border border-gray-300"
+                                        onClick={() => {
+                                          const ok = applyEditJsonTextToState(key);
+                                          if (ok) toast.success("JSON applied to state.");
+                                        }}
+                                      >
+                                        Apply JSON
+                                      </Button>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="mt-2 space-y-3 max-h-[700px] overflow-y-auto">
+                                    {(ef?.dynamicData ?? []).length === 0 && (
+                                      <p className="text-sm text-gray-500">No dynamicData available.</p>
+                                    )}
+                                    <div className="w-56 flex mb-2 gap-2 p-2 border border-dashed border-gray-300 rounded-xl">
+                                      <CopyToClipboard
+                                        text={JSON.stringify(ef?.dynamicData ?? [], null, 2)}
+                                        isDarkMode={darkMode}
+                                      />
+                                      <p className="text-primary/70">Copy all dynamic data</p>
+                                    </div>
+                                    {(ef?.dynamicData ?? []).map((obj: any, i: number) => {
+                                      const objId = String(obj?.id ?? `idx-${i}`);
+                                      const open = !!openEditItemIds[objId];
+
+                                      const moveItem = (idx: number, dir: -1 | 1) => {
+                                        setEditForms(fs => {
+                                          const f = fs[key]; if (!f) return fs;
+                                          const arr = [...(f.dynamicData ?? [])];
+                                          const newIdx = idx + dir;
+                                          if (newIdx < 0 || newIdx >= arr.length) return fs;
+                                          [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+                                          const reindexed = reindexDynamicData(arr);
+                                          setEditJsonTextMap(m => ({ ...m, [key]: JSON.stringify(reindexed, null, 2) }));
+                                          return { ...fs, [key]: { ...f, dynamicData: reindexed } };
+                                        });
+                                      };
+
+
+                                      const deleteItemAt = (idx: number) => {
+                                        setEditForms(fs => {
+                                          const f = fs[key]; if (!f) return fs;
+                                          const arr = [...(f.dynamicData ?? [])];
+                                          const removed = arr.splice(idx, 1);
+                                          const reindexed = reindexDynamicData(arr);
+                                          setEditJsonTextMap(m => ({ ...m, [key]: JSON.stringify(reindexed, null, 2) }));
+                                          setOpenEditItemIds(prev => {
+                                            const copy = { ...prev };
+                                            const rem = removed?.[0];
+                                            if (rem?.id) delete copy[String(rem.id)];
+                                            return copy;
+                                          });
+                                          return { ...fs, [key]: { ...f, dynamicData: reindexed } };
+                                        });
+                                      };
+
+                                      return (
+                                        <div
+                                          key={`${key}-card-${objId}`}
+                                          className="relative rounded-md border border-gray-200 shadow-sm overflow-hidden py-3 bg-gray-100"
+                                        >
+                                          <div className="text-white/90 absolute top-0 left-0 bg-primary/90 p-2 rounded-l-md rounded-br-full text-[12px] font-semibold">
+                                            {obj.order}
+                                          </div>
+
+                                          <div className="flex items-center justify-between px-3 py-2 mt-4">
+                                            <button
+                                              type="button"
+                                              onClick={() => toggleEditItem(objId)}
+                                              className="flex items-center gap-2 text-primary/80 hover:opacity-80"
+                                              aria-expanded={open}
+                                              aria-controls={`edit-card-panel-${objId}`}
+                                            >
+                                              <span className={`transition-transform duration-200 ${open ? "rotate-90" : "rotate-0"}`}>
+                                                <ChevronRight className="w-5 h-5" />
+                                              </span>
+                                              <span className="font-medium text-sm">
+                                                {obj?.id ?? `Item #${i + 1}`}
+                                              </span>
+                                            </button>
+
+                                            <div className="flex items-center gap-1">
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                className="h-8 w-8 p-0 rounded-lg border-primary/50"
+                                                onClick={() => moveItem(i, -1)}
+                                                disabled={i === 0}
+                                                title="Move up"
+                                              >
+                                                <ArrowUp className="w-4 h-4" />
+                                              </Button>
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                className="h-8 w-8 p-0 rounded-lg border-primary/50"
+                                                onClick={() => moveItem(i, +1)}
+                                                disabled={i === (ef?.dynamicData?.length ?? 1) - 1}
+                                                title="Move down"
+                                              >
+                                                <ArrowDown className="w-4 h-4" />
+                                              </Button>
+                                              <div className="h-8 w-8 p-0 rounded-lg border border-primary/50 flex items-center justify-center" title="Copy JSON to clipboard">
+                                                <CopyToClipboard
+                                                  text={JSON.stringify(obj, null, 2)}
+                                                  isDarkMode={darkMode}
+
+                                                />
+                                              </div>
+
+                                              <Button
+                                                type="button"
+                                                variant="outline"
+                                                className="h-8 w-8 p-0 rounded-lg border-red-300 text-red-600 hover:border-red-400"
+                                                onClick={() => {
+                                                  deleteItemAt(i);
+                                                  toast.success("Item deleted.");
+                                                }}
+                                                title="Delete item"
+                                              >
+                                                <Trash2 className="w-4 h-4" />
+                                              </Button>
+                                            </div>
+                                          </div>
+
+                                          {open && (
+                                            <div id={`edit-card-panel-${objId}`} className="px-3 pb-3">
+                                              {Object.keys(obj?.input ?? {}).length === 0 && (
+                                                <p className="text-sm text-gray-500">No input available.</p>
+                                              )}
+                                              {Object.entries(obj.input ?? {}).map(([fieldKey, fieldVal]) => (
+                                                <div key={`${objId}-field-${fieldKey}`} className="mb-2">
+                                                  <TextInputWithClearButton
+                                                    id={`${objId}-input-${fieldKey}`}
+                                                    label={fieldKey}
+                                                    value={String(fieldVal ?? "")}
+                                                    onChangeHandler={(e) => {
+                                                      const val = e.target.value;
+                                                      setEditForms(fs => {
+                                                        const f = fs[key]; if (!f) return fs;
+                                                        const arr = [...(f.dynamicData ?? [])];
+                                                        const objToUpdate = { ...arr[i] };
+                                                        objToUpdate.input = { ...objToUpdate.input, [fieldKey]: val };
+                                                        arr[i] = objToUpdate;
+                                                        setEditJsonTextMap(m => ({ ...m, [key]: JSON.stringify(arr, null, 2) }));
+                                                        return { ...fs, [key]: { ...f, dynamicData: arr } };
+                                                      });
+                                                    }}
+                                                    placeholder={`Value for ${fieldKey}`}
+                                                  />
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+
+                                    <div className="flex mb-2">
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="rounded-xl"
+                                        onClick={() => {
+                                          setInsertAfterIndex(null);
+                                          setShowCustomDynamic(true);
+                                        }}
+                                      >
+                                        + Add item
+                                      </Button>
+                                    </div>
+                                    {showCustomDynamic && (
+                                      <AddCustomStep
+                                        setOpen={setShowCustomDynamic}
+                                        onAdd={(custom) => {
+                                          const toInsert = Array.isArray(custom) ? custom : [custom];
+                                          const docKey = String(ef.id ?? "");
+                                          insertCustomDynamic(toInsert, insertAfterIndex, docKey);
+                                        }}
+                                      />
+                                    )}
+                                  </div>
+                                )}
+
+                                <div className="flex items-center gap-2 pt-1">
+                                  <Button
+                                    variant="outline"
+                                    className="rounded-xl bg-primary/90 hover:bg-primary/80 hover:text-white text-white/95 border border-primary/80"
+                                    onClick={() => saveEdit(key)}
+                                  >
+                                    <Save className="w-4 h-4 mr-1" /> Save
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    className="rounded-xl border border-gray-300"
+                                    onClick={() => cancelEdit(key)}
+                                  >
+                                    <X className="w-4 h-4 mr-1" /> Cancel
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {!details[key] && (
+                          <div className="text-sm text-gray-500">Open to card for details</div>
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
-            );
-          })}
+                );
+              })}
 
-          {!loadingHeaders && dynamicDataHeaders.length === 0 && (
-            <div className="p-6 text-center text-sm text-gray-500">
-              No there are headers to display.
+              {!loadingHeaders && dynamicDataHeaders.length === 0 && (
+                <div className="p-6 text-center text-sm text-gray-500">
+                  No there are headers to display.
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
+
       </div>
     </DashboardHeader>
   );
