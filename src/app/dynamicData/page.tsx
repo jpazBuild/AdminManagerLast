@@ -59,6 +59,31 @@ type EditForm = {
 
 const ARRAY_TO_TAGS = (arr: string[]) => arr?.join(", ") ?? "";
 
+const toText = (v: unknown) =>
+  v === null || v === undefined ? "" : String(v);
+
+const haystackFromHeader = (h: DynamicHeader) => {
+  const bits: string[] = [];
+  bits.push(
+    toText(h.id),
+    toText(h.name),
+    toText(h.groupName),
+    toText(h.route),
+    toText(h.description),
+    toText(h.createdBy),
+    toText(h.createdByName),
+    Array.isArray(h.tagNames) ? h.tagNames.join(" ") : toText(h.tagNames)
+  );
+  // incluye otras props escalares que pueda traer el header
+  Object.entries(h).forEach(([k, v]) => {
+    if (["tagNames", "description", "name", "groupName", "route", "id", "createdBy", "createdByName"].includes(k)) return;
+    if (["string", "number", "boolean"].includes(typeof v)) {
+      bits.push(k, String(v));
+    }
+  });
+  return bits.join(" \u0001 ").toLowerCase();
+};
+
 const DynamicDataCrudPage = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [dynamicDataHeaders, setDynamicDataHeaders] = useState<DynamicHeader[]>([]);
@@ -93,6 +118,7 @@ const DynamicDataCrudPage = () => {
   const [openEditItemIds, setOpenEditItemIds] = useState<Record<string, boolean>>({});
   const [showCustomDynamic, setShowCustomDynamic] = useState(false);
   const [insertAfterIndex, setInsertAfterIndex] = useState<number | null>(null);
+  const [searchDD, setSearchDD] = useState("");
 
   const toggleDynamicId = (id: string | number) => {
     const k = String(id);
@@ -456,12 +482,25 @@ const DynamicDataCrudPage = () => {
         }
       };
 
+  const filteredHeaders = useMemo(() => {
+    const q = searchDD.trim().toLowerCase();
+    if (!q) return dynamicDataHeaders;
+    return dynamicDataHeaders.filter(h => haystackFromHeader(h).includes(q));
+  }, [dynamicDataHeaders, searchDD]);
+
   const {
     page, setPage,
     pageSize, setPageSize,
     totalItems,
     items: paginatedSelectedTests,
-  } = usePagination(dynamicDataHeaders, 10);
+  } = usePagination(filteredHeaders, 10);
+
+
+
+  useEffect(() => { setPage(1); }, [searchDD, setPage]);
+
+
+
 
 
   return (
@@ -643,7 +682,14 @@ const DynamicDataCrudPage = () => {
           </span>
         </div>
 
-        <div className="space-y-4">
+        <TextInputWithClearButton
+          label="Search Dynamic Data"
+          id="search-dynamic-data"
+          value={searchDD}
+          onChangeHandler={(e) => setSearchDD(e.target.value)}
+          placeholder="Buscar por nombre, grupo, tags, descripción..."
+        />
+        <div className="space-y-4 min-h-[500px]">
 
           <PaginationResults
             totalItems={totalItems}
