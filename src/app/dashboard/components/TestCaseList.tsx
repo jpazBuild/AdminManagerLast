@@ -12,10 +12,8 @@ import UnifiedInput from "../../components/Unified";
 import axios from "axios";
 import { URL_API_ALB } from "@/config";
 import TextInputWithClearButton from "../../components/InputClear";
-import { AiOutlineClose } from "react-icons/ai";
 import CopyToClipboard from "@/app/components/CopyToClipboard";
 import NoData from "@/app/components/NoData";
-import DialogUI from "@/app/components/Dialog";
 import ModalCustom from "@/app/components/ModalCustom";
 
 interface TestStep {
@@ -588,7 +586,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
     return (
         <div className=" flex flex-col gap-2">
             <div className="flex gap-2 items-center justify-center w-full">
-                <button className="flex gap-1 cursor-pointer font-medium text-primary/80 text-[14px] px-4 py-3 bg-gray-200 rounded-full" onClick={() => setViewUploadedJSON(true)}>
+                <button className={`flex gap-1 cursor-pointer font-medium ${isDarkMode ? "bg-gray-800 hover:bg-gray-700":"text-primary/80 bg-gray-200"}  text-[14px] px-4 py-3 rounded-full`} onClick={() => setViewUploadedJSON(true)}>
                     <UploadIcon className="w-4 h-4" /> Upload JSON
                 </button>
                 {viewUploadedJSON && (
@@ -597,6 +595,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                         open={viewUploadedJSON}
                         onClose={() => setViewUploadedJSON(false)}
                         width="lg:max-w-2xl w-full"
+                        isDarkMode={isDarkMode}
                     >
                         <h2 className="text-center break-words pb-4 font-semibold">Import Dynamic Data from JSON</h2>
                         <JSONDropzone
@@ -614,9 +613,9 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                 <button
                     type="button"
                     onClick={openDynamicDataModal}
-                    className={`cursor-pointer font-medium text-primary/80 text-[14px] px-4 py-3 ${isDarkMode
-                        ? "rounded-2xl border border-gray-200"
-                        : "rounded-full border-gray-200 bg-gray-200"}`}
+                    className={`cursor-pointer font-medium  text-[14px] px-4 py-3 ${isDarkMode
+                        ? "rounded-2xl text-white bg-gray-800 hover:bg-gray-700"
+                        : "rounded-full bg-gray-200 text-primary/80"}`}
                 >
                     Import from Dynamic Data…
                 </button>
@@ -689,7 +688,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                         <button
                             onClick={handleExportAsDataObject}
 
-                            className={`cursor-pointer text-primary/80 text-[14px] bg-gray-200 rounded-xl px-3 py-2 flex gap-2 hover:bg-gray-200`}
+                            className={`cursor-pointer  text-[14px] ${isDarkMode ?"text-white bg-gray-800 hover:bg-gray-700":"text-primary/80  bg-gray-200 hover:bg-gray-300"} rounded-xl px-3 py-2 flex gap-2 `}
                         >
                             <DownloadIcon className="w-5 h-5" /> Export Dynamic Values
                         </button>
@@ -704,8 +703,9 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                     open={ddModalOpen}
                     onClose={() => setDdModalOpen(false)}
                     width="lg:max-w-3xl w-full"
+                    isDarkMode={isDarkMode}
                 >
-                    <h3 className="text-lg font-semibold text-primary/80">Choose Dynamic Data</h3>
+                    <h3 className={`text-lg font-semibold ${isDarkMode ? "text-white/90":"text-primary/80"}`}>Choose Dynamic Data</h3>
 
 
                     <div className="p-4 space-y-3">
@@ -717,6 +717,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                 placeholder="Search by name, group or tag…"
                                 id={"Search dynamic data"}
                                 isSearch={true}
+                                isDarkMode={isDarkMode}
                             />
 
                         </div>

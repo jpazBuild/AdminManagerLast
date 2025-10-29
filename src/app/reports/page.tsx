@@ -3,7 +3,17 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Disclosure, DisclosureButton, DisclosurePanel } from "@headlessui/react";
 import { URL_API_ALB } from "@/config";
 import { DashboardHeader } from "../Layouts/main";
-import { ChevronDownIcon, ChevronUpIcon, FilterIcon, Loader, RefreshCwIcon, SearchIcon, XIcon, CalendarIcon, DownloadIcon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  FilterIcon,
+  Loader,
+  RefreshCwIcon,
+  SearchIcon,
+  XIcon,
+  CalendarIcon,
+  DownloadIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import CopyToClipboard from "../components/CopyToClipboard";
 import StepCard from "../components/StepCard";
@@ -106,7 +116,6 @@ type FilterParams = {
 const ensureIsoZ = (s?: string) => {
   if (!s) return s as any;
   if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(s)) return s;
-
   const [date, timeRaw = "00:00"] = s.split("T");
   const timeParts = timeRaw.split(":");
   const hh = (timeParts[0] || "00").padStart(2, "0");
@@ -118,14 +127,14 @@ const ensureIsoZ = (s?: string) => {
 const STATUS_OPTIONS = [
   { label: "All Status", value: "all" },
   { label: "Passed", value: "passed" },
-  { label: "Failed", value: "failed" }
+  { label: "Failed", value: "failed" },
 ];
 
 const DATE_FILTER_OPTIONS = [
   { label: "Before", value: "before" },
   { label: "After", value: "after" },
   { label: "Between", value: "between" },
-  { label: "Exact Date", value: "exact" }
+  { label: "Exact Date", value: "exact" },
 ];
 
 function downloadStringAsHtml(html: string, filename: string) {
@@ -156,58 +165,26 @@ async function inlineImages(root: HTMLElement) {
           reader.readAsDataURL(blob);
         });
         img.setAttribute("src", dataUrl);
-      } catch {
-      }
+      } catch {}
     })
   );
 }
 
 function preprocessStepCardHtml(html: string): string {
   const parser = new DOMParser();
-  const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
-
+  const doc = parser.parseFromString(`<div>${html}</div>`, "text/html");
   const stepCards = doc.querySelectorAll('[class*="border-2"], [class*="border-green"], [class*="border-red"]');
-
   stepCards.forEach((card) => {
-    card.classList.add('step-card');
-
-    if (card.classList.toString().includes('border-green-500')) {
-      card.classList.add('completed');
-    } else if (card.classList.toString().includes('border-red-500')) {
-      card.classList.add('failed');
-    }
-
+    card.classList.add("step-card");
+    if (card.classList.toString().includes("border-green-500")) card.classList.add("completed");
+    else if (card.classList.toString().includes("border-red-500")) card.classList.add("failed");
     const stepBadge = card.querySelector('[class*="absolute"][class*="bg-primary"]');
-    if (stepBadge) {
-      stepBadge.classList.add('step-number-badge');
-    }
-
+    if (stepBadge) stepBadge.classList.add("step-number-badge");
     const timeElement = card.querySelector('[class*="absolute"][class*="top-2"][class*="right-2"]:not([class*="bg-primary"])');
-    if (timeElement) {
-      timeElement.classList.add('step-time');
-    }
-
+    if (timeElement) timeElement.classList.add("step-time");
     const mainContent = card.querySelector('p[class*="text-md"][class*="mt-6"]');
-    if (mainContent) {
-      mainContent.classList.add('step-description');
-    }
-
-    const imageContainer = card.querySelector('[class*="flex"][class*="justify-center"][class*="mt-4"]');
-    // if (imageContainer) {
-    //   imageContainer.classList.add('step-image-container');
-
-    //   const imageWrapper = imageContainer.querySelector('[class*="relative"][class*="cursor-pointer"]');
-    //   if (imageWrapper) {
-    //     imageWrapper.classList.add('step-image-wrapper');
-
-    //     const image = imageWrapper.querySelector('img');
-    //     if (image) {
-    //       image.classList.add('step-image');
-    //     }
-    //   }
-    // }
+    if (mainContent) mainContent.classList.add("step-description");
   });
-
   return doc.body.innerHTML;
 }
 
@@ -229,7 +206,7 @@ const Reports = () => {
     type: "tests-reports",
     includeHeader: true,
     reportStatus: "all",
-    dateFilter: "between"
+    dateFilter: "between",
   });
 
   const {
@@ -254,9 +231,8 @@ const Reports = () => {
     getSelectedTagId,
     getSelectedGroupId,
     getSelectedModuleId,
-    getSelectedSubmoduleId
+    getSelectedSubmoduleId,
   } = useTestLocationInformation();
-
 
   const handleFilterChange = (key: keyof FilterParams, value: any) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -369,7 +345,7 @@ const Reports = () => {
         id: json?.id ?? "",
         timestamp: json?.timestamp ?? "",
         status: json?.status ?? "unknown",
-        reportName: json?.reportName ?? ""
+        reportName: json?.reportName ?? "",
       };
       return file;
     } catch (err) {
@@ -382,7 +358,6 @@ const Reports = () => {
   const handleOpenReport = async (urlReport: string) => {
     if (loadedReportsRef.current.has(urlReport)) return;
     loadedReportsRef.current.add(urlReport);
-
     const file = await fetchReportByUrl(urlReport);
     if (!file) return;
     setAllReports((prev) => ({ ...prev, [urlReport]: file }));
@@ -392,39 +367,32 @@ const Reports = () => {
     setSelectedImage(image);
     setIsModalOpen(true);
   };
-
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedImage("");
   };
 
-
   const downloadRenderedHtml = useCallback(
     async (reportName: string, file: ReportFile, urlReport: string, header?: any) => {
-
       const hostEl = containerRefs.current[urlReport];
       if (!hostEl) {
         toast.error("Nothing to export for this report");
         return;
       }
-
       const clone = hostEl.cloneNode(true) as HTMLElement;
-
-      await inlineImages(clone).catch(() => { });
-
+      await inlineImages(clone).catch(() => {});
       const preprocessedHtml = preprocessStepCardHtml(clone.outerHTML);
-
       const html = buildStandaloneHtml({
         file,
         bodyInnerHtml: preprocessedHtml,
         extraHeadHtml: `
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-        `, header
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">`,
+        header,
       });
-
-      const niceName = `${(reportName || "report").replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}`;
+      const niceName = `${(reportName || "report")
+        .replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}`;
       downloadStringAsHtml(html, `${niceName}.html`);
       toast.success("HTML report downloaded");
     },
@@ -435,7 +403,6 @@ const Reports = () => {
     setLoading(true);
     setAllReports({});
     loadedReportsRef.current = new Set();
-
     await fetchReportList(filters);
     setLoading(false);
   };
@@ -447,34 +414,58 @@ const Reports = () => {
       reportStatus: "all",
       dateFilter: "between",
     });
-
     setSelectedTag("");
     setSelectedGroup("");
     setSelectedModule("");
     setSelectedSubmodule("");
-
     setAllReports({});
     loadedReportsRef.current = new Set();
   }, [setSelectedTag, setSelectedGroup, setSelectedModule, setSelectedSubmodule]);
 
-  const {
-    page, setPage,
-    pageSize, setPageSize,
-    totalItems,
-    items: paginatedSelectedTests,
-  } = usePagination(reportItems, 10);
+  const { page, setPage, pageSize, setPageSize, totalItems, items: paginatedSelectedTests } =
+    usePagination(reportItems, 10);
+
+  const pageBg = darkMode ? "bg-gray-900 text-gray-100" : "";
+  const titleCls = darkMode ? "text-gray-100" : "text-primary/80";
+  const cardBase = "rounded-lg shadow-sm border transition-colors";
+  const card = darkMode ? `${cardBase} bg-gray-900 border-gray-700` : `${cardBase} bg-white border-gray-200`;
+  const cardHeader = darkMode ? "px-6 py-4 border-b border-gray-700" : "px-6 py-4 border-b border-gray-200";
+  const toggleFiltersBtn =
+    "flex items-center gap-2 cursor-pointer font-medium transition " +
+    (darkMode ? "text-gray-200 hover:text-white" : "text-gray-700 hover:text-gray-900");
+  const subtleText = darkMode ? "text-gray-400" : "text-gray-500";
+  const disclosureHeader = darkMode ? "bg-gray-800" : "bg-primary/5";
+  const disclosureBorderPassed = darkMode ? "border-l-4 border-green-500" : "border-l-4 border-green-500";
+  const disclosureBorderFailed = darkMode ? "border-l-4 border-red-500" : "border-l-4 border-red-500";
+  const skeletonCard =
+    "flex items-center gap-4 rounded-lg p-4 animate-pulse " +
+    (darkMode ? "border border-gray-700 bg-gray-900" : "border border-primary/10 bg-white");
+  const pillPrimary = darkMode ? "bg-primary/80 text-white" : "bg-primary/70 text-white";
+  const pillSecondary = darkMode ? "bg-primary/60 text-white" : "bg-primary/50 text-white";
+  const pillTertiary = darkMode ? "bg-primary/20 text-primary" : "bg-primary/20 text-primary";
+  const inputDateCls =
+    "px-3 py-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full border " +
+    (darkMode ? "bg-gray-900 text-gray-100 border-gray-700 placeholder-gray-500" : "border-gray-300");
+  const btnPrimary =
+    "flex items-center gap-2 px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed " +
+    (darkMode ? "bg-primary/90 text-white hover:bg-primary/80" : "bg-primary/90 text-white hover:bg-primary/80");
+  const btnSecondary =
+    "flex items-center gap-2 px-4 py-2 rounded-md border " +
+    (darkMode ? "border-gray-600 text-gray-200 hover:bg-gray-800" : "border-gray-300 text-gray-700 hover:bg-gray-50");
+  const downloadBtn =
+    "mb-4 flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded border-2 " +
+    (darkMode
+      ? "text-primary/70 border-primary/40 hover:border-primary/60"
+      : "text-primary/60 border-primary/60 hover:shadow-md");
 
   return (
     <DashboardHeader onDarkModeChange={setDarkMode}>
-      <div className="p-6 w-full lg:w-2/3 mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-primary/80 text-center">Historic Reports</h1>
+      <div className={`p-6 w-full lg:w-2/3 mx-auto ${pageBg}`}>
+        <h1 className={`text-3xl font-bold mb-6 text-center ${titleCls}`}>Historic Reports</h1>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="flex items-center gap-2 cursor-pointer text-gray-700 hover:text-gray-900 font-medium transition"
-            >
+        <div className={card}>
+          <div className={cardHeader}>
+            <button onClick={() => setShowFilters(!showFilters)} className={toggleFiltersBtn}>
               <FilterIcon className="h-5 w-5" />
               Filters
               {activeFiltersCount > 0 && (
@@ -496,6 +487,7 @@ const Reports = () => {
                   value={filters.name || ""}
                   onChangeHandler={(e) => handleFilterChange("name", e.target.value)}
                   isSearch={true}
+                  isDarkMode={darkMode}
                 />
 
                 <SearchField
@@ -505,9 +497,9 @@ const Reports = () => {
                   placeholder="Status"
                   className="w-full"
                   options={STATUS_OPTIONS}
+                  darkMode={darkMode}
                 />
               </div>
-
 
               <SearchField
                 label="Search Test by tags"
@@ -516,8 +508,8 @@ const Reports = () => {
                 placeholder="Search by tags..."
                 className="w-full"
                 options={tags?.map((tag: any) => ({ label: String(tag?.name), value: String(tag?.name) }))}
+                darkMode={darkMode}
               />
-
 
               <SearchField
                 key={`groups-${groups?.length ?? 0}`}
@@ -528,6 +520,7 @@ const Reports = () => {
                 className="w-full"
                 disabled={isLoadingGroups || errorGroups}
                 options={groups?.map((group: any) => ({ label: String(group?.name), value: String(group?.name) }))}
+                darkMode={darkMode}
               />
 
               <SearchField
@@ -538,30 +531,30 @@ const Reports = () => {
                 className="w-full"
                 disabled={!selectedGroup || modules.length === 0 || isLoadingModules || errorModules}
                 options={modules?.map((module: any) => ({ label: String(module?.name), value: String(module?.name) }))}
+                darkMode={darkMode}
               />
 
               {isLoadingSubmodules ? (
                 <div className="flex items-center gap-2">
                   <Loader className="h-5 w-5 text-primary/80 animate-spin" />
-                  <span className="text-primary/80">Loading submodules...</span>
+                  <span className={subtleText}>Loading submodules...</span>
                 </div>
               ) : (
-                <>
-                  <SearchField
-                    label="Search Test by submodules"
-                    value={selectedSubmodule}
-                    onChange={setSelectedSubmodule}
-                    placeholder="Search by submodules..."
-                    className="w-full"
-                    disabled={!selectedModule || submodules.length === 0 || isLoadingSubmodules}
-                    options={submodules?.map((sub: any) => ({ label: String(sub?.name), value: String(sub?.name) }))}
-                  />
-                </>
+                <SearchField
+                  label="Search Test by submodules"
+                  value={selectedSubmodule}
+                  onChange={setSelectedSubmodule}
+                  placeholder="Search by submodules..."
+                  className="w-full"
+                  disabled={!selectedModule || submodules.length === 0 || isLoadingSubmodules}
+                  options={submodules?.map((sub: any) => ({ label: String(sub?.name), value: String(sub?.name) }))}
+                  darkMode={darkMode}
+                />
               )}
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
                     <CalendarIcon className="inline h-4 w-4 mr-1" />
                     Date Filter
                   </label>
@@ -571,17 +564,18 @@ const Reports = () => {
                     value={filters.dateFilter ?? "between"}
                     onChange={(val: string) => handleFilterChange("dateFilter", val)}
                     options={DATE_FILTER_OPTIONS}
+                    darkMode={darkMode}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md">
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">
+                    <label className={`block text-sm mb-1 ${subtleText}`}>
                       {filters.dateFilter === "exact" ? "Date" : "From Date"}
                     </label>
                     <input
                       type="datetime-local"
-                      className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+                      className={inputDateCls}
                       value={filters.date || ""}
                       onChange={(e) => handleFilterChange("date", e.target.value)}
                     />
@@ -589,10 +583,10 @@ const Reports = () => {
 
                   {filters.dateFilter === "between" && (
                     <div>
-                      <label className="block text-sm text-gray-600 mb-1">To Date</label>
+                      <label className={`block text-sm mb-1 ${subtleText}`}>To Date</label>
                       <input
                         type="datetime-local"
-                        className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full"
+                        className={inputDateCls}
                         value={filters.date2 || ""}
                         onChange={(e) => handleFilterChange("date2", e.target.value)}
                       />
@@ -601,19 +595,13 @@ const Reports = () => {
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4 border-t border-gray-200">
-                <button
-                  onClick={applyFilters}
-                  className="flex cursor-pointer items-center gap-2 px-4 py-2 bg-primary/90 text-white rounded-md hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+              <div className={`flex gap-3 pt-4 ${darkMode ? "border-t border-gray-700" : "border-t border-gray-200"}`}>
+                <button onClick={applyFilters} className={btnPrimary}>
                   {loading ? <RefreshCwIcon className="h-4 w-4 animate-spin" /> : <SearchIcon className="h-4 w-4" />}
                   {loading ? "Applying..." : "Apply Filters"}
                 </button>
 
-                <button
-                  onClick={resetFilters}
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
-                >
+                <button onClick={resetFilters} className={btnSecondary}>
                   <XIcon className="h-4 w-4" />
                   Reset
                 </button>
@@ -622,18 +610,19 @@ const Reports = () => {
           )}
         </div>
 
-        {error && !loading && <div className="text-sm text-red-600 mb-4">{error}</div>}
+        {error && !loading && (
+          <div className={`text-sm mb-4 ${darkMode ? "text-rose-400" : "text-red-600"}`}>{error}</div>
+        )}
 
         {reportItems.length === 0 && !loading && !error && (
-          <div className="text-center text-gray-500">No reports found.</div>
+          <div className={`text-center ${subtleText}`}>No reports found.</div>
         )}
 
         {reportItems.length > 0 && !loading && !error && (
-          <div className="text-sm text-gray-500 mb-4">
+          <div className={`text-sm mb-4 ${subtleText}`}>
             {reportItems.length} report{reportItems.length > 1 ? "s" : ""} found.
           </div>
         )}
-
 
         <PaginationResults
           totalItems={totalItems}
@@ -641,64 +630,68 @@ const Reports = () => {
           setPageSize={setPageSize}
           page={page}
           setPage={setPage}
+          darkMode={darkMode}
         />
+
         {paginatedSelectedTests.map(({ testCaseId, header, urlReport, status, timestamp }) => {
           const file = allReports[urlReport];
-
           return (
             <Disclosure key={urlReport}>
               {({ open }) => (
-                <div
-                  className={`rounded-md shadow-sm mb-4 ${status === "passed" ? "border-l-4 border-green-500" : "border-l-4 border-red-500"
-                    }`}
-                >
+                <div className={`${status === "passed" ? disclosureBorderPassed : disclosureBorderFailed} ${card} mb-4`}>
                   <DisclosureButton
                     onClick={() => handleOpenReport(urlReport)}
-                    className="flex w-full justify-between items-center px-4 py-3 font-medium bg-primary/5"
+                    className={`flex w-full justify-between items-center px-4 py-3 font-medium ${disclosureHeader}`}
                   >
                     <div className="w-full flex justify-between items-center gap-4">
                       <div className="flex flex-col items-start gap-1">
-                        <div className="flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-primary/20">
-                          <span className="text-xs font-mono tracking-wide text-muted-foreground">Id: {testCaseId}</span>
+                        <div
+                          className={`flex gap-2 items-center p-0.5 rounded-md border-dotted ${
+                            darkMode ? "border-gray-600" : "border-primary/20"
+                          } border-2`}
+                        >
+                          <span className={`text-xs font-mono tracking-wide ${subtleText}`}>
+                            Id: {testCaseId}
+                          </span>
                           <CopyToClipboard text={testCaseId} isDarkMode={darkMode} />
                         </div>
 
-                        {header && <span className="text-sm text-gray-600">{header.name}</span>}
+                        {header && (
+                          <span className={`text-sm ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
+                            {header.name}
+                          </span>
+                        )}
 
                         <div className="flex flex-wrap gap-2">
                           {header?.groupName && (
-                            <span className="text-xs bg-primary/70 text-white p-1 rounded-md">{header.groupName}</span>
+                            <span className={`text-xs p-1 rounded-md ${pillPrimary}`}>{header.groupName}</span>
                           )}
                           {header?.moduleName && (
-                            <span className="text-xs bg-primary/50 text-white p-1 rounded-md">{header.moduleName}</span>
+                            <span className={`text-xs p-1 rounded-md ${pillSecondary}`}>{header.moduleName}</span>
                           )}
                           {header?.subModuleName && (
-                            <span className="text-xs bg-primary/20 text-primary p-1 rounded-md">{header.subModuleName}</span>
+                            <span className={`text-xs p-1 rounded-md ${pillTertiary}`}>{header.subModuleName}</span>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 ">
-                        <div className="text-xs text-gray-500">{new Date(timestamp).toLocaleString()}</div>
+                      <div className="flex items-center gap-3">
+                        <div className={`text-xs ${subtleText}`}>{new Date(timestamp).toLocaleString()}</div>
                         <ChevronUpIcon
-                          className={`h-5 w-5 transition-transform duration-300 text-primary ${open ? "rotate-180" : ""
-                            }`}
+                          className={`h-5 w-5 transition-transform duration-300 text-primary ${open ? "rotate-180" : ""}`}
                         />
                       </div>
                     </div>
                   </DisclosureButton>
 
-                  <DisclosurePanel className="px-4 py-3 bg-white">
+                  <DisclosurePanel className="px-4 py-3">
                     {!file ? (
                       <div className="w-full flex flex-col gap-4">
                         {[...Array(3)].map((_, i) => (
-                          <div
-                            key={i}
-                            className="flex items-center gap-4 rounded-lg border border-primary/10 shadow-sm p-4 bg-white animate-pulse"
-                          >
+                          <div key={i} className={skeletonCard}>
                             <div className="flex-1">
-                              <div className="h-6 bg-primary/10 rounded w-2/3 mb-2"></div>
-                              <div className="h-4 bg-primary/10 rounded w-1/2"></div>
+                              <div className={`h-6 rounded w-2/3 mb-2 ${darkMode ? "bg-gray-700" : "bg-primary/10"}`}></div>
+                              <div className={`h-4 rounded w-1/2 ${darkMode ? "bg-gray-700" : "bg-primary/10"}`}></div>
                             </div>
                           </div>
                         ))}
@@ -709,7 +702,7 @@ const Reports = () => {
                           <div className="flex justify-end px-4">
                             <button
                               onClick={() => downloadRenderedHtml(file.reportName || testCaseId, file, urlReport, header)}
-                              className="mb-4 flex cursor-pointer items-center gap-2 text-xs border-primary/60 border-2 text-primary/60 font-semibold px-3 py-1 rounded hover:shadow-md"
+                              className={downloadBtn}
                             >
                               <DownloadIcon size={16} /> HTML Report (Rendered)
                             </button>
@@ -720,13 +713,10 @@ const Reports = () => {
                           ref={(el) => {
                             containerRefs.current[urlReport] = el;
                           }}
-                          className="flex flex-col gap-2 max-h-[680px] overflow-y-auto"
+                          className={`flex flex-col gap-2 max-h-[680px] overflow-y-auto ${darkMode ? "scrollbar-thumb-gray-700" : ""}`}
                         >
                           {file.events.map((ev, idx) => {
-                            const step = {
-                              ...ev,
-                              time: ev.time !== undefined ? Number(ev.time) : undefined
-                            };
+                            const step = { ...ev, time: ev.time !== undefined ? Number(ev.time) : undefined };
                             return (
                               <StepCard
                                 key={ev.indexStep}
@@ -734,6 +724,7 @@ const Reports = () => {
                                 stepData={ev?.data}
                                 index={idx + 1}
                                 handleImageClick={handleImageClick}
+                                darkMode={darkMode}
                               />
                             );
                           })}
@@ -746,11 +737,11 @@ const Reports = () => {
             </Disclosure>
           );
         })}
-      </div>
 
-      {isModalOpen && (
-        <ImageModalWithZoom isOpen={isModalOpen} imageUrl={selectedImage} onClose={handleCloseModal} />
-      )}
+        {isModalOpen && (
+          <ImageModalWithZoom isOpen={isModalOpen} imageUrl={selectedImage} onClose={handleCloseModal} />
+        )}
+      </div>
     </DashboardHeader>
   );
 };

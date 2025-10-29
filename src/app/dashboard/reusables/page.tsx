@@ -510,11 +510,12 @@ const Reusables = () => {
                                     }}
                                     placeholder="Filter by tag..."
                                     disabled={isLoadingTags}
+                                    darkMode={isDarkMode}
                                 />
                             </div>
 
                             <button
-                                className="text-white bg-primary/90 rounded-md px-4 py-2 flex items-center hover:bg-primary"
+                                className={`flex items-center px-3 py-1.5 rounded-md text-sm font-medium ${isDarkMode ? "bg-primary-blue/80 text-white hover:bg-primary-blue/90" : "bg-primary/80 text-white hover:bg-primary/90"} `}
                                 onClick={() => {
                                     resetCreateForm();
                                     setCreateOpen(true);
@@ -525,9 +526,11 @@ const Reusables = () => {
                         </div>
                     </div>
                     {isLoadingReusables ? (
-                        <div className="flex flex-col items-center justify-center text-center text-primary/70 py-10">
-                            <Loader className="animate-spin h-8 w-8 mb-4" />
-                            <h3 className="text-lg font-medium">Loading reusables...</h3>
+                        <div className="flex flex-col gap-2 items-center justify-center text-center py-10">
+                            <div className={`w-full h-20 rounded-md ${isDarkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
+                            <div className={`w-full h-20 rounded-md ${isDarkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
+                            <div className={`w-full h-20 rounded-md ${isDarkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
+
                         </div>
                     ) : paginatedSelectedTests.length === 0 ? (
                         <div className="text-center text-sm opacity-70 py-10">No reusables found.</div>
@@ -542,6 +545,7 @@ const Reusables = () => {
                                     onChangeHandler={(e) => applyNameFilter(e.target.value)}
                                     placeholder="Type to filter by name..."
                                     isDarkMode={isDarkMode}
+
                                 />
                             </div>
                             <p className="text-xs opacity-70">
@@ -554,6 +558,7 @@ const Reusables = () => {
                                 setPageSize={setPageSize}
                                 page={page}
                                 setPage={setPage}
+                                darkMode={isDarkMode}
                             />
                             {paginatedSelectedTests.map((reusable) => {
                                 const isOpen = !!expanded[reusable.id];
@@ -577,10 +582,10 @@ const Reusables = () => {
                                             <div className="flex items-center gap-3">
                                                 {isOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
                                                 <div>
-                                                    <h3 className="text-primary/90 text-base font-medium">{detail?.name ?? reusable.name}</h3>
+                                                    <h3 className={`${isDarkMode ? "text-white/90 text-base font-medium":"text-primary/90 text-base font-medium"}`}>{detail?.name ?? reusable.name}</h3>
                                                     <div className="flex flex-wrap gap-2 mt-1">
                                                         {(detail?.tagNames ?? reusable.tagNames ?? []).map((tag, idx) => (
-                                                            <span key={idx} className="bg-primary/10 text-primary/80 text-[11px] font-medium px-2 py-0.5 rounded-full">
+                                                            <span key={idx} className={`${isDarkMode ? "bg-gray-700 text-white" : "bg-primary/80 text-white"} text-xs px-2 py-1 rounded-md`}>
                                                                 {tag}
                                                             </span>
                                                         ))}
@@ -604,8 +609,8 @@ const Reusables = () => {
                                         {isOpen && (
                                             <div className="px-4 pb-4 bg-primary/5 pt-2">
                                                 {isLoading ? (
-                                                    <div className="flex items-center gap-2 text-sm opacity-80 py-3">
-                                                        <Loader className="animate-spin h-4 w-4" /> Loading details…
+                                                    <div className="flex flex-col items-center gap-2 text-sm opacity-80 py-3">
+                                                        <div className={`w-full h-20 rounded-md ${isDarkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
                                                     </div>
                                                 ) : error ? (
                                                     <div className="text-sm text-red-600 py-3">Error: {error}</div>
@@ -614,7 +619,10 @@ const Reusables = () => {
                                                         <div className="flex flex-wrap gap-2">
                                                             {!isEditing ? (
                                                                 <>
-                                                                    <Button size="sm" variant="outline" onClick={() => startEdit(reusable)}>
+                                                                    <Button size="sm"
+
+                                                                        className={`${isDarkMode ? "bg-primary-blue/80 text-white hover:bg-primary-blue/90" : "bg-primary/80 text-white hover:bg-primary/90"} `}
+                                                                        variant="destructive" onClick={() => startEdit(reusable)}>
                                                                         <Edit /> Edit
                                                                     </Button>
                                                                     <Button
@@ -632,7 +640,7 @@ const Reusables = () => {
                                                             ) : (
                                                                 <>
                                                                     <button
-                                                                        className="border border-primary/40 p-1 text-xs rounded-md"
+                                                                        className={`${isDarkMode ? "bg-gray-700 text-white hover:bg-gray-600" : "bg-gray-200 text-primary hover:bg-gray-300"}  px-3 py-1.5 rounded-md text-sm font-medium`}
                                                                         disabled={isLoadingSave}
                                                                         onClick={() => cancelEdit(reusable)}
                                                                     >
@@ -642,7 +650,7 @@ const Reusables = () => {
                                                                     <Button
                                                                         size="sm"
                                                                         onClick={() => saveReusable(reusable)}
-                                                                        className="text-white"
+                                                                        className={`${isDarkMode ? "bg-primary-blue/80 text-white hover:bg-primary-blue/90" : "bg-primary/80 text-white hover:bg-primary/90"} `}
                                                                         disabled={isLoadingSave}
                                                                     >
                                                                         {isLoadingSave ? (
@@ -711,6 +719,7 @@ const Reusables = () => {
                                                                             setSelectedTag(value || "");
                                                                         }}
                                                                         disabled={isLoadingTags}
+                                                                        darkMode={isDarkMode}
                                                                     />
                                                                 </div>
                                                             </div>
@@ -726,6 +735,7 @@ const Reusables = () => {
                                                                     setTestCasesData={setTestCasesData}
                                                                     setResponseTest={setResponseTest}
                                                                     showReusable={false}
+
                                                                 />
                                                             )}
 
@@ -948,17 +958,17 @@ const Reusables = () => {
                     </div>
 
                     <div className="flex gap-2 mt-6 w-full">
-                        <button  disabled={isCreating}
-                        onClick={() => {
-                            if (isCreating) return;
-                            setCreateOpen(false);
-                            resetCreateForm();
-                        }} 
-                        className="w-full border border-primary/60 font-semibold rounded-md px-4 py-2">Cancel</button>
-                        <button  onClick={submitCreate}
-                        disabled={isCreating}
-                        className="w-full bg-primary/90 text-white font-semibold rounded-md px-4 py-2">Create</button>
-                    </div>    
+                        <button disabled={isCreating}
+                            onClick={() => {
+                                if (isCreating) return;
+                                setCreateOpen(false);
+                                resetCreateForm();
+                            }}
+                            className="w-full border border-primary/60 font-semibold rounded-md px-4 py-2">Cancel</button>
+                        <button onClick={submitCreate}
+                            disabled={isCreating}
+                            className="w-full bg-primary/90 text-white font-semibold rounded-md px-4 py-2">Create</button>
+                    </div>
                 </div>
             </ModalCustom>
         </DashboardHeader>

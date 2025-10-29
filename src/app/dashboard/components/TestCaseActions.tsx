@@ -1,11 +1,4 @@
 import { useEffect, useState } from "react";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogFooter,
-    DialogTitle,
-} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { TestCase } from "../../../types/types";
 import ModalCustom from "@/app/components/ModalCustom";
@@ -66,6 +59,7 @@ const TestCaseActions = ({
                 open={openDeleteDialog}
                 onClose={() => setOpenDeleteDialog(false)}
                 width="sm:max-w-md"
+                isDarkMode={isDarkMode}
             >
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-2 justify-center">
@@ -82,7 +76,7 @@ const TestCaseActions = ({
                     <div className="w-full mt-4 flex justify-center gap-2">
                         <button
                             onClick={() => setOpenDeleteDialog(false)}
-                            className="w-full border border-gray-300 px-4 py-2 font-semibold rounded hover:bg-gray-100"
+                            className={`w-full border border-gray-300 ${isDarkMode ? "text-white/90" : ""} px-4 py-2 font-semibold rounded hover:bg-gray-100`}
                         >
                             Cancel
                         </button>
@@ -100,15 +94,16 @@ const TestCaseActions = ({
 
 
 
-            <ModalCustom 
+            <ModalCustom
                 open={openUpdateDialog}
                 onClose={() => setOpenUpdateDialog(false)}
                 width="sm:max-w-lg"
+                isDarkMode={isDarkMode}
             >
 
                 <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-2 justify-center">
-                        <RiInformation2Line className="w-8 h-8 text-primary/60 mx-auto" />
+                        <RiInformation2Line className={`w-8 h-8 text-center self-center ${isDarkMode ?"text-gray-400":"text-primary/6"} mx-auto"`}/>
                         <h2 className={`text-lg text-primary/80 text-center font-semibold ${baseText}`}>
                             Are you sure you want to save these changes?
                         </h2>
@@ -121,14 +116,14 @@ const TestCaseActions = ({
                     <div className="w-full mt-4 flex justify-center gap-2">
                         <button
                             onClick={() => setOpenUpdateDialog(false)}
-                            className="w-full border border-gray-300 font-semibold  px-4 py-2 rounded hover:bg-gray-100"
+                            className={`w-full border border-gray-300 ${isDarkMode ? "text-white/90" : ""} px-4 py-2 font-semibold rounded hover:bg-gray-100`}
                         >
                             Cancel
                         </button>
                         <button
                             onClick={onConfirmUpdate}
                             disabled={!!isLoadingUpdate}
-                            className="w-full bg-primary/90 font-semibold  text-white px-4 py-2 rounded hover:bg-primary/95 disabled:opacity-60"
+                            className={`w-full ${isDarkMode?"bg-primary-blue/80":"bg-primary/90"} font-semibold  text-white px-4 py-2 rounded hover:bg-primary/95 disabled:opacity-60`}
                         >
                             {isLoadingUpdate ? "Saving..." : "Save changes"}
                         </button>
@@ -138,7 +133,7 @@ const TestCaseActions = ({
             <div className="w-full place-self-start flex justify-start gap-2 pt-1 ml-auto">
                 {onUpdate && (
                     <button
-                        className={`flex items-center shadow-md py-3 px-8 rounded-lg border-1 cursor-pointer gap-1 ${isDarkMode ? "text-white hover:text-white/80" : "text-primary hover:text-primary/80"} text-sm`}
+                        className={`flex items-center shadow-md py-3 px-8 rounded-lg cursor-pointer gap-1 ${isDarkMode ? "text-white hover:text-white/80 bg-primary-blue/90" : "text-primary hover:text-primary/80 border-1"} text-sm`}
                         onClick={() => setOpenUpdateDialog(true)}
                     >
                         Save

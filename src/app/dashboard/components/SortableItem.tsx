@@ -36,13 +36,13 @@ const SortableTestCasesAccordion: React.FC<SortableTestCasesAccordionProps> = ({
   isDarkMode = false,
 }) => {
 
-     const {
-      page, setPage,
-      pageSize, setPageSize,
-      totalItems, totalPages,
-      start, end,
-      items: paginatedSelectedTests,
-      } = usePagination(testCases, 10);
+  const {
+    page, setPage,
+    pageSize, setPageSize,
+    totalItems, totalPages,
+    start, end,
+    items: paginatedSelectedTests,
+  } = usePagination(testCases, 10);
 
   const getId = useCallback((tc: any) => tc.testCaseId || tc.id, []);
 
@@ -80,6 +80,7 @@ const SortableTestCasesAccordion: React.FC<SortableTestCasesAccordionProps> = ({
         setPageSize={setPageSize}
         page={page}
         setPage={setPage}
+        darkMode={isDarkMode}
       />
       <Accordion
         type="multiple"
@@ -102,7 +103,7 @@ const SortableTestCasesAccordion: React.FC<SortableTestCasesAccordionProps> = ({
         )}
       </Accordion>
 
-      
+
     </>
   );
 
@@ -161,7 +162,7 @@ const SortableAccordionItem: React.FC<{
 
   const getContainerClasses = () => {
     return isDarkMode
-      ? "flex w-full items-center hover:bg-gray-700/50 transition-colors rounded-lg"
+      ? "flex w-full items-center hover:bg-gray-700 transition-colors rounded-lg"
       : "flex w-full items-center hover:bg-gray-50 transition-colors rounded-lg";
   };
 

@@ -384,7 +384,7 @@ const ListFlows = ({
               totalSuccess={totalSuccess}
               totalFailed={totalFailed}
               totalPending={totalPending}
-              successRate={successRate}
+              darkMode={false}
             />
           </div>
         )}

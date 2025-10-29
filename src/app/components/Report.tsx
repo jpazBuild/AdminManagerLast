@@ -182,7 +182,8 @@ const ReportUI = ({
     testcaseId,
     dataStepsTotal,
     progressValue,
-    stopped
+    stopped,
+    darkMode = false
 }: ReportUIProps) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedImage, setSelectedImage] = useState<string>("");
@@ -254,6 +255,7 @@ const ReportUI = ({
                                     index={Number(step.indexStep) + 1}
                                     handleImageClick={() => handleImageClick(step?.screenshot)}
                                     stopped={stopped}
+                                    darkMode={darkMode}
                                 />
                             </div>
                         );

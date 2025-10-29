@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { DashboardHeader } from "../Layouts/main";
-import { Filter, Loader } from "lucide-react";
+import { Filter, Loader, Moon, Sun } from "lucide-react";
 import { SearchField } from "../components/SearchField";
 import axios from "axios";
 import { FaChrome, FaSearch } from "react-icons/fa";
@@ -16,6 +16,7 @@ import { URL_API_ALB } from "@/config";
 import { checkConnection } from "@/utils/DBBUtils";
 import TextInputWithClearButton from "../components/InputClear";
 import { User } from "@/types/types";
+import { Button } from "@/components/ui/button";
 
 interface TestCase {
     id: string;
@@ -52,32 +53,20 @@ const DashboardPage = () => {
     const [testData, setTestData] = useState<any>();
     const [testCasesUpdated, setTestCasesUpdated] = useState<TestCase[]>([]);
     const [executeRun, setExecuteRun] = useState<boolean>(false);
-    const [editMode, setEditMode] = useState<'global' | 'individual'>('global');
+    const [editMode, setEditMode] = useState<"global" | "individual">("global");
     const [isLoadingGroups, setIsLoadingGroups] = useState<boolean>(false);
     const [isLoadingModules, setIsLoadingModules] = useState<boolean>(false);
-    const [errorModules, setErrorModules] = useState<any>(false)
-    const [errorGroups, setErrorGroups] = useState<any>(false)
+    const [errorModules, setErrorModules] = useState<any>(false);
+    const [errorGroups, setErrorGroups] = useState<any>(false);
     const [isLoadingTags, setIsLoadingTags] = useState<boolean>(false);
     const [loadingUsers, setLoadingUsers] = useState<boolean>(false);
     const [users, setUsers] = useState<any[]>([]);
 
-    const {
-        reports,
-        loading,
-        progress,
-        executeTests,
-        idReports,
-        stopTest,
-        stopped,
-        setLoading,
-        setStopped,
-        runSingleTest,
-        stopAll
-    } = useTestExecution();
+    const { reports, loading, progress, executeTests, idReports, stopTest, stopped, setLoading, setStopped, runSingleTest, stopAll } =
+        useTestExecution();
 
     const handleDarkModeChange = (isDark: boolean) => {
         setIsDarkMode(isDark);
-        console.log('Dark mode changed:', isDark);
     };
 
     const toggleDropdown = () => {
@@ -90,7 +79,6 @@ const DashboardPage = () => {
             const res = await axios.post(`${URL_API_ALB}users`, {});
             setUsers(Array.isArray(res.data) ? (res.data as User[]) : []);
         } catch (err) {
-            console.error("Error fetching users:", err);
             toast.error("Error fetching users");
         } finally {
             setLoadingUsers(false);
@@ -99,7 +87,7 @@ const DashboardPage = () => {
 
     useEffect(() => {
         fetchUsers();
-    }, [])
+    }, []);
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth < 768);
         checkMobile();
@@ -107,23 +95,16 @@ const DashboardPage = () => {
         return () => window.removeEventListener("resize", checkMobile);
     }, []);
 
-
     useEffect(() => {
         const fetchInitialData = async () => {
             try {
                 setIsLoadingTags(true);
-
-                await checkConnection()
+                await checkConnection();
                 const tagsRes = await axios.post(`${URL_API_ALB}tags`, {});
-
                 if (tagsRes.data.error) throw new Error(tagsRes.data.error);
-
                 setTags(Array.isArray(tagsRes.data) ? tagsRes.data : []);
-
             } catch (error) {
-                console.error("Error fetching initial data:", error);
                 toast.error(error instanceof Error ? error.message : "Error fetching tags");
-
                 setTags([]);
                 setSelectedTag("");
                 setSelectedGroup("");
@@ -131,12 +112,10 @@ const DashboardPage = () => {
                 setSelectedModule("");
                 setSubmodules([]);
                 setSelectedSubmodule("");
-
             } finally {
                 setIsLoadingTags(false);
             }
         };
-
         fetchInitialData();
     }, []);
 
@@ -146,33 +125,26 @@ const DashboardPage = () => {
                 setIsLoadingGroups(true);
                 setErrorGroups(false);
                 const tagId = getSelectedTagId();
-                await checkConnection()
+                await checkConnection();
                 const groupsRes = await axios.post(`${URL_API_ALB}groups`, {
-                    tagIds: tagId ? [tagId] : []
+                    tagIds: tagId ? [tagId] : [],
                 });
-
                 if (groupsRes.data.error) throw new Error(groupsRes.data.error);
-
                 setGroups(Array.isArray(groupsRes.data) ? groupsRes.data : []);
                 setErrorGroups(false);
-
             } catch (error) {
-                console.error("Error fetching initial data:", error);
                 toast.error(error instanceof Error ? error.message : "Error fetching groups");
-
                 setGroups([]);
                 setSelectedGroup("");
                 setModules([]);
                 setSelectedModule("");
                 setSubmodules([]);
                 setSelectedSubmodule("");
-
                 setErrorGroups(true);
             } finally {
                 setIsLoadingGroups(false);
             }
         };
-
         fetchInitialData();
     }, []);
 
@@ -181,9 +153,7 @@ const DashboardPage = () => {
             event.preventDefault();
             event.returnValue = "";
         };
-
         window.addEventListener("beforeunload", handleBeforeUnload);
-
         return () => {
             window.removeEventListener("beforeunload", handleBeforeUnload);
         };
@@ -223,32 +193,25 @@ const DashboardPage = () => {
                 setErrorModules(false);
                 return;
             }
-
             try {
-                await checkConnection()
+                await checkConnection();
                 const groupId = getSelectedGroupId();
                 if (!groupId) {
                     setModules([]);
                     setErrorModules(true);
                     return;
                 }
-
                 setIsLoadingModules(true);
                 setErrorModules(false);
-
                 const response = await axios.post(`${URL_API_ALB}modules`, { groupId });
-
                 if (response.data.error) throw new Error(response.data.error);
-
                 const modulesData = Array.isArray(response.data) ? response.data : [];
                 setModules(modulesData);
                 setSelectedModule("");
                 setSubmodules([]);
                 setSelectedSubmodule("");
                 setErrorModules(false);
-
             } catch (error) {
-                console.error("Error fetching modules:", error);
                 toast.error(error instanceof Error ? error.message : "Error fetching modules");
                 setModules([]);
                 setSelectedModule("");
@@ -259,10 +222,8 @@ const DashboardPage = () => {
                 setIsLoadingModules(false);
             }
         };
-
         fetchModules();
     }, [selectedGroup, getSelectedGroupId]);
-
 
     useEffect(() => {
         const fetchSubmodules = async () => {
@@ -271,94 +232,78 @@ const DashboardPage = () => {
                 setSelectedSubmodule("");
                 return;
             }
-
             try {
-                await checkConnection()
+                await checkConnection();
                 setIsLoadingSubmodules(true);
                 const groupId = getSelectedGroupId();
                 const moduleId = getSelectedModuleId();
-
                 const response = await axios.post(`${URL_API_ALB}subModules`, {
                     groupId,
-                    moduleId
+                    moduleId,
                 });
-
                 if (response.data.error) throw new Error(response.data.error);
-
                 const submodulesData = Array.isArray(response.data) ? response.data : [];
                 setSubmodules(submodulesData);
                 setSelectedSubmodule("");
             } catch (error) {
-                console.error("Error fetching submodules:", error);
                 toast.error(error instanceof Error ? error.message : "Error fetching submodules");
                 setSubmodules([]);
             } finally {
                 setIsLoadingSubmodules(false);
             }
         };
-
         fetchSubmodules();
     }, [selectedGroup, selectedModule, getSelectedGroupId, getSelectedModuleId]);
 
     const handleSearch = useCallback(async () => {
         try {
-            await checkConnection()
+            await checkConnection();
             setIsLoadingSearch(true);
             const searchParams: Record<string, any> = {};
-
             const tagId = await getSelectedTagId();
             const groupId = await getSelectedGroupId();
             const moduleId = await getSelectedModuleId();
             const submoduleId = await getSelectedSubmoduleId();
             if (searchTestCaseId) searchParams.id = await searchTestCaseId;
-
             if (tagId) searchParams.tagIds = [tagId];
             if (groupId) searchParams.groupId = await groupId;
             if (moduleId) searchParams.moduleId = await moduleId;
             if (submoduleId) searchParams.subModuleId = await submoduleId;
             if (searchTestCaseName) searchParams.partialName = await searchTestCaseName;
-            if (selectedCreatedBy && selectedCreatedBy !== "All") searchParams.createdBy = await getUserIdByName(selectedCreatedBy);
-
-
+            if (selectedCreatedBy && selectedCreatedBy !== "All")
+                searchParams.createdBy = await getUserIdByName(selectedCreatedBy);
             const response = await axios.post(`${URL_API_ALB}getTestHeaders`, await searchParams);
-
             if (response?.data?.responseSignedUrl) {
                 const url = response.data.responseSignedUrl as string;
-
-                const res = await fetch(url, {
-                    method: "GET"
-                });
-
-                if (!res.ok) {
-                    throw new Error(`Falló la descarga desde S3: ${res.status} ${res.statusText}`);
-                }
+                const res = await fetch(url, { method: "GET" });
+                if (!res.ok) throw new Error(`Falló la descarga desde S3: ${res.status} ${res.statusText}`);
                 const contentType = res.headers.get("content-type") || "";
-
-                const jsonData = contentType?.includes("application/json")
-                    ? await res?.json()
-                    : JSON.parse(await res?.text() || "null");
-
+                const jsonData = contentType?.includes("application/json") ? await res?.json() : JSON.parse((await res?.text()) || "null");
                 setDataTestCases(jsonData || []);
             } else {
                 setDataTestCases(response.data || []);
             }
-
-
         } catch (error) {
             toast.error("Error fetching test cases. Please try again later.");
             setDataTestCases([]);
         } finally {
             setIsLoadingSearch(false);
         }
-    }, [selectedGroup, selectedTag, selectedModule, selectedSubmodule, selectedCreatedBy, searchTestCaseName, searchTestCaseId, getSelectedGroupId, getSelectedModuleId, getSelectedSubmoduleId]);
-
+    }, [
+        selectedGroup,
+        selectedTag,
+        selectedModule,
+        selectedSubmodule,
+        selectedCreatedBy,
+        searchTestCaseName,
+        searchTestCaseId,
+        getSelectedGroupId,
+        getSelectedModuleId,
+        getSelectedSubmoduleId,
+    ]);
 
     const toggleSelect = useCallback((testCaseId: string) => {
-        setSelectedCases(prev =>
-            prev.includes(testCaseId)
-                ? prev.filter(tcId => tcId !== testCaseId)
-                : [...prev, testCaseId]
-        );
+        setSelectedCases((prev) => (prev.includes(testCaseId) ? prev.filter((tcId) => tcId !== testCaseId) : [...prev, testCaseId]));
     }, []);
 
     const handleBrowserLimitChange = useCallback((value: number) => {
@@ -377,29 +322,16 @@ const DashboardPage = () => {
         setTestCasesUpdated(data);
     }, []);
 
-
-    const isSearchButtonDisabled = useMemo(() =>
-        !(selectedGroup || selectedTag || selectedModule || searchTestCaseName || selectedCreatedBy),
+    const isSearchButtonDisabled = useMemo(
+        () => !(selectedGroup || selectedTag || selectedModule || searchTestCaseName || selectedCreatedBy),
         [selectedGroup, selectedTag, selectedModule, searchTestCaseName, selectedCreatedBy]
     );
 
-    const selectedTests = useMemo(() =>
-        testCasesUpdated?.filter((tc: any) => selectedCases.includes(tc.id)),
-        [testCasesUpdated, selectedCases]
-    );
+    const selectedTests = useMemo(() => testCasesUpdated?.filter((tc: any) => selectedCases.includes(tc.id)), [testCasesUpdated, selectedCases]);
 
-    const anyLoading = useMemo(() =>
-        Object.entries(loading)
-            .filter(([key]) => key && key !== "undefined")
-            .some(([_, value]) => Boolean(value)),
-        [loading]
-    );
+    const anyLoading = useMemo(() => Object.entries(loading).filter(([key]) => key && key !== "undefined").some(([_, value]) => Boolean(value)), [loading]);
 
-
-    const everyStopped = useMemo(() =>
-        Object.values(stopped).every(Boolean),
-        [stopped]
-    );
+    const everyStopped = useMemo(() => Object.values(stopped).every(Boolean), [stopped]);
 
     const fetchInitialData = useCallback(async () => {
         await handleSearch();
@@ -420,37 +352,41 @@ const DashboardPage = () => {
             toast.error("Please select at least one test case");
             return;
         }
-        console.log("testData?.data ", await testData?.data);
         const testdataIn = await testData?.data;
         await executeTests(selectedTests, testdataIn, maxBrowsers, isHeadless);
     }, [selectedCases, selectedTests, testData, maxBrowsers, isHeadless, executeTests]);
 
-    const userOptions = useMemo(
-        () => (users || []).map((u) => ({ label: u.name, value: u.name })),
+    const userOptions = useMemo(() => (users || []).map((u) => ({ label: u.name, value: u.name })), [users]);
+
+    const handlePlaySingle = useCallback(
+        (test: any) => {
+            const perTestData = testData?.data?.[test.id] ?? undefined;
+            setExecuteRun(true);
+            runSingleTest(test, perTestData, isHeadless);
+        },
+        [runSingleTest, testData, isHeadless]
+    );
+
+    const getUserIdByName = useCallback(
+        (name: string) => {
+            const user = users.find((u) => u.name === name);
+            return user ? user.id : null;
+        },
         [users]
     );
 
-    const handlePlaySingle = useCallback((test: any) => {
-        const perTestData = testData?.data?.[test.id] ?? undefined;
-        setExecuteRun(true);
-
-        runSingleTest(test, perTestData, isHeadless);
-    }, [runSingleTest, testData, isHeadless]);
-
-    const getUserIdByName = useCallback((name: string) => {
-        const user = users.find((u) => u.name === name);
-        return user ? user.id : null;
-    }, [users]);
-
-    const handleRunPending = useCallback(async (testsToRun: any[]) => {
-        setExecuteRun(true);
-        if (testsToRun.length === 0) {
-            toast.error("No pending tests");
-            return;
-        }
-        const testdataIn = await testData?.data;
-        await executeTests(testsToRun, testdataIn, maxBrowsers, isHeadless);
-    }, [testData, maxBrowsers, isHeadless, executeTests]);
+    const handleRunPending = useCallback(
+        async (testsToRun: any[]) => {
+            setExecuteRun(true);
+            if (testsToRun.length === 0) {
+                toast.error("No pending tests");
+                return;
+            }
+            const testdataIn = await testData?.data;
+            await executeTests(testsToRun, testdataIn, maxBrowsers, isHeadless);
+        },
+        [testData, maxBrowsers, isHeadless, executeTests]
+    );
 
     const handleSubmitSearch = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -461,36 +397,35 @@ const DashboardPage = () => {
 
     return (
         <DashboardHeader typeFixed={false} onDarkModeChange={handleDarkModeChange}>
-            <div className={`p-4 flex justify-center items-center w-full h-full flex-col gap-4 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-primary"} transition-colors duration-300`}>
+            <div
+                className={`p-4 flex justify-center items-center w-full h-full flex-col gap-4 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-primary"
+                    } transition-colors duration-300`}
+            >
                 <div className="w-full lg:w-2/3 flex flex-col gap-4 mb-4 mt-2 justify-center items-center">
-                    <h2 className="font-medium tracking-wide text-center text-[20px] w-full">Find test cases</h2>
+                    <h2 className="font-medium tracking-wide text-[20px]">Find test cases</h2>
 
                     <form onSubmit={handleSubmitSearch} className="w-full flex flex-col gap-2">
-
                         <div className="w-full flex flex-col gap-2">
-
                             {isLoadingTags ? (
-                                <div className="h-10 w-full bg-gray-200 rounded-md animate-pulse"></div>
+                                <div className={`h-10 w-full rounded-md animate-pulse ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`}></div>
                             ) : (
-                                <>
-                                    <SearchField
-                                        label="Search Test by tags"
-                                        value={selectedTag}
-                                        onChange={setSelectedTag}
-                                        placeholder="Search by tags..."
-                                        className="w-full"
-                                        disabled={isLoadingSearch}
-                                        options={tags?.map((tag: any) => ({
-                                            label: String(tag?.name),
-                                            value: String(tag?.name),
-                                        }))}
-                                    />
-                                </>
+                                <SearchField
+                                    label="Search Test by tags"
+                                    value={selectedTag}
+                                    onChange={setSelectedTag}
+                                    placeholder="Search by tags..."
+                                    className="w-full"
+                                    disabled={isLoadingSearch}
+                                    options={tags?.map((tag: any) => ({
+                                        label: String(tag?.name),
+                                        value: String(tag?.name),
+                                    }))}
+                                    darkMode={isDarkMode}
+                                />
                             )}
 
-
                             {isLoadingGroups ? (
-                                <div className="h-10 w-full rounded-md bg-gray-200 animate-pulse"></div>
+                                <div className={`h-10 w-full rounded-md animate-pulse ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`}></div>
                             ) : (
                                 <SearchField
                                     label="Search Test by groups"
@@ -503,13 +438,12 @@ const DashboardPage = () => {
                                         label: String(group?.name),
                                         value: String(group?.name),
                                     }))}
+                                    darkMode={isDarkMode}
                                 />
-                            )
-
-                            }
+                            )}
 
                             {isLoadingModules ? (
-                                <div className="h-10 w-full bg-gray-200 animate-pulse rounded-md"></div>
+                                <div className={`h-10 w-full rounded-md animate-pulse ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`}></div>
                             ) : (
                                 <SearchField
                                     label="Search Test by modules"
@@ -522,18 +456,13 @@ const DashboardPage = () => {
                                         label: String(module?.name),
                                         value: String(module?.name),
                                     }))}
+                                    darkMode={isDarkMode}
                                 />
-                            )
-
-                            }
-
-
+                            )}
 
                             {isLoadingSubmodules ? (
-                                <div className="h-10 w-full bg-gray-200 animate-pulse rounded-md"></div>
-
+                                <div className={`h-10 w-full rounded-md animate-pulse ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`}></div>
                             ) : (
-
                                 <SearchField
                                     label="Search Test by submodules"
                                     value={selectedSubmodule}
@@ -545,12 +474,13 @@ const DashboardPage = () => {
                                         label: String(submodule?.name),
                                         value: String(submodule?.id),
                                     }))}
+                                    darkMode={isDarkMode}
                                 />
                             )}
                         </div>
 
                         {loadingUsers ? (
-                            <div className="h-10 w-full bg-gray-200 rounded-md animate-pulse"></div>
+                            <div className={`h-10 w-full rounded-md animate-pulse ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`}></div>
                         ) : (
                             <SearchField
                                 label="Search Test by created by"
@@ -559,9 +489,9 @@ const DashboardPage = () => {
                                 placeholder="Select creator..."
                                 className="w-full"
                                 options={userOptions}
+                                darkMode={isDarkMode}
                             />
                         )}
-
 
                         <TextInputWithClearButton
                             id="search-test-case-name"
@@ -571,6 +501,7 @@ const DashboardPage = () => {
                             placeholder="Search by test case name..."
                             className="w-full"
                             isSearch={true}
+                            isDarkMode={isDarkMode}
                         />
 
                         <TextInputWithClearButton
@@ -581,20 +512,18 @@ const DashboardPage = () => {
                             placeholder="Search by test case id..."
                             className="w-full"
                             isSearch={true}
+                            isDarkMode={isDarkMode}
                         />
 
                         <div className="flex items-center gap-2 flex-col w-full">
                             <div className={`flex ${isMobile ? "flex-col" : ""} md:justify-center lg:justify-center items-center gap-2 pb-2 w-full`}>
                                 <button
                                     type="submit"
-                                    className={` w-full justify-center md:w-50 lg:w-50 px-4 py-2 shadow-md cursor-pointer font-semibold tracking-wide rounded-xl  text-white flex items-center gap-2
-                                    ${isLoadingSearch ? "bg-primary/10 cursor-not-allowed" : ""}
-                                    ${isDarkMode ? "bg-blue-700 hover:bg-blue-800" : `bg-primary hover:bg-primary/90`}
-                                    `}
+                                    className={`w-full justify-center md:w-50 lg:w-50 px-4 py-2 shadow-md cursor-pointer font-semibold tracking-wide rounded-xl text-white flex items-center gap-2 ${isDarkMode ? "bg-primary-blue hover:bg-blue-800" : `bg-primary hover:bg-primary/90`}`}
                                 >
                                     {isLoadingSearch ? (
                                         <>
-                                            <Loader className="h-5 w-5 text-xl text-primary/80 animate-spin" />
+                                            <Loader className={`h-5 w-5 text-xl ${isDarkMode ? "text-white/80":"text-primary/80"} animate-spin`} />
                                             <span className="text-white">Searching...</span>
                                         </>
                                     ) : (
@@ -609,7 +538,8 @@ const DashboardPage = () => {
                                     <button
                                         type="button"
                                         onClick={clearFilters}
-                                        className="w-full px-4 border text-md border-primary/60 py-2 justify-center text-primary/70 flex md:w-50 lg:w-50 items-center gap-2 shadow-md cursor-pointer font-semibold tracking-wide rounded-xl"
+                                        className={`w-full px-4 border text-md py-2 justify-center flex md:w-50 lg:w-50 items-center gap-2 shadow-md cursor-pointer font-semibold tracking-wide rounded-xl ${isDarkMode ? "border-white/30 text-white/80" : "border-primary/60 text-primary/70"
+                                            }`}
                                     >
                                         <Filter /> Clear Filters
                                     </button>
@@ -633,25 +563,17 @@ const DashboardPage = () => {
                                 setEditMode={setEditMode}
                                 isDarkMode={isDarkMode}
                             />
-
                         </div>
                     ) : (
-                        <NoData />
+                        <NoData darkMode={isDarkMode} />
                     )}
 
-                    {
-                        selectedCases.length > 0 && (
-                            <div className="w-full flex justify-end items-center">
-                                <FaChrome className="w-6 h-6 text-primary mr-2" title="Chrome Browser" />
-                                <TestSettings
-                                    onBrowserLimitChange={handleBrowserLimitChange}
-                                    onHeadlessChange={handleHeadlessChange}
-                                    isDarkMode={isDarkMode}
-
-                                />
-                            </div>
-                        )
-                    }
+                    {selectedCases.length > 0 && (
+                        <div className="w-full flex justify-end items-center">
+                            <FaChrome className={`${isDarkMode ? "text-white" : "text-primary"} w-6 h-6 mr-2`} title="Chrome Browser" />
+                            <TestSettings onBrowserLimitChange={handleBrowserLimitChange} onHeadlessChange={handleHeadlessChange} isDarkMode={isDarkMode} />
+                        </div>
+                    )}
 
                     {dataTestCases.length > 0 && (
                         <TestReports
@@ -671,13 +593,10 @@ const DashboardPage = () => {
                             onRunPending={handleRunPending}
                             stopAll={stopAll}
                         />
-                    )
-
-                    }
-
+                    )}
                 </div>
             </div>
-        </DashboardHeader >
+        </DashboardHeader>
     );
 };
 

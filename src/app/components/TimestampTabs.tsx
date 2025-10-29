@@ -80,7 +80,7 @@ export const TimestampTabs = ({ reports = [], onStatusComputed }: any) => {
                     totalSuccess={totalCompleted}
                     totalFailed={totalFailed}
                     totalPending={0}
-                    successRate={totalReports}
+                    darkMode={false}
                 />
             </div>
 

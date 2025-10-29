@@ -5,13 +5,11 @@ import { FaXmark } from "react-icons/fa6";
 import { Check } from "lucide-react";
 import TextInputWithClearButton from "./InputClear";
 import AddCustomStep from "./AddCustomStep";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import axios from "axios";
 import { toast } from "sonner";
 import InteractionItem from "./Interaction";
 import { URL_API_ALB } from "@/config";
 import { checkConnection } from "@/utils/DBBUtils";
-import { SearchField } from "./SearchField";
 import ModalCustom from "./ModalCustom";
 
 interface StepActionsProps {
@@ -21,6 +19,7 @@ interface StepActionsProps {
     setTestCasesData?: React.Dispatch<React.SetStateAction<any[]>>;
     setResponseTest?: React.Dispatch<React.SetStateAction<any>>;
     showReusable?: boolean;
+    darkMode?: boolean;
 }
 
 interface ReusableHeader {
@@ -43,7 +42,8 @@ const StepActions: React.FC<StepActionsProps> = ({
     test,
     setTestCasesData,
     setResponseTest,
-    showReusable = true
+    showReusable = true,
+    darkMode = false,
 }) => {
     const [waitInputs, setWaitInputs] = useState<Record<number, string | undefined>>({});
     const [viewActionStep, setViewActionStep] = useState<
@@ -179,7 +179,7 @@ const StepActions: React.FC<StepActionsProps> = ({
         }
     };
 
-    const ReusableStepActions = ({ idx }: { idx: number }) => {
+    const ReusableStepActions = ({ idx,darkMode }: { idx: number,darkMode:boolean }) => {
         const [localWait, setLocalWait] = useState<string>("1000");
         const [showWait, setShowWait] = useState(false);
         const [showCustom, setShowCustom] = useState(false);
@@ -193,15 +193,21 @@ const StepActions: React.FC<StepActionsProps> = ({
                             setShowWait(!showWait);
                             setShowCustom(false);
                         }}
-                        className="flex bg-primary/5 items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded text-primary hover:bg-primary/10"
+                        className={`flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded ${darkMode ? "text-white/90 bg-gray-800 hover:bg-gray-700" : "text-primary hover:bg-primary/10"}`}
                     >
                         <Clock className="mr-1 h-3 w-3" /> Add Wait
+
+                    </button>
+
+                    <button
+
+                    >
 
                     </button>
                     <Button
                         size="sm"
                         variant="outline"
-                        className="text-xs w-fit cursor-pointer"
+                        className={`flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded ${darkMode ? "text-white/90 bg-gray-800 hover:bg-gray-700" : "text-primary hover:bg-primary/10"}`}
                         onClick={() => {
                             setShowCustom(!showCustom);
                             setShowWait(false);
@@ -220,6 +226,7 @@ const StepActions: React.FC<StepActionsProps> = ({
                             label="Enter wait time in ms"
                             onChangeHandler={(e) => setLocalWait(e.target.value)}
                             placeholder="Wait (ms)"
+                            isDarkMode={darkMode}
 
                         />
                         <button
@@ -261,6 +268,7 @@ const StepActions: React.FC<StepActionsProps> = ({
                             setShowCustom(false);
                         }}
                         setOpen={setShowCustom}
+                        darkMode={darkMode}
                     />
                 )}
             </div>
@@ -273,7 +281,7 @@ const StepActions: React.FC<StepActionsProps> = ({
                 <Button
                     size="sm"
                     variant="outline"
-                    className="text-xs w-fit cursor-pointer shadow-md"
+                    className={`${darkMode ? "text-white/90 bg-gray-800 hover:bg-gray-700" : "text-primary hover:bg-primary/10"} text-xs w-fit cursor-pointer`}
                     onClick={() => {
                         setViewActionStep((prev) => (prev === "wait" ? "none" : "wait"));
                         setWaitInputs((prev) => ({ ...prev, [index]: "1000" }));
@@ -285,7 +293,7 @@ const StepActions: React.FC<StepActionsProps> = ({
                 <Button
                     size="sm"
                     variant="outline"
-                    className="text-xs w-fit cursor-pointer"
+                    className={`${darkMode ? "text-white/90 bg-gray-800 hover:bg-gray-700" : "text-primary hover:bg-primary/10"} text-xs w-fit cursor-pointer`}
                     onClick={() => {
                         setViewActionStep((prev) =>
                             prev === "customStep" ? "none" : "customStep"
@@ -299,7 +307,7 @@ const StepActions: React.FC<StepActionsProps> = ({
                     <Button
                         size="sm"
                         variant="outline"
-                        className="text-xs w-fit cursor-pointer"
+                        className={`${darkMode ? "text-white/90 bg-gray-800 hover:bg-gray-700" : "text-primary hover:bg-primary/10"} text-xs w-fit cursor-pointer`}
                         onClick={() => {
                             setIsModalOpen(true);
                             setSelectedReusable(null);
@@ -324,9 +332,10 @@ const StepActions: React.FC<StepActionsProps> = ({
                         }
                         placeholder="Wait (ms)"
                         label="Enter wait time in ms"
+                        isDarkMode={darkMode}
                     />
                     <button
-                        className="text-xs cursor-pointer text-gray-400 hover:text-primary/70 p-1"
+                        className={`${darkMode ? "text-white/90 hover:text-primary/70" : "text-gray-400 hover:text-primary/70"} text-xs cursor-pointer p-1`}
                         onClick={() => {
                             const ms = parseInt(waitInputs[index] || "", 10);
                             if (!isNaN(ms)) {
@@ -363,6 +372,7 @@ const StepActions: React.FC<StepActionsProps> = ({
                         insertStep(updatedSteps);
                     }}
                     setOpen={(open) => !open && setViewActionStep("none")}
+                    darkMode={darkMode}
                 />
             )}
 
@@ -372,19 +382,20 @@ const StepActions: React.FC<StepActionsProps> = ({
                 open={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 width="max-w-3xl"
+                isDarkMode={darkMode}
             >
                 <div className="relative">
                     {selectedReusable && (
 
-                        <button className="absolute -top-1 flex gap-2 text-primary/80 items-center" onClick={() => setSelectedReusable(null)}>
-                            <ArrowLeft className="h-5 w-5 text-primary/80 hover:text-primary/90 cursor-pointer" /> Back
+                        <button className={`${darkMode ? "absolute -top-1 flex gap-2 text-white/80 items-center" : "absolute -top-1 flex gap-2 text-primary/80 items-center"}`} onClick={() => setSelectedReusable(null)}>
+                            <ArrowLeft className={`${darkMode ? "h-5 w-5 text-white/80 hover:text-white/90 cursor-pointer" : "h-5 w-5 text-primary/80 hover:text-primary/90 cursor-pointer"}`} /> Back
                         </button>
 
                     )}
 
                 </div>
 
-                <h2 className="text-lg font-semibold text-primary/80 flex-1 text-center">
+                <h2 className={`mt-6 ${darkMode ? "text-2xl font-semibold mb-4 text-white/90" : "text-2xl font-semibold mb-4 text-primary"}`}>
                     {selectedReusable
                         ? `${selectedReusable.name}`
                         : "Select a Reusable Step"}
@@ -402,27 +413,33 @@ const StepActions: React.FC<StepActionsProps> = ({
                                     value={nameFilter}
                                     onChangeHandler={(e) => setNameFilter(e.target.value)}
                                     placeholder="Filter by name…"
+                                    isDarkMode={darkMode}
                                 />
 
                             </div>
                             {loading && (
-                                <div className="text-center text-gray-400">Loading...</div>
+                                <div className="flex flex-col w-full gap-2">
+                                    <div className={`w-full h-12 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
+                                    <div className={`w-full h-12 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
+                                    <div className={`w-full h-12 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
+
+                                </div>
                             )}
 
-                            {filteredReusable.length === 0 && !loading ? (
+                            {!loading && filteredReusable.length === 0 && !loading ? (
                                 <div className="text-sm text-gray-500">No matches.</div>
-                            ) : (
+                            ) : (!loading &&
                                 filteredReusable.map((item) => (
                                     <div
                                         key={item.id}
-                                        className="p-3 border rounded cursor-pointer hover:bg-gray-50"
+                                        className={`${darkMode ? "p-3 border border-gray-700 rounded-md cursor-pointer hover:bg-gray-700" : "p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100"}`}
                                         onClick={() => {
                                             setSelectedReusable(item);
                                             fetchReusableSteps(item.id);
                                         }}
                                     >
-                                        <div className="font-medium">{item.name}</div>
-                                        <div className="text-xs text-gray-500">
+                                        <div className={`${darkMode ? "text-white/70" : "text-gray-600"} text-sm font-semibold`}>{item.name}</div>
+                                        <div className={`${darkMode ? "text-gray-400" : "text-gray-600"} text-sm`}>
                                             {item.description || "No description"}
                                         </div>
                                     </div>
@@ -432,13 +449,18 @@ const StepActions: React.FC<StepActionsProps> = ({
                     ) : (
                         <>
                             {loading && (
-                                <div className="text-center text-gray-400">Loading steps...</div>
+                                <div className="flex flex-col w-full gap-2">
+                                    <div className={`w-full h-12 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
+                                    <div className={`w-full h-12 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
+                                    <div className={`w-full h-12 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
+
+                                </div>
                             )}
 
                             <div className="flex gap-2 mb-2">
 
                                 <button
-                                    className="flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded text-primary hover:bg-primary/10"
+                                    className={`${darkMode ? `flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md rounded text-white ${isEditingReusable ? "bg-gray-700 hover:bg-gray-600":"bg-primary-blue/80 hover:bg-primary-blue/90"}`: "flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded bg-primary/90 text-white hover:bg-primary/95"}`}
                                     onClick={() => setIsEditingReusable(!isEditingReusable)}
                                 >
                                     <Edit className="mr-1 h-3 w-3" />{" "}
@@ -447,7 +469,7 @@ const StepActions: React.FC<StepActionsProps> = ({
 
                                 {isEditingReusable && (
                                     <button
-                                        className="flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded text-white bg-primary/90 hover:bg-primary/85"
+                                        className={`${darkMode ? "flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded bg-primary-blue/80 text-white hover:bg-primary-blue/90" : "flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded bg-primary/90 text-white hover:bg-primary/95"}`}
                                         onClick={saveReusableChanges}
                                     >
                                         <Save className="mr-1 h-3 w-3" /> Save Changes
@@ -460,7 +482,7 @@ const StepActions: React.FC<StepActionsProps> = ({
 
                             {selectedReusableSteps.map((step, idx) => (
                                 <div key={idx} className="flex flex-col gap-2 border rounded p-2">
-                                    <ReusableStepActions idx={idx - 1} />
+                                    <ReusableStepActions darkMode={darkMode} idx={idx - 1} />
 
                                     <InteractionItem
                                         data={{ id: `reusable-${selectedReusable.id}-step-${idx}`, ...step }}
@@ -481,15 +503,15 @@ const StepActions: React.FC<StepActionsProps> = ({
                                                 insertReusableStep(newSteps);
                                             }
                                         })}
-                                        isDarkMode={false}
+                                        isDarkMode={darkMode}
                                         test={test}
                                     />
-                                    <ReusableStepActions idx={idx} />
+                                    <ReusableStepActions darkMode={darkMode} idx={idx} />
                                 </div>
                             ))}
 
                             <Button
-                                className="mt-3 font-semibold text-white/90 bg-primary hover:bg-primary/80"
+                                className={`font-semibold ${darkMode ? "bg-primary-blue/90 text-white/90 hover:bg-primary-blue/80 hover:text-white" : "bg-primary/80 text-white hover:bg-primary"} shadow-md cursor-pointer px-2 py-1 rounded-md text-sm mt-4 flex items-center gap-1`}
                                 onClick={() => {
                                     if (!selectedReusable) return;
 

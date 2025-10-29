@@ -15,6 +15,7 @@ interface Props {
   visible: boolean;
   test: { testCaseId: string;[key: string]: any };
   viewMode: string;
+  darkMode?: boolean;
 }
 
 type ReportItem = {
@@ -91,9 +92,9 @@ export async function downloadRenderedPdf(
     toast.info("Preparing PDF...");
 
     const clone = hostEl.cloneNode(true) as HTMLElement;
-    await inlineImages(clone).catch(() => {});
+    await inlineImages(clone).catch(() => { });
     console.log("header for pdf", header);
-    
+
     const preprocessedHtml = preprocessStepCardHtml(clone.outerHTML);
     const niceName = header?.name ? `${header?.name}.pdf` : `report-${file?.id || urlKey}.pdf`;
 
@@ -162,7 +163,7 @@ export async function downloadRenderedPdf(
     });
 
     const printWindow = window.open('', '_blank', 'width=800,height=600');
-    
+
     if (printWindow) {
       printWindow.document.write(html);
       printWindow.document.close();
@@ -245,7 +246,7 @@ const preprocessStepCardHtml = (html: string): string => {
   return doc.body.innerHTML;
 }
 
-const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
+const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode, darkMode }) => {
   const testCaseId = useMemo(() => test?.testCaseId, [test?.testCaseId]);
 
   const [isLoadingList, setIsLoadingList] = useState(false);
@@ -274,10 +275,10 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
   }, []);
 
   console.log("Rendering ReportTestCaseList", { testCaseId, items, activeUrl });
-  
+
   const fetchReportList = useCallback(async () => {
     console.log("Fetching reports for testCaseId:", testCaseId);
-    
+
     if (!testCaseId) return;
     setIsLoadingList(true);
     setErrorList(null);
@@ -325,8 +326,7 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
   }, [testCaseId]);
 
   useEffect(() => {
-    console.log("Effect triggered for ReportTestCaseList", { visible, viewMode });
-    
+
     if (!visible || viewMode !== "Historic reports") return;
     fetchReportList();
   }, [visible, viewMode, fetchReportList]);
@@ -397,6 +397,7 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
             totalSuccess={items.filter((it) => it.status === "passed").length}
             totalFailed={items.filter((it) => it.status === "failed").length}
             totalPending={items.filter((it) => it.status === "pending").length}
+            darkMode={darkMode}
           />
         </div>
 
@@ -409,7 +410,7 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
                   <TabsTrigger
                     key={it.urlReport}
                     value={it.urlReport}
-                    className={`whitespace-nowrap px-4 py-3 bg-white shadow-md border-b-4 data-[state=active]:bg-primary/90 data-[state=active]:text-white max-w-md`}
+                    className={`whitespace-nowrap px-4 py-3 ${darkMode ? "bg-gray-800 data-[state=active]:bg-primary-blue/70 data-[state=active]:text-white" : "bg-white data-[state=active]:bg-primary/90 data-[state=active]:text-white"} shadow-md max-w-md`}
                   >
                     {label}
                   </TabsTrigger>
@@ -419,61 +420,74 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode }) => {
             })}
           </TabsList>
 
-          {items?.map((it) => {
-            const file = reportsByUrl[it?.urlReport];
+          <div className="flex flex-col mt-20">
+            {!isLoadingIndividualReport && items?.map((it) => {
+              const file = reportsByUrl[it?.urlReport];
 
-            return (
-              <TabsContent key={it?.urlReport} value={it?.urlReport} className="mt-10">
-                {file?.events && file?.events?.length > 0 && (
-                  <div className="flex justify-end px-4">
-                    <button
-                      onClick={() => downloadRenderedHtml(it.urlReport, file, containerRefs)}
-                      className="mb-4 flex cursor-pointer items-center gap-2 text-xs border-primary/60 border-2 text-primary/60 font-semibold px-3 py-1 rounded hover:shadow-md"
-                    >
-                      <DownloadIcon size={16} /> HTML Report (Rendered)
-                    </button>
+              return (
+                <TabsContent key={it?.urlReport} value={it?.urlReport} className="mt-10">
+                  {file?.events && file?.events?.length > 0 && (
+                    <div className="flex justify-end px-4 mt-5">
+                      <button
+                        onClick={() => downloadRenderedHtml(it.urlReport, file, containerRefs)}
+                        className={`mb-4 flex cursor-pointer items-center gap-2 text-xs ${darkMode ? "text-white bg-gray-800" : "border-primary/60 border-2 text-primary/60 "} font-semibold px-3 py-1 rounded hover:shadow-md`}
+                      >
+                        <DownloadIcon size={16} /> HTML Report (Rendered)
+                      </button>
+                    </div>
+                  )}
+
+                  <div
+                    ref={(el) => {
+                      containerRefs.current[it.urlReport] = el;
+                    }}
+                  >
+                    {isLoadingIndividualReport && (
+                      <div className="p-6 flex flex-col justify-center items-center gap-3">
+                        <div className="h-10 w-full animate-pulse rounded-md bg-primary/10"></div>
+                        <div className="h-12 w-full animate-pulse rounded-md bg-primary/10"></div>
+                        <div className="h-16 w-full animate-pulse rounded-md bg-primary/10"></div>
+                      </div>
+                    )}
+                    {file?.events && Array.isArray(file?.events) && file?.events?.length > 0 && (
+                      <div className="flex flex-col gap-4">
+                        {file.events.map((ev: any, idx: number) => {
+                          const step = {
+                            ...ev,
+                            time: ev.time !== undefined ? Number(ev.time) : undefined,
+                          };
+                          return (
+                            <StepCard
+                              key={ev.indexStep ?? idx}
+                              step={step}
+                              stepData={ev?.data}
+                              index={idx + 1}
+                              handleImageClick={handleImageClick}
+                              darkMode={darkMode}
+                            />
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {file && (!file?.events || file?.events?.length === 0) && (
+                      <div className="rounded-md border p-3 bg-muted/30 text-sm text-muted-foreground">No events in this report.</div>
+                    )}
                   </div>
-                )}
+                </TabsContent>
+              );
+            })}
 
-                <div
-                  ref={(el) => {
-                    containerRefs.current[it.urlReport] = el;
-                  }}
-                >
-                  {isLoadingIndividualReport && (
-                    <div className="p-6 flex flex-col justify-center items-center gap-3">
-                      <div className="h-10 w-full animate-pulse rounded-md bg-primary/10"></div>
-                      <div className="h-12 w-full animate-pulse rounded-md bg-primary/10"></div>
-                      <div className="h-16 w-full animate-pulse rounded-md bg-primary/10"></div>
-                    </div>
-                  )}
-                  {file?.events && Array.isArray(file?.events) && file?.events?.length > 0 && (
-                    <div className="flex flex-col gap-4">
-                      {file.events.map((ev: any, idx: number) => {
-                        const step = {
-                          ...ev,
-                          time: ev.time !== undefined ? Number(ev.time) : undefined,
-                        };
-                        return (
-                          <StepCard
-                            key={ev.indexStep ?? idx}
-                            step={step}
-                            stepData={ev?.data}
-                            index={idx + 1}
-                            handleImageClick={handleImageClick}
-                          />
-                        );
-                      })}
-                    </div>
-                  )}
+            {isLoadingIndividualReport && (
+              <div className="flex flex-col w-full gap-2">
+                <div className={`w-full h-20 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
+                <div className={`w-full h-20 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
+                <div className={`w-full h-20 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
 
-                  {file && (!file?.events || file?.events?.length === 0) && (
-                    <div className="rounded-md border p-3 bg-muted/30 text-sm text-muted-foreground">No events in this report.</div>
-                  )}
-                </div>
-              </TabsContent>
-            );
-          })}
+              </div>
+            )}
+
+          </div>
         </Tabs>
       </div>
 

@@ -6,9 +6,10 @@ type ModalProps = {
   onClose?: () => void;
   children: React.ReactNode;
   width?: string;
+  isDarkMode?: boolean;
 };
 
-const ModalCustom: React.FC<ModalProps> = ({ open, onClose, children, width = "max-w-2xl" }) => {
+const ModalCustom: React.FC<ModalProps> = ({ open, onClose, children, width = "max-w-2xl" ,isDarkMode=false}) => {
   const [show, setShow] = useState(open);
   const panelRef = useRef<HTMLDivElement | null>(null);
   const scrollYRef = useRef<number>(0);
@@ -59,7 +60,7 @@ const ModalCustom: React.FC<ModalProps> = ({ open, onClose, children, width = "m
       aria-labelledby={titleId}
     >
       <div
-        className={`fixed inset-0 bg-primary/50 transition-opacity duration-150 ${
+        className={`fixed inset-0 blur-3xl ${isDarkMode ? "bg-black/5":"bg-primary/50"} transition-opacity duration-150 ${
           show ? "opacity-100" : "opacity-0"
         }`}
         onClick={close}
@@ -67,7 +68,7 @@ const ModalCustom: React.FC<ModalProps> = ({ open, onClose, children, width = "m
 
       <div
         ref={panelRef}
-        className={`relative z-50 w-full ${width} rounded-xl bg-white p-4 shadow-2xl transition-all duration-150 ${
+        className={`relative z-50 w-full ${width} rounded-xl ${isDarkMode ? "bg-gray-900":"bg-white "} p-4 shadow-2xl transition-all duration-150 ${
           show ? "scale-100 opacity-100" : "scale-95 opacity-0"
         }`}
         onClick={(e) => e.stopPropagation()}

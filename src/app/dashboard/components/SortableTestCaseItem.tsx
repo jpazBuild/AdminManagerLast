@@ -5,7 +5,6 @@ import {
 } from "@/components/ui/accordion";
 import { Eye, File, FileChartColumn, Locate, Plus, Settings } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
 import CopyToClipboard from "../../components/CopyToClipboard";
 import StepActions from "../../components/StepActions";
 import InteractionItem from "../../components/Interaction";
@@ -20,7 +19,6 @@ import ReportTestCaseList from "./ReportsHistoricTestCaseList";
 import UnifiedInput from "../../components/Unified";
 import { updateTest } from "@/utils/DBBUtils";
 import EditLocationPanel from "./EditLocationPanel";
-import DialogUI from "@/app/components/Dialog";
 import TabsUnderline from "./TabsLine";
 import ModalCustom from "@/app/components/ModalCustom";
 
@@ -346,16 +344,16 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
     const styleClasses = useMemo(() => ({
         mainContainer: isDarkMode
-            ? "w-full shadow-xl p-2 rounded-md border-l-4 border-2 border-slate-400 bg-gray-800 text-white"
-            : "w-full h-full shadow-xl rounded-md border-1 border-primary/60 bg-gray-50",
+            ? "w-full shadow-xl p-2 rounded-md bg-gray-800 text-white"
+            : "w-full h-full shadow-md rounded-md border-2 border-primary/20",
         header: isDarkMode
-            ? "flex items-center w-full bg-gray-700/50 p-0.5 rounded"
-            : "flex items-center w-full bg-transparent p-0.5",
+            ? "flex items-center w-full bg-gray-800 p-0.5 rounded"
+            : "flex items-center w-full bg-gray-50 p-0.5 px-2 rounded",
         idContainer: isDarkMode
             ? "flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-gray-500"
             : "flex gap-2 items-center border-2 p-0.5 rounded-md border-dotted border-primary/20",
         idText: isDarkMode
-            ? "text-xs font-mono text-gray-400"
+            ? "text-xs font-mono text-white/80"
             : "text-xs tracking-wider",
         createdBy: isDarkMode
             ? "text-xs text-white/70 px-2 py-1 rounded-md shadow-md bg-gray-700"
@@ -373,7 +371,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
             ? "flex justify-between px-2 text-[11px] text-gray-400"
             : "flex justify-between px-2 text-[11px] text-primary/80",
         scrollContainer: isDarkMode
-            ? "flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 mt-4 p-2 bg-gray-800"
+            ? "flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 mt-4 p-2"
             : "flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 mt-4 p-2 overflow-x-hidden",
         stepsScrollContainer: isDarkMode
             ? "flex flex-col gap-4 max-h-[100vh] overflow-y-auto px-1 bg-gray-800"
@@ -382,7 +380,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
             ? "w-full text-white/70 break-words max-w-[480px] truncate"
             : "w-full text-primary/90 break-words max-w-[480px] truncate",
         checkbox: isDarkMode
-            ? "cursor-pointer border-gray-500 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
+            ? "cursor-pointer border-gray-500 data-[state=checked]:bg-primary-blue data-[state=checked]:bg-primary-blue/90"
             : "cursor-pointer",
         stepsStickyHeader: isDarkMode
             ? "sticky flex flex-col top-0 z-20 bg-gray-800 p-3 border rounded-lg mb-4 shadow-md border-gray-600"
@@ -564,17 +562,17 @@ const SortableTestCaseItem: React.FC<Props> = ({
     }, [dynamicValues, test.id]);
 
 
-    
+
     const handleViewModeChange = (value: string) => {
         console.log("Changing view mode to:", value);
-        
-        setViewMode(value );
+
+        setViewMode(value);
     }
 
     return (
         <div className={styleClasses.mainContainer}>
 
-            <AccordionItem value={(test?.testCaseId || test?.id) ?? ''} className="rounded-lg px-2 w-full h-full">
+            <AccordionItem value={(test?.testCaseId || test?.id) ?? ''} className="rounded-lg w-full h-full bg-transparent">
                 <div className={styleClasses.header}>
                     <Checkbox
                         id={(test.testCaseId || test.id) ?? ''}
@@ -596,7 +594,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
                                 <div className="flex justify-between items-center w-full">
                                     <div className="flex items-center gap-2 flex-wrap max-w-[80%]">
-                                        <h3 className="break-words pl-2 line-clamp-6 font-medium">{test.testCaseName || test.name}</h3>
+                                        <h3 className="break-words pl-2 line-clamp-6 font-semibold">{test.testCaseName || test.name}</h3>
                                         <CopyToClipboard text={test.testCaseName || test.name} isDarkMode={isDarkMode} />
                                     </div>
                                     <span className={styleClasses.createdBy}>
@@ -635,24 +633,24 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                 {test?.tagNames && test.tagNames.length > 0 && (
                                     (Array.isArray(test.tagNames) ? test.tagNames : [test.tagNames]).map((tag, idx) => (
                                         tag && (
-                                            <span key={idx} className={`bg-primary/85 text-xs text-white px-2 py-1 rounded-full`}>
+                                            <span key={idx} className={`${isDarkMode ? 'bg-gray-700' : 'bg-primary/90'} text-xs text-white px-2 py-1 rounded-full`}>
                                                 {tag.trim()}
                                             </span>
                                         )
                                     ))
                                 )}
                                 {test?.groupName && (
-                                    <span className={`bg-primary/70 text-xs text-white px-2 py-1 rounded-full`}>
+                                    <span className={`${isDarkMode ? 'bg-gray-600' : 'bg-primary/60'} text-xs text-white px-2 py-1 rounded-full`}>
                                         {test?.groupName}
                                     </span>
                                 )}
                                 {test?.moduleName && (
-                                    <span className={`bg-primary/50 text-xs text-white px-2 py-1 rounded-full`}>
+                                    <span className={`${isDarkMode ? 'bg-gray-400 text-primary' : 'bg-primary/40 text-white'} text-xs  px-2 py-1 rounded-full`}>
                                         {test?.moduleName}
                                     </span>
                                 )}
                                 {test?.subModuleName && (
-                                    <span className={`bg-primary/30 text-xs text-white px-2 py-1 rounded-full`}>
+                                    <span className={`${isDarkMode ? 'bg-gray-300 text-primary' : 'bg-primary/30 text-primary'} text-xs  px-2 py-1 rounded-full`}>
                                         {test.subModuleName}
                                     </span>
                                 )}
@@ -665,15 +663,16 @@ const SortableTestCaseItem: React.FC<Props> = ({
                     open={isOpen}
                     onClose={handleAccordionToggle}
                     width="max-w-2/3"
+                    isDarkMode={isDarkMode}
                 >
-                    <div className="flex flex-col w-full px-6 pb-6 pt-2">
-                        <TabsUnderline value={viewMode} setValue={handleViewModeChange} defaultValue="data" tabs={[
+                    <div className={`flex flex-col w-full px-6 pb-6 pt-2 ${isDarkMode ? ' text-white' : 'bg-white text-primary'}`}>
+                        <TabsUnderline isDarkMode={isDarkMode} value={viewMode} setValue={handleViewModeChange} defaultValue="data" tabs={[
                             {
                                 name: 'Data', value: 'Data', icon: <File className="ml-1 h-5 w-5" />,
                                 content: (
                                     <div className="flex flex-col w-full h-full overflow-y-auto">
                                         <div className="self-end flex gap-2 border rounded-md px-3 py-2 mb-4">
-                                            <CopyToClipboard text={JSON.stringify(dynamicValueForThisTest)} isDarkMode={false} />
+                                            <CopyToClipboard text={JSON.stringify(dynamicValueForThisTest)} isDarkMode={isDarkMode} />
                                             Copy dynamic values
                                         </div>
                                         <div
@@ -681,7 +680,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                             className={styleClasses.scrollContainer}
                                         >
                                             {!isLoadingTest && responseTest?.testData?.map((field: string, idx: number) => (
-                                                <div key={`${field}-${idx}`} className="flex flex-col gap-4 px-1 break-words">
+                                                <div key={`${field}-${idx}`} className="flex flex-col gap-4 mx-4 break-words">
                                                     <UnifiedInput
                                                         id={`${field}-${test.testCaseId || test.id}`}
                                                         value={getFieldValue((test.testCaseId || test.id) ?? '', field)}
@@ -736,37 +735,32 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                     <div className="w-full text-primary/80">
                                         <div className={styleClasses.stepsStickyHeader}>
                                             <div className="flex flex-wrap items-center gap-4 justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <Button
-                                                        variant={selectionMode ? "destructive" : "outline"}
-                                                        size="sm"
-                                                        onClick={() => {
-                                                            setSelectionMode(!selectionMode);
-                                                            setSelectedStepsForReusable([]);
-                                                        }}
-                                                        className={`${isDarkMode
-                                                            ? 'bg-gray-700 text-white border-white/40'
-                                                            : 'bg-gray-200 text-gray-900 border-primary/40'
-                                                            } border shadow-md cursor-pointer flex items-center`}
-                                                    >
+                                                <div className="flex items-center gap-2 font-semibold">
+                                                    <button onClick={() => {
+                                                        setSelectionMode(!selectionMode);
+                                                        setSelectedStepsForReusable([]);
+                                                    }} className={`${isDarkMode
+                                                        ? 'bg-gray-800 text-white border-white/40'
+                                                        : 'bg-gray-200 text-gray-900 border-primary/40'
+                                                        } border shadow-md cursor-pointer flex items-center px-4 py-1.5 rounded-md`}>
                                                         <Settings className="w-4 h-4 mr-1" />
                                                         {selectionMode ? 'Cancel Selection' : 'Select Steps for Reusable'}
-                                                    </Button>
+                                                    </button>
 
                                                     {selectionMode && selectedStepsForReusable.length > 0 && (
-                                                        <Button
-                                                            size="sm"
+                                                        <button
                                                             onClick={() => setShowReusableModal(true)}
-                                                            className="bg-primary/90 text-white cursor-pointer flex items-center"
+                                                            className={`${isDarkMode ? "bg-primary-blue/60" : "bg-primary/90"} px-4 py-1.5 text-white cursor-pointer flex items-center rounded-md`}
                                                         >
                                                             <Plus className="w-4 h-4 mr-1" />
                                                             Create Reusable ({selectedStepsForReusable.length})
-                                                        </Button>
+                                                        </button>
+
                                                     )}
                                                 </div>
 
                                                 <div className="flex items-center gap-2">
-                                                    <div className="rounded-md flex items-center gap-2 border-dashed border p-1">
+                                                    <div className={`rounded-md flex items-center gap-2 border-dashed border p-1 ${isDarkMode ? 'border-gray-600 text-white' : 'border-primary/40 text-primary/90'}`}>
                                                         <span>Copy All steps</span>
                                                         <CopyToClipboard
                                                             text={JSON.stringify(transformedStepsToCopy(responseTest?.stepsData || []), null, 2)}
@@ -845,6 +839,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                                             test={{ ...test }}
                                                             setTestCasesData={setTestCasesData}
                                                             setResponseTest={setResponseTest}
+                                                            darkMode={isDarkMode}
                                                         />
                                                     </>
                                                 </div>
@@ -867,12 +862,13 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                                 isDarkMode={isDarkMode}
                                                 responseTest={responseTest}
                                                 onSetResponseData={handleResponseCreateReusedStep}
+
                                             />
                                         </div>
                                     </div>
 
                                 )
-                            }, 
+                            },
                             {
                                 name: 'Historic reports', value: 'Historic reports', icon: <FileChartColumn className="h-5 w-5" />,
                                 content: (
@@ -881,6 +877,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                             test={{ ...test, testCaseId: test.id }}
                                             visible={true}
                                             viewMode={viewMode}
+                                            darkMode={isDarkMode}
                                         />
                                     </div>
 
@@ -890,7 +887,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                 name: 'Edit Location', value: 'editLocation', icon: <Locate className="ml-1 h-5 w-5" />,
                                 content: (
                                     <div className="w-full p-1 pt-2 min-h-[480px] flex flex-col gap-2">
-                                        <h3 className="text-center font-semibold text-lg text-primary/90 mb-4">Edit test case Information</h3>
+                                        <h3 className={`text-center font-semibold text-lg ${isDarkMode ? "text-white/90" : "text-primary/90"} mb-4`}>Edit test case Information</h3>
                                         <EditLocationPanel
                                             test={test}
                                             responseTest={responseTest}
@@ -899,11 +896,11 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                             isDarkMode={isDarkMode}
                                             isLoadingUpdate={isLoadingUpdate}
                                             setIsLoadingUpdate={setIsLoadingUpdate}
+
                                         />
                                     </div>
                                 )
                             }
-
                         ]} />
                     </div>
                 </ModalCustom>

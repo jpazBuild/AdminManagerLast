@@ -329,6 +329,7 @@ const EditLocationPanel: React.FC<Props> = ({
           setNameTouched(true);
           setName(e.target.value);
         }}
+        isDarkMode={isDarkMode}
       />
 
       <div className="z-60">
@@ -338,6 +339,7 @@ const EditLocationPanel: React.FC<Props> = ({
           onChange={(v: string) => setSelectedUpdater(v)}
           options={userOptions}
           placeholder={loadingUsers ? "Loading users…" : "Select user"}
+          darkMode={isDarkMode}
         />
       </div>
 
@@ -357,6 +359,7 @@ const EditLocationPanel: React.FC<Props> = ({
           className="w-full"
           disabled={loadingGroups || !!errorGroups}
           options={groupOptions}
+          darkMode={isDarkMode}
         />
       </div>
 
@@ -374,6 +377,7 @@ const EditLocationPanel: React.FC<Props> = ({
           className="w-full"
           disabled={!selectedGroup || loadingModules || !!errorModules}
           options={moduleOptions}
+          darkMode={isDarkMode}
         />
       </div>
 
@@ -389,11 +393,12 @@ const EditLocationPanel: React.FC<Props> = ({
           className="w-full"
           disabled={!selectedModule || loadingSubmodules}
           options={submoduleOptions}
+          darkMode={isDarkMode}
         />
       </div>
 
       <button
-        className="self-center text-white text-[16px] bg-primary/80 px-3 py-2 rounded-md w-1/2 justify-center"
+        className={`self-center font-semibold ${isDarkMode ? "text-white bg-primary-blue/80":"text-white bg-primary/80"}  text-[16px]px-3 py-2 rounded-md w-1/2 justify-center`}
         onClick={handleUpdateLocation}
         disabled={isLoadingUpdate || !selectedGroup || !selectedModule || !selectedSubmodule}
       >

@@ -226,15 +226,15 @@ const UnifiedInput: React.FC<UnifiedInputProps> = ({
     const isPassword = type === "password";
     const inputType = isPassword ? (showPassword ? "text" : "password") : type;
 
-    const baseSurface = isDarkMode ? "bg-primary/10" : "bg-primary/10";
+    const baseSurface = isDarkMode ? "bg-gray-800" : "bg-transparent";
     const textColor = isDarkMode ? "text-white/90" : "text-primary/80";
     const labelColor = isDarkMode ? "text-white/70" : "text-primary/70";
     const labelColorFocused = isDarkMode ? "peer-focus:text-white/90" : "peer-focus:text-primary/90";
     const ringFocus = isDarkMode ? "focus:ring-white/90" : "focus:ring-primary/90";
 
     const inputClasses = enableFaker
-        ? `peer w-full ml-3 pr-10 pt-6 pb-2 rounded-md ${textColor} ${ringFocus} bg-transparent focus:outline-none ${className} ${isDarkMode
-            ? "bg-primary/20 text-white border-gray-700"
+        ? `peer w-full ml-3 pr-10 pl-2 pt-6 pb-2 rounded-md ${textColor} ${ringFocus} focus:outline-none ${className} ${isDarkMode
+            ? "bg-gray-800 text-white border-gray-700"
             : "bg-primary/20 text-gray-800 border-gray-300"
         }`
         : `peer w-full ml-3 pr-10 pt-5 pb-2 rounded-md ${textColor} ${ringFocus} bg-transparent focus:outline-none ${className}`;
@@ -247,7 +247,7 @@ const UnifiedInput: React.FC<UnifiedInputProps> = ({
 
     return (
         <div className={containerClasses}>
-            <div className="relative w-full">
+            <div className={`relative w-full ${baseSurface} rounded-lg`}>
                 {useTextarea && !enableFaker ? (
                     <textarea
                         ref={textareaRef}
@@ -258,7 +258,7 @@ const UnifiedInput: React.FC<UnifiedInputProps> = ({
                         rows={lineCount < 3 ? 3 : lineCount}
                         onChange={handleChange}
                         onKeyDown={handleKeyDown}
-                        className={`peer w-full ml-3 pr-10 pt-5 pb-2 rounded-md resize-none ${textColor} ${ringFocus} bg-transparent focus:outline-none ${className}`}
+                        className={`peer w-full ml-3 pr-10 pt-5 pb-2 rounded-md resize-none ${textColor} ${ringFocus} focus:outline-none ${className}`}
                         // defaultValue={defaultValue}
                         readOnly={readOnly}
                         {...props}
@@ -291,7 +291,7 @@ const UnifiedInput: React.FC<UnifiedInputProps> = ({
               ${labelColor} ${labelColorFocused}
               pointer-events-none 
               transition-all duration-150 ease-out 
-              tracking-wide font-medium
+              tracking-wide font-medium ml-2
               peer-focus:top-2 peer-focus:-translate-y-0 peer-focus:text-xs
               peer-[:not(:placeholder-shown)]:top-2 peer-[:not(:placeholder-shown)]:-translate-y-0 peer-[:not(:placeholder-shown)]:text-xs
             `}

@@ -58,10 +58,12 @@ const safeJSONParse = (text: string) => {
 
 const AddCustomStep = ({
   onAdd,
-  setOpen
+  setOpen,
+  darkMode
 }: {
   onAdd: (newStep: any) => void;
   setOpen: (open: boolean) => void;
+  darkMode?: boolean;
 }) => {
   const [jsonText, setJsonText] = useState("");
   const [stepsCount, setStepsCount] = useState(0);
@@ -155,7 +157,7 @@ const AddCustomStep = ({
 
   return (
     <div className="flex flex-col gap-2 w-full">
-        <div className="w-full p-3 mt-1 border rounded-md bg-white shadow-md flex flex-col gap-2 z-10">
+        <div className={`${darkMode ? "bg-gray-800 text-white/90" : "bg-white text-primary"} flex flex-col gap-4 p-4 rounded-md shadow-md w-full`}>
           {stepsCount > 0 && (
             <p className="text-xs text-primary/70 mt-1">{stepsCount} step{stepsCount > 1 ? "s" : ""} parsed</p>
           )}
@@ -163,7 +165,7 @@ const AddCustomStep = ({
             value={jsonText}
             onChange={(e) => setJsonText(e.target.value)}
             placeholder="Paste one or more JSON steps here (e.g., {}, {})"
-            className="w-full p-2 pr-10 break-words rounded-md resize-none text-primary focus:outline-none focus:ring-2 focus:ring-primary/90 shadow-md"
+            className={`w-full h-48 p-2 border ${darkMode ? "bg-gray-900 border-gray-700 text-white/90" : "bg-white border-gray-300 text-primary"} rounded-md font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 resize-y`}
             rows={10}
             style={{
               whiteSpace: "pre-wrap",
@@ -176,20 +178,20 @@ const AddCustomStep = ({
 
           <div className="flex justify-between items-center">
             <button
-              className="text-xs cursor-pointer text-primary/80 hover:text-primary/90"
+              className={`${darkMode ? "bg-gray-700 text-white/90 hover:bg-gray-600" : "bg-gray-200 text-primary hover:bg-gray-300"} shadow-md cursor-pointer px-2 py-1 rounded-md text-xs`}
               onClick={handleBeautify}
             >
               Beautify JSON
             </button>
             <div className="flex gap-2">
               <button
-                className="shadow-md cursor-pointer bg-primary/80 flex items-center gap-2 px-2 py-1 rounded-md text-xs text-white"
+                className={`${darkMode ? "bg-primary text-white/90 hover:bg-primary/90 hover:text-white" : "bg-primary/80 text-white hover:bg-primary"} shadow-md cursor-pointer px-2 py-1 rounded-md text-xs flex items-center gap-1`}
                 onClick={handleAdd}
               >
                 <Check size={16} /> <span>Insert</span>
               </button>
               <button
-                className="shadow-md cursor-pointer bg-white/80 border-2 border-primary/80 flex items-center gap-2 px-2 py-1 rounded-md text-xs text-primary/90"
+                className={`${darkMode ? "bg-gray-700 text-white/90 hover:bg-gray-600" : "bg-gray-200 text-primary hover:bg-gray-300"} shadow-md cursor-pointer px-2 py-1 rounded-md text-xs flex items-center gap-1`}
                 onClick={() => {
                   setOpen(false);
                   setJsonText("");

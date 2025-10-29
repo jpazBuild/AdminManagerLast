@@ -83,7 +83,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
   const isPassword = type === "password";
   const inputType = isPassword ? (showPassword ? "text" : "password") : type;
 
-  const baseSurface = isDarkMode ? "bg-[#033a5c]/10" : "bg-[#033a5c]/10";
+  const baseSurface = isDarkMode ? "bg-gray-800" : "bg-[#033a5c]/10";
   const textColor = isDarkMode ? "text-white/90" : "text-[#033a5c]/80";
   const labelColor = isDarkMode ? "text-white/70" : "text-[#033a5c]/70";
   const labelColorFocused = isDarkMode ? "peer-focus:text-white/90" : "peer-focus:text-[#033a5c]/90";

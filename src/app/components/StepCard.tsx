@@ -1,8 +1,6 @@
 import Image from "next/image";
 import { Clock, CodeIcon } from "lucide-react";
 import { useMemo, useState } from "react";
-import { AiOutlineClose } from "react-icons/ai";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { httpMethodsStyle } from "../api/utils/colorMethods";
 import TextInputWithClearButton from "./InputClear";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -34,6 +32,7 @@ interface StepCardProps {
     index: number;
     handleImageClick: (image: string) => void;
     stopped?: boolean;
+    darkMode?: boolean;
 }
 
 const StepScreenshot = ({ step, handleImageClick }: any) => {
@@ -82,7 +81,7 @@ const StepScreenshot = ({ step, handleImageClick }: any) => {
 };
 
 
-const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: StepCardProps) => {
+const StepCard = ({ step, stepData, index, handleImageClick, stopped = false,darkMode=false }: StepCardProps) => {
     const status = (step?.status ?? "").toLowerCase();
     const [activeTabApi, setActiveTabApi] = useState("request");
     const [openModalApi, setOpenModalApi] = useState(false);
@@ -103,7 +102,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
     return (
         <div
             key={`step-${index}`}
-            className={`relative p-4 flex flex-col rounded-lg shadow-md transition-all text-primary border-2 border-l-4 ${isStepSuccess
+            className={`relative p-4 flex flex-col rounded-lg shadow-md transition-all ${darkMode ? "!text-white":"text-primary"} border-2 border-l-4 ${isStepSuccess
                 ? "border-emerald-500"
                 : isStepError
                     ? "border-red-500"
@@ -123,12 +122,12 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false }: 
                 Step {index}
             </div>
 
-            <p className="text-md text-primary mt-6 font-semibold break-words max-w-full">
+            <p className={`${darkMode ? "text-white/90":"text-primary/90"} mt-6 mb-2 whitespace-pre-wrap break-words`}>
                 {step?.action ?? stepData?.action}
             </p>
 
             {step?.apisScriptsResult && (
-                <button onClick={() => setOpenModalApi(true)} className="self-center text-primary bg-primary/10 px-4 py-2 rounded-md mt-4 w-fit flex items-center gap-2">
+                <button onClick={() => setOpenModalApi(true)} className="self-center  bg-primary/10 px-4 py-2 rounded-md mt-4 w-fit flex items-center gap-2">
                     <CodeIcon className="w-4 h-4" /> View API/Script details
                 </button>
             )}
