@@ -32,6 +32,7 @@ type TestReportsProps = {
   selectedCases?: any[];
   darkMode?: boolean;
   stopAll?: any;
+  isLoadingSearch?: boolean;
 };
 
 const TestReports = ({
@@ -48,6 +49,7 @@ const TestReports = ({
   onRunPending,
   stopAll,
   darkMode = false,
+  isLoadingSearch
 }: TestReportsProps) => {
   const [expandedReports, setExpandedReports] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -225,7 +227,7 @@ const TestReports = ({
 
   return (
     <div className={`space-y-6 mt-6 flex flex-col overflow-y-auto w-full ${darkMode ? "text-white" : "text-primary"}`}>
-      {selectedTest.length === 0 && <EmptyStateSelectAnimation darkMode={darkMode} />}
+      {!isLoadingSearch && selectedTest.length === 0 && <EmptyStateSelectAnimation darkMode={darkMode} />}
 
       {totalTests > 0 && (
         <div className="space-y-2">

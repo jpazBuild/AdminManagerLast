@@ -110,10 +110,10 @@ export const SearchField = ({
             disabled ? "opacity-50 cursor-not-allowed" : "",
             open
               ? darkMode
-                ? "bg-gray-800 border border-white/25"
-                : "bg-primary/5 border border-primary/20"
+                ? "bg-gray-800 border border-transparent"
+                : "bg-primary/15 border border-transparent"
               : darkMode
-              ? "bg-gray-800 border border-white/15"
+              ? "bg-gray-800 border border-transparent"
               : "bg-primary/10 border border-transparent",
             className,
           ].join(" ")}
@@ -168,7 +168,7 @@ export const SearchField = ({
               <div
                 className={[
                   "flex items-center border-b",
-                  darkMode ? "border-white/10 bg-gray-900" : "bg-primary/5 border-transparent",
+                  darkMode ? "border-white/10 bg-gray-900" : "bg-primary/15 border-transparent",
                 ].join(" ")}
               >
                 <Search className={`h-5 w-5 ml-4 ${darkMode ? "text-white/60" : "text-primary/60"}`} />

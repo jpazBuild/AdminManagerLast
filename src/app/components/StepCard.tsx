@@ -116,7 +116,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false,dar
                 }`}
         >
             <div
-                className="absolute top-0 left-0 bg-primary text-white px-3 py-1 text-sm font-semibold shadow-md"
+                className={`absolute top-0 left-0 ${darkMode ? "bg-primary-blue/50" : "bg-primary"} text-white px-3 py-1 text-sm font-semibold shadow-md`}
                 style={{ borderTopLeftRadius: "5px", borderBottomRightRadius: "20px" }}
             >
                 Step {index}
@@ -316,7 +316,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false,dar
                 </p>
             )}
             {timeInSeconds && !isProcessing && (
-                <div className="absolute top-2 right-2 flex items-center text-primary/90 text-sm">
+                <div className={`absolute top-2 right-2 flex items-center ${darkMode ? "text-white/90":"text-primary/90"} text-sm`}>
                     <Clock className="w-4 h-4 mr-1" />
                     {timeInSeconds} s
                 </div>

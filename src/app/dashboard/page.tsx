@@ -17,6 +17,7 @@ import { checkConnection } from "@/utils/DBBUtils";
 import TextInputWithClearButton from "../components/InputClear";
 import { User } from "@/types/types";
 import { Button } from "@/components/ui/button";
+import LoadingSkeleton from "../components/loadingSkeleton";
 
 interface TestCase {
     id: string;
@@ -413,7 +414,7 @@ const DashboardPage = () => {
                                     label="Search Test by tags"
                                     value={selectedTag}
                                     onChange={setSelectedTag}
-                                    placeholder="Search by tags..."
+                                    placeholder=""
                                     className="w-full"
                                     disabled={isLoadingSearch}
                                     options={tags?.map((tag: any) => ({
@@ -431,7 +432,7 @@ const DashboardPage = () => {
                                     label="Search Test by groups"
                                     value={selectedGroup}
                                     onChange={setSelectedGroup}
-                                    placeholder="Search by groups..."
+                                    placeholder=""
                                     className="w-full"
                                     disabled={isLoadingGroups || errorGroups}
                                     options={groups?.map((group: any) => ({
@@ -449,7 +450,7 @@ const DashboardPage = () => {
                                     label="Search Test by modules"
                                     value={selectedModule}
                                     onChange={setSelectedModule}
-                                    placeholder="Search by modules..."
+                                    placeholder=""
                                     className="w-full"
                                     disabled={!selectedGroup || modules.length === 0 || isLoadingModules || errorModules}
                                     options={modules?.map((module: any) => ({
@@ -467,7 +468,7 @@ const DashboardPage = () => {
                                     label="Search Test by submodules"
                                     value={selectedSubmodule}
                                     onChange={setSelectedSubmodule}
-                                    placeholder="Search by submodules..."
+                                    placeholder=""
                                     className="w-full"
                                     disabled={!selectedModule || submodules.length === 0 || isLoadingSubmodules}
                                     options={submodules?.map((submodule: any) => ({
@@ -486,7 +487,7 @@ const DashboardPage = () => {
                                 label="Search Test by created by"
                                 value={selectedCreatedBy}
                                 onChange={(value) => setSelectedCreatedBy(value)}
-                                placeholder="Select creator..."
+                                placeholder=""
                                 className="w-full"
                                 options={userOptions}
                                 darkMode={isDarkMode}
@@ -523,7 +524,7 @@ const DashboardPage = () => {
                                 >
                                     {isLoadingSearch ? (
                                         <>
-                                            <Loader className={`h-5 w-5 text-xl ${isDarkMode ? "text-white/80":"text-primary/80"} animate-spin`} />
+                                            <Loader className={`h-5 w-5 text-xl ${isDarkMode ? "text-white/80":"text-white/80"} animate-spin`} />
                                             <span className="text-white">Searching...</span>
                                         </>
                                     ) : (
@@ -550,7 +551,11 @@ const DashboardPage = () => {
                 </div>
 
                 <div className="w-full lg:w-2/3 flex flex-col gap-4 justify-center items-center">
-                    {dataTestCases.length > 0 ? (
+                    {isLoadingSearch && (
+                        <LoadingSkeleton darkMode={isDarkMode} />
+                    )}
+                    
+                    {!isLoadingSearch && dataTestCases.length > 0 && (
                         <div className="w-full">
                             <TestCaseList
                                 testCases={dataTestCases}
@@ -564,7 +569,9 @@ const DashboardPage = () => {
                                 isDarkMode={isDarkMode}
                             />
                         </div>
-                    ) : (
+                    ) }
+
+                    {!isLoadingSearch && dataTestCases.length === 0&& (
                         <NoData darkMode={isDarkMode} />
                     )}
 
@@ -592,6 +599,7 @@ const DashboardPage = () => {
                             onRunAll={handleRunTests}
                             onRunPending={handleRunPending}
                             stopAll={stopAll}
+                            isLoadingSearch={isLoadingSearch}
                         />
                     )}
                 </div>

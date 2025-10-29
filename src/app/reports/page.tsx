@@ -26,6 +26,7 @@ import { buildStandaloneHtml } from "@/utils/buildHtmlreport";
 import axios from "axios";
 import PaginationResults from "../dashboard/components/PaginationResults";
 import { usePagination } from "../hooks/usePagination";
+import NoData from "../components/NoData";
 
 type ReportEvent = {
   data: StepData;
@@ -165,7 +166,7 @@ async function inlineImages(root: HTMLElement) {
           reader.readAsDataURL(blob);
         });
         img.setAttribute("src", dataUrl);
-      } catch {}
+      } catch { }
     })
   );
 }
@@ -380,7 +381,7 @@ const Reports = () => {
         return;
       }
       const clone = hostEl.cloneNode(true) as HTMLElement;
-      await inlineImages(clone).catch(() => {});
+      await inlineImages(clone).catch(() => { });
       const preprocessedHtml = preprocessStepCardHtml(clone.outerHTML);
       const html = buildStandaloneHtml({
         file,
@@ -433,7 +434,7 @@ const Reports = () => {
   const toggleFiltersBtn =
     "flex items-center gap-2 cursor-pointer font-medium transition " +
     (darkMode ? "text-gray-200 hover:text-white" : "text-gray-700 hover:text-gray-900");
-  const subtleText = darkMode ? "text-gray-400" : "text-gray-500";
+  // const subtleText = darkMode ? "text-gray-400" : "text-gray-500";
   const disclosureHeader = darkMode ? "bg-gray-800" : "bg-primary/5";
   const disclosureBorderPassed = darkMode ? "border-l-4 border-green-500" : "border-l-4 border-green-500";
   const disclosureBorderFailed = darkMode ? "border-l-4 border-red-500" : "border-l-4 border-red-500";
@@ -443,21 +444,29 @@ const Reports = () => {
   const pillPrimary = darkMode ? "bg-primary/80 text-white" : "bg-primary/70 text-white";
   const pillSecondary = darkMode ? "bg-primary/60 text-white" : "bg-primary/50 text-white";
   const pillTertiary = darkMode ? "bg-primary/20 text-primary" : "bg-primary/20 text-primary";
-  const inputDateCls =
-    "px-3 py-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full border " +
-    (darkMode ? "bg-gray-900 text-gray-100 border-gray-700 placeholder-gray-500" : "border-gray-300");
+  // const inputDateCls =
+  //   "px-3 py-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full border " +
+  //   (darkMode ? "bg-gray-900 text-gray-100 border-gray-700 placeholder-gray-500" : "border-gray-300");
   const btnPrimary =
-    "flex items-center gap-2 px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed " +
-    (darkMode ? "bg-primary/90 text-white hover:bg-primary/80" : "bg-primary/90 text-white hover:bg-primary/80");
+    "cursor-pointer flex items-center gap-2 px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed" +
+    (darkMode ? "bg-primary-blue/90 text-white hover:bg-primary-blue/95" : "bg-primary/90 text-white hover:bg-primary/80");
   const btnSecondary =
     "flex items-center gap-2 px-4 py-2 rounded-md border " +
     (darkMode ? "border-gray-600 text-gray-200 hover:bg-gray-800" : "border-gray-300 text-gray-700 hover:bg-gray-50");
   const downloadBtn =
     "mb-4 flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded border-2 " +
     (darkMode
-      ? "text-primary/70 border-primary/40 hover:border-primary/60"
+      ? "text-white/70 border-primary/40 hover:border-primary/60 bg-gray-800"
       : "text-primary/60 border-primary/60 hover:shadow-md");
 
+  const subtleText = darkMode ? "text-gray-300" : "text-gray-600";
+  const inputDateCls = `
+  w-full px-3 py-2 rounded-md border transition
+  focus:outline-none focus:ring-2
+  ${darkMode
+      ? "bg-gray-800 border-gray-700 text-gray-100 placeholder-gray-400 focus:ring-primary/50 focus:border-primary/60"
+      : "bg-white border-gray-300 text-gray-800 placeholder-gray-400 focus:ring-primary/60 focus:border-primary/70"}
+`.trim();
   return (
     <DashboardHeader onDarkModeChange={setDarkMode}>
       <div className={`p-6 w-full lg:w-2/3 mx-auto ${pageBg}`}>
@@ -552,7 +561,7 @@ const Reports = () => {
                 />
               )}
 
-              <div className="space-y-4">
+              {/* <div className="space-y-4">
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${darkMode ? "text-gray-300" : "text-gray-700"}`}>
                     <CalendarIcon className="inline h-4 w-4 mr-1" />
@@ -578,6 +587,7 @@ const Reports = () => {
                       className={inputDateCls}
                       value={filters.date || ""}
                       onChange={(e) => handleFilterChange("date", e.target.value)}
+
                     />
                   </div>
 
@@ -593,10 +603,42 @@ const Reports = () => {
                     </div>
                   )}
                 </div>
+              </div> */}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md">
+                <div>
+                  <label className={`block text-sm mb-1 ${subtleText}`}>
+                    {filters.dateFilter === "exact" ? "Date" : "From Date"}
+                  </label>
+                  <input
+                    type="datetime-local"
+                    className={inputDateCls + (darkMode ? " dm" : "")}
+                    value={filters.date || ""}
+                    onChange={(e) => handleFilterChange("date", e.target.value)}
+                  />
+                </div>
+
+                {filters.dateFilter === "between" && (
+                  <div>
+                    <label className={`block text-sm mb-1 ${subtleText}`}>To Date</label>
+                    <input
+                      type="datetime-local"
+                      className={inputDateCls + (darkMode ? " dm" : "")}
+                      value={filters.date2 || ""}
+                      onChange={(e) => handleFilterChange("date2", e.target.value)}
+                    />
+                  </div>
+                )}
               </div>
 
+              <style jsx global>{`
+                input.dm[type="datetime-local"]::-webkit-calendar-picker-indicator {
+                  filter: invert(1) opacity(0.8);
+                }
+              `}</style>
+
               <div className={`flex gap-3 pt-4 ${darkMode ? "border-t border-gray-700" : "border-t border-gray-200"}`}>
-                <button onClick={applyFilters} className={btnPrimary}>
+                <button onClick={applyFilters} className={`${darkMode ? "bg-primary-blue/90 hover:bg-primary-blue/95 text-white" : "bg-primary/90 hover:bg-primary/80 text-white"} flex gap-1 items-center font-semibold rounded-md px-4 py-1.5 disabled::cursor-not-allowed disabled:opacity-50`}>
                   {loading ? <RefreshCwIcon className="h-4 w-4 animate-spin" /> : <SearchIcon className="h-4 w-4" />}
                   {loading ? "Applying..." : "Apply Filters"}
                 </button>
@@ -615,7 +657,7 @@ const Reports = () => {
         )}
 
         {reportItems.length === 0 && !loading && !error && (
-          <div className={`text-center ${subtleText}`}>No reports found.</div>
+          <NoData text="No reports found with the current filters." darkMode={darkMode} />
         )}
 
         {reportItems.length > 0 && !loading && !error && (
@@ -623,17 +665,28 @@ const Reports = () => {
             {reportItems.length} report{reportItems.length > 1 ? "s" : ""} found.
           </div>
         )}
+        {paginatedSelectedTests.length > 0 && !loading && (
+          <PaginationResults
+            totalItems={totalItems}
+            pageSize={pageSize}
+            setPageSize={setPageSize}
+            page={page}
+            setPage={setPage}
+            darkMode={darkMode}
+          />
 
-        <PaginationResults
-          totalItems={totalItems}
-          pageSize={pageSize}
-          setPageSize={setPageSize}
-          page={page}
-          setPage={setPage}
-          darkMode={darkMode}
-        />
+        )}
 
-        {paginatedSelectedTests.map(({ testCaseId, header, urlReport, status, timestamp }) => {
+        {loading && (
+          <div className="flex flex-col w-full gap-2 mt-10">
+            <div className={`w-full h-20 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"} animate-pulse`}></div>
+            <div className={`w-full h-20 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"} animate-pulse`}></div>
+            <div className={`w-full h-20 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"} animate-pulse`}></div>
+
+          </div>
+        )}
+
+        {!loading && paginatedSelectedTests.map(({ testCaseId, header, urlReport, status, timestamp }) => {
           const file = allReports[urlReport];
           return (
             <Disclosure key={urlReport}>
@@ -646,9 +699,8 @@ const Reports = () => {
                     <div className="w-full flex justify-between items-center gap-4">
                       <div className="flex flex-col items-start gap-1">
                         <div
-                          className={`flex gap-2 items-center p-0.5 rounded-md border-dotted ${
-                            darkMode ? "border-gray-600" : "border-primary/20"
-                          } border-2`}
+                          className={`flex gap-2 items-center p-0.5 rounded-md border-dotted ${darkMode ? "border-gray-600" : "border-primary/20"
+                            } border-2`}
                         >
                           <span className={`text-xs font-mono tracking-wide ${subtleText}`}>
                             Id: {testCaseId}
@@ -678,7 +730,7 @@ const Reports = () => {
                       <div className="flex items-center gap-3">
                         <div className={`text-xs ${subtleText}`}>{new Date(timestamp).toLocaleString()}</div>
                         <ChevronUpIcon
-                          className={`h-5 w-5 transition-transform duration-300 text-primary ${open ? "rotate-180" : ""}`}
+                          className={`h-5 w-5 transition-transform duration-300 ${darkMode ? "text-white/90":"text-primary"} ${open ? "rotate-180" : ""}`}
                         />
                       </div>
                     </div>

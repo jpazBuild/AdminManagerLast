@@ -23,6 +23,7 @@ import ModalCustom from "@/app/components/ModalCustom";
 import { RiInformation2Line } from "react-icons/ri";
 import PaginationResults from "../components/PaginationResults";
 import { usePagination } from "@/app/hooks/usePagination";
+import NoData from "@/app/components/NoData";
 
 type ReusableHeader = {
     id: string;
@@ -525,33 +526,37 @@ const Reusables = () => {
                             </button>
                         </div>
                     </div>
-                    {isLoadingReusables ? (
+
+
+                    <div className="mb-4">
+                        <TextInputWithClearButton
+                            id="filter-name"
+                            label="Filter by name"
+                            value={searchQuery}
+                            onChangeHandler={(e) => applyNameFilter(e.target.value)}
+                            placeholder="Type to filter by name..."
+                            isDarkMode={isDarkMode}
+
+                        />
+                    </div>
+                    <p className="text-xs opacity-70">
+                        Showing {paginatedSelectedTests.length} of {allReusables.length}
+                    </p>
+                    {isLoadingReusables && (
                         <div className="flex flex-col gap-2 items-center justify-center text-center py-10">
                             <div className={`w-full h-20 rounded-md ${isDarkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
                             <div className={`w-full h-20 rounded-md ${isDarkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
                             <div className={`w-full h-20 rounded-md ${isDarkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
 
                         </div>
-                    ) : paginatedSelectedTests.length === 0 ? (
-                        <div className="text-center text-sm opacity-70 py-10">No reusables found.</div>
-                    ) : (
+                    )}
+
+                    {paginatedSelectedTests.length === 0 && (
+                        <NoData text="No reusables found." darkMode={isDarkMode} />
+                    )}
+
+                    {!isLoadingReusables && paginatedSelectedTests.length > 0 && (
                         <div className="space-y-3 min-h-screen">
-
-                            <div className="mb-4">
-                                <TextInputWithClearButton
-                                    id="filter-name"
-                                    label="Filter by name"
-                                    value={searchQuery}
-                                    onChangeHandler={(e) => applyNameFilter(e.target.value)}
-                                    placeholder="Type to filter by name..."
-                                    isDarkMode={isDarkMode}
-
-                                />
-                            </div>
-                            <p className="text-xs opacity-70">
-                                Showing {paginatedSelectedTests.length} of {allReusables.length}
-                            </p>
-
                             <PaginationResults
                                 totalItems={totalItems}
                                 pageSize={pageSize}
@@ -582,7 +587,7 @@ const Reusables = () => {
                                             <div className="flex items-center gap-3">
                                                 {isOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
                                                 <div>
-                                                    <h3 className={`${isDarkMode ? "text-white/90 text-base font-medium":"text-primary/90 text-base font-medium"}`}>{detail?.name ?? reusable.name}</h3>
+                                                    <h3 className={`${isDarkMode ? "text-white/90 text-base font-medium" : "text-primary/90 text-base font-medium"}`}>{detail?.name ?? reusable.name}</h3>
                                                     <div className="flex flex-wrap gap-2 mt-1">
                                                         {(detail?.tagNames ?? reusable.tagNames ?? []).map((tag, idx) => (
                                                             <span key={idx} className={`${isDarkMode ? "bg-gray-700 text-white" : "bg-primary/80 text-white"} text-xs px-2 py-1 rounded-md`}>
@@ -674,7 +679,6 @@ const Reusables = () => {
                                                                         value={form.name}
                                                                         onChangeHandler={e => setFormById(p => ({ ...p, [reusable.id]: { ...p[reusable.id], name: e.target.value } }))}
                                                                         placeholder="Reusable Step Name"
-
                                                                         isDarkMode={isDarkMode}
                                                                     />
                                                                 </div>
@@ -726,7 +730,7 @@ const Reusables = () => {
                                                         )}
 
                                                         <div>
-                                                            <h4 className="text-md text-primary/70 font-semibold mb-1">Steps</h4>
+                                                            <h4 className={`${isDarkMode ? "text-white/70":"text-primary/70"} text-md  font-semibold mb-1`}>Steps</h4>
                                                             {isEditing && (
                                                                 <StepActions
                                                                     index={-1}
@@ -790,6 +794,8 @@ const Reusables = () => {
                             })}
                         </div>
                     )}
+
+
                 </div>
             </div>
 
