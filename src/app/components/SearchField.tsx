@@ -1,12 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, ChevronDown, Check, Search } from "lucide-react";
 import { useLockScrollBubbling } from "../hooks/useLockScrollBubbling";
 
-interface SelectOption {
-  label: string;
-  value: string;
-}
-
+interface SelectOption { label: string; value: string; }
 interface TagSelectorProps {
   id?: string;
   label?: string;
@@ -21,6 +18,8 @@ interface TagSelectorProps {
   widthComponent?: string;
   showSearch?: boolean;
   customDarkColor?: string;
+  usePortal?: boolean;
+  dropdownZ?: number;
 }
 
 export const SearchField = ({
@@ -36,7 +35,9 @@ export const SearchField = ({
   darkMode = false,
   widthComponent = "w-full",
   showSearch = true,
-  customDarkColor="bg-gray-800"
+  customDarkColor = "bg-gray-800",
+  usePortal = true,
+  dropdownZ = 10000,
 }: TagSelectorProps) => {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -45,6 +46,8 @@ export const SearchField = ({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollSearchField = useRef<HTMLDivElement>(null!);
+  const [menuRect, setMenuRect] = useState<{ top: number; left: number; width: number } | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useLockScrollBubbling(scrollSearchField);
 
@@ -57,9 +60,7 @@ export const SearchField = ({
 
   useEffect(() => {
     document.body.style.overflow = open && isMobile ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
+    return () => { document.body.style.overflow = ""; };
   }, [open, isMobile]);
 
   useEffect(() => {
@@ -84,13 +85,14 @@ export const SearchField = ({
 
   useEffect(() => {
     if (!open || isMobile) return;
-    function handleClickOutside(event: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside, true);
-    return () => document.removeEventListener("mousedown", handleClickOutside, true);
+    const onDocMouseDown = (event: MouseEvent) => {
+      const t = event.target as Node;
+      if (wrapperRef.current?.contains(t)) return;
+      if (dropdownRef.current?.contains(t)) return;
+      setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocMouseDown);
+    return () => document.removeEventListener("mousedown", onDocMouseDown);
   }, [open, isMobile]);
 
   const handleSelect = (optionValue: string) => {
@@ -99,6 +101,113 @@ export const SearchField = ({
     setSearchTerm("");
     setIsKeyboardOpen(false);
   };
+
+  const updateMenuPosition = () => {
+    if (!wrapperRef.current) return;
+
+    let anchor: HTMLElement | null = null;
+
+    if (id && typeof id === "string") {
+      try {
+        anchor = document.getElementById(id);
+      } catch {
+        anchor = null;
+      }
+    }
+
+    if (!anchor) {
+      anchor = wrapperRef.current;
+    }
+
+    const rect = anchor.getBoundingClientRect();
+    setMenuRect({
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+    });
+  };
+
+  useLayoutEffect(() => {
+    if (!open || isMobile || !usePortal) return;
+    updateMenuPosition();
+    const onScroll = () => updateMenuPosition();
+    const onResize = () => updateMenuPosition();
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [open, isMobile, usePortal, id]);
+
+  const DesktopDropdownInner = (
+    <>
+      {showSearch && (
+        <div
+          className={[
+            "flex items-center border-b",
+            darkMode ? "border-white/10 bg-gray-900" : "bg-primary/15 border-transparent",
+          ].join(" ")}
+        >
+          <Search className={`h-5 w-5 ml-4 ${darkMode ? "text-white/60" : "text-primary/60"}`} />
+          <input
+            type="text"
+            placeholder="Search options..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={[
+              "w-full px-4 py-3 text-sm outline-none",
+              darkMode
+                ? "bg-gray-900 text-white placeholder-white/50"
+                : "bg-transparent text-primary placeholder:text-primary/60",
+            ].join(" ")}
+          />
+        </div>
+      )}
+      <div className={`max-h-60 overflow-y-auto ${darkMode ? "bg-gray-900" : "bg-white"}`} style={{ scrollbarGutter: "stable" }}>
+        {filteredOptions?.length === 0 ? (
+          <div className={`p-3 text-center text-sm ${darkMode ? "text-white/60" : "text-gray-500"}`}>
+            No options found
+          </div>
+        ) : (
+          <div className="p-1 flex flex-col gap-1.5">
+            {filteredOptions?.map((opt, index) => {
+              const selected = value === opt.value;
+              return (
+                <button
+                  key={`${opt.value}-${opt.label}-${index}`}
+                  id={`option-${opt.value}`}
+                  onClick={() => handleSelect(opt.value)}
+                  className={[
+                    "w-full flex items-center justify-between px-4 py-3 rounded-lg text-left text-sm transition-colors focus:outline-none focus:ring-2",
+                    darkMode
+                      ? `text-white hover:bg-white/10 focus:ring-white/20 ${selected ? "bg-white/10" : ""}`
+                      : `text-gray-800 hover:bg-primary/10 focus:ring-primary/40 ${selected ? "bg-gray-100" : ""}`,
+                  ].join(" ")}
+                >
+                  <span className={selected ? "font-medium" : ""}>{opt.label}</span>
+                  {selected && <Check className={`h-4 w-4 ${darkMode ? "text-white/90" : "text-primary"}`} />}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </>
+  );
+
+  const DesktopDropdown = (
+    <div
+      className={[
+        "rounded-xl border shadow-lg overflow-hidden",
+        darkMode ? "bg-gray-900 border-white/15" : "bg-white border-gray-200",
+      ].join(" ")}
+      style={{ width: menuRect?.width }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {DesktopDropdownInner}
+    </div>
+  );
 
   return (
     <>
@@ -111,12 +220,10 @@ export const SearchField = ({
             selectedOption ? "py-2" : "py-3",
             disabled ? "opacity-50 cursor-not-allowed" : "",
             open
-              ? darkMode
-                ? `${customDarkColor} border border-transparent`
+              ? darkMode ? `${customDarkColor} border border-transparent`
                 : "bg-primary/15 border border-transparent"
-              : darkMode
-              ? `${customDarkColor} border border-transparent`
-              : "bg-primary/10 border border-transparent",
+              : darkMode ? `${customDarkColor} border border-transparent`
+                : "bg-primary/10 border border-transparent",
             className,
           ].join(" ")}
         >
@@ -124,7 +231,7 @@ export const SearchField = ({
             {selectedOption ? (
               <div className="flex flex-col gap-0.5">
                 {label && (
-                  <span className={`text-xs font-medium ${darkMode ? "text-white":""} ${textColorLabel}`}>
+                  <span className={`text-xs font-medium ${darkMode ? "text-white" : ""} ${textColorLabel}`}>
                     {label}
                   </span>
                 )}
@@ -158,68 +265,30 @@ export const SearchField = ({
           )}
         </div>
 
-        {open && !isMobile && (
+        {open && !isMobile && usePortal && menuRect && createPortal(
           <div
-            className={[
-              "absolute top-[calc(100%+0.25rem)] left-0 w-full z-50 rounded-xl border shadow-lg overflow-hidden",
-              darkMode ? "bg-gray-900 border-white/15" : "bg-white border-gray-200",
-            ].join(" ")}
-            onClick={(e) => e.stopPropagation()}
+            style={{ position: "fixed", top: menuRect.top, left: menuRect.left, width: menuRect.width, zIndex: dropdownZ }}
           >
-            {showSearch && (
-              <div
-                className={[
-                  "flex items-center border-b",
-                  darkMode ? "border-white/10 bg-gray-900" : "bg-primary/15 border-transparent",
-                ].join(" ")}
-              >
-                <Search className={`h-5 w-5 ml-4 ${darkMode ? "text-white/60" : "text-primary/60"}`} />
-                <input
-                  type="text"
-                  placeholder="Search options..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className={[
-                    "w-full px-4 py-3 text-sm outline-none",
-                    darkMode
-                      ? "bg-gray-900 text-white placeholder-white/50"
-                      : "bg-transparent text-primary placeholder:text-primary/60",
-                  ].join(" ")}
-                />
-              </div>
-            )}
-
             <div
-              className={`max-h-60 overflow-y-auto ${darkMode ? "bg-gray-900" : "bg-white"}`}
-              style={{ scrollbarGutter: "stable" }}
+              ref={dropdownRef}
+              onMouseDown={(e) => e.stopPropagation()}
             >
-              {filteredOptions?.length === 0 ? (
-                <div className={`p-3 text-center text-sm ${darkMode ? "text-white/60" : "text-gray-500"}`}>
-                  No options found
-                </div>
-              ) : (
-                <div className="p-1 flex flex-col gap-1.5">
-                  {filteredOptions?.map((opt, index) => {
-                    const selected = value === opt.value;
-                    return (
-                      <button
-                        key={`${opt.value}-${opt.label}-${index}`}
-                        id={`option-${opt.value}`}
-                        onClick={() => handleSelect(opt.value)}
-                        className={[
-                          "w-full flex items-center justify-between px-4 py-3 rounded-lg text-left text-sm transition-colors focus:outline-none focus:ring-2",
-                          darkMode
-                            ? `text-white hover:bg-white/10 focus:ring-white/20 ${selected ? "bg-white/10" : ""}`
-                            : `text-gray-800 hover:bg-primary/10 focus:ring-primary/40 ${selected ? "bg-gray-100" : ""}`,
-                        ].join(" ")}
-                      >
-                        <span className={selected ? "font-medium" : ""}>{opt.label}</span>
-                        {selected && <Check className={`h-4 w-4 ${darkMode ? "text-white/90" : "text-primary"}`} />}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+              {DesktopDropdown}
+            </div>
+          </div>,
+          document.body
+        )}
+
+        {open && !isMobile && !usePortal && (
+          <div
+            className="absolute top-[calc(100%+0.25rem)] left-0 w-full"
+            style={{ zIndex: dropdownZ }}
+          >
+            <div
+              ref={dropdownRef}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              {DesktopDropdown}
             </div>
           </div>
         )}
@@ -253,9 +322,7 @@ export const SearchField = ({
             </div>
 
             <div
-              className={`flex items-center justify-between px-6 py-4 border-b ${
-                darkMode ? "border-white/15 bg-[#0F1318] text-white" : "border-primary/20 bg-primary/10 text-primary"
-              }`}
+              className={`flex items-center justify-between px-6 py-4 border-b ${darkMode ? "border-white/15 bg-[#0F1318] text-white" : "border-primary/20 bg-primary/10 text-primary"}`}
             >
               <h3 className="text-lg font-semibold">{label || "Select option"}</h3>
               <button

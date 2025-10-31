@@ -1235,7 +1235,7 @@ const TestSuiteId = () => {
                             />
                         )}
 
-                        {suiteTests.length > 0 ? (
+                        {suiteTests.length > 0 && (
                             <div className="mt-6 flex flex-col w-full">
                                 <div className="flex items-center justify-between">
                                     <h3 className={`text-lg font-semibold ${strongText}`}>Test Cases in this Suite</h3>
@@ -1857,8 +1857,21 @@ const TestSuiteId = () => {
                                     Showing {filteredSuiteTests.length} of {suiteTests.length} test{filteredSuiteTests.length !== 1 ? "s" : ""}
                                 </div>
                             </div>
-                        ) : (
-                            <p className={`mt-6 ${softText}`}>No test cases found in this suite.</p>
+                        )}
+                        {suiteTests.length === 0 && (
+                            <div className="mt-6">
+                                <NoData text="No test cases in this suite yet." darkMode={isDarkMode} />
+                                <div className="flex justify-center mt-4">
+                                    <button
+                                        onClick={() => setOpenAddModal(true)}
+                                        className={`px-4 py-2 rounded-md font-semibold ${isDarkMode ? "bg-primary-blue/70 hover:bg-primary-blue/80 text-white" : "bg-primary/90 hover:bg-primary/85 text-white"
+                                        }`}
+                                    >
+                                        <PlusIcon className="w-5 h-5 mr-2 inline-block" /> Add Test Case
+                                    </button>
+                                        
+                                </div>
+                            </div>
                         )}
                     </div>
                 )}
