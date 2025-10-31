@@ -991,7 +991,7 @@ const TestSuiteId = () => {
             computeSuiteExecutionSummary();
         }
     }, [reports, progress, idReports]);
-    
+
     useEffect(() => {
         if (suiteDetails && suiteTests.length) {
             computeSuiteExecutionSummary();
@@ -1235,7 +1235,7 @@ const TestSuiteId = () => {
         });
     }, [setStepsBufById]);
 
-    const hasLiveFor = useCallback((testId: string) => {
+    const hasLiveFor = useCallback((testId: any) => {
         const anyReport =
             (Array.isArray(reports) && reports.some((r: any) =>
                 String(r?.testCaseId ?? r?.testId ?? r?.id) === String(testId)
@@ -1249,7 +1249,6 @@ const TestSuiteId = () => {
     }, [reports, idReports, progress]);
 
 
-    console.log("suite summary:", suiteSummary);
 
     return (
         <DashboardHeader onDarkModeChange={setIsDarkMode} hiddenSide={openAddModal || openDeleteModal || isModalOpen}>
