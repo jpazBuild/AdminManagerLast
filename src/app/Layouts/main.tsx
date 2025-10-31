@@ -36,8 +36,8 @@ export const DashboardSidebar = ({
 
     if (isActive) {
       return `flex items-center ${isCollapsed ? "p-2 justify-center text-center" : "px-4 py-3"} z-20 text-sm font-medium rounded-xl transition-all duration-300 ${darkMode
-          ? "bg-gray-700 text-white shadow-lg"
-          : "bg-primary/10 text-primary/90 border-r-2 border-primary/90 shadow-md"
+        ? "bg-gray-700 text-white shadow-lg"
+        : "bg-primary/10 text-primary/90 border-r-2 border-primary/90 shadow-md"
         }`;
     }
 
@@ -127,6 +127,8 @@ export const DashboardHeader = ({
     setDarkMode(newMode);
     localStorage.setItem("darkMode", String(newMode));
     // applyDarkModeClass(newMode);
+    window.dispatchEvent(new Event("darkmode-changed"));
+
     onDarkModeChange?.(newMode);
   };
 
@@ -173,7 +175,7 @@ export const DashboardHeader = ({
 
   return (
     <div className={`min-h-screen flex flex-col top-0 w-full ${overflow}`}>
-      <header className={`fixed top-0 left-0 w-full shadow-md px-4 py-2 z-30 transition-colors duration-300 ${darkMode ? "bg-gray-900 text-gray-100 border-b border-gray-800" : "bg-gray-50 text-gray-900"}`}>
+      <header className={`fixed top-0 left-0 w-full shadow-md px-4 py-2 z-20 transition-colors duration-300 ${darkMode ? "bg-gray-900 text-gray-100 border-b border-gray-800" : "bg-gray-50 text-gray-900"}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center">
             <button
@@ -208,7 +210,7 @@ export const DashboardHeader = ({
           </div>
 
           <div className="flex items-center space-x-4">
-            {/* <button
+            <button
               onClick={handleToggleDarkMode}
               className={`p-2 rounded-lg transition-colors duration-200 ${darkMode ? "text-yellow-400 hover:bg-gray-700" : "text-gray-600 hover:bg-gray-200"}`}
               aria-label="Toggle dark mode"
@@ -227,7 +229,7 @@ export const DashboardHeader = ({
                   <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
                 </svg>
               )}
-            </button> */}
+            </button>
 
             <h1 className={`text-xl font-bold transition-colors duration-300 ${darkMode ? "text-gray-100" : "text-primary/70"}`}>Admin Manager</h1>
           </div>

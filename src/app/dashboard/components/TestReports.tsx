@@ -100,8 +100,8 @@ const TestReports = ({
     const latest = getLatestFor(id);
     const status = latest?.ev?.status || latest?.ev?.finalStatus || "processing";
     if (stopped[id]) return "pending";
-    if (latest?.ev?.action === "Test execution completed" && status === "completed") return "success";
-    if (latest?.ev?.action === "Test execution failed" && status === "failed") return "failed";
+    if (latest?.ev?.action === "test execution completed" && status === "completed") return "success";
+    if (latest?.ev?.action === "test execution failed" && status === "failed") return "failed";
     return "pending";
   };
 
@@ -115,8 +115,10 @@ const TestReports = ({
       const status = (latest?.ev?.status || latest?.ev?.finalStatus || "").toLowerCase();
       const pct = getPct(reportId);
 
-      const isCompleted = action === "Test execution completed" && status === "completed";
-      const isFailed = action === "Test execution failed" && status === "failed";
+      console.log("Checking final status for report:", reportId, { action, status, pct });
+      
+      const isCompleted = action === "test execution completed" && status === "completed";
+      const isFailed = action === "test execution failed" && status === "failed";
 
       if (pct === 100 && (isCompleted || isFailed)) {
         const finalKey: "completed" | "failed" = isCompleted ? "completed" : "failed";
@@ -260,6 +262,8 @@ const TestReports = ({
   };
 
 
+  console.log("loading TestReports render", { selectedTest, filtered, paginatedSelectedTests,loading });
+  
 
   return (
     <div className={`space-y-6 mt-6 flex flex-col overflow-y-auto w-full ${darkMode ? "text-white" : "text-primary"}`}>
@@ -387,15 +391,15 @@ const TestReports = ({
           const finalStatus = latestStep?.ev?.status || latestStep?.ev?.finalStatus || "processing";
           const isFailed = finalStatus === "failed";
           const connectionId = stepMap[reportId]?.connectionId;
-          const isRunning = progressValue > 0 && progressValue < 100 && !stopped[reportId];
-          const showPlay = !isRunning && (progressValue === 0 || progressValue === 100 || !!stopped[reportId]);
-          const showStop = isRunning;
+          const isRunning = progressValue > 0 && progressValue < 100 && !stopped[reportId] ;
+          const showPlay = (progressValue === 0 || progressValue === 100) || !loading[reportId];
+          const showStop = isRunning || loading[reportId];
 
           return (
             <div key={reportId} id={reportId} className="p-1 flex flex-col gap-2">
               <div className="flex justify-between items-center">
                 <div className="flex gap-2 items-center">
-                  {showPlay && (
+                  {!loading[reportId] && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

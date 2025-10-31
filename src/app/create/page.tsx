@@ -515,9 +515,15 @@ const CreateForm = () => {
     const divider = darkMode ? "border-gray-700" : "border-gray-200";
     const inputSurface = darkMode ? "bg-gray-800" : "bg-white";
 
+    const closeEdit = () => {
+        setIsEditOpen(false);
+        setEditEntity(null);
+        setEditEntityType(null);
+        setEditModules([]);
+    };
     return (
         <DashboardHeader onDarkModeChange={setDarkMode} hiddenSide={openDeleteDialog}>
-            <div className={`sticky top-0 h-full self-center flex flex-col w-full lg:w-2/3 justify-center overflow-y-auto ${darkMode ? "text-gray-100" : "text-primary"}`}>
+            <div className={`h-full min-h-screen self-center flex flex-col w-full lg:w-2/3 justify-center overflow-y-auto ${darkMode ? "text-gray-100" : "text-primary"}`}>
                 <h2 className={`text-2xl font-semibold mb-2 text-center ${strongText}`}>Location Information</h2>
 
                 <div className={`${darkMode ? "bg-gray-900 border-gray-700" : "bg-white/70 border-gray-200"} rounded-xl border p-2 mb-3`}>
@@ -563,7 +569,7 @@ const CreateForm = () => {
                                             {creatingTag ? "Saving…" : "Save Tag"}
                                         </button>
 
-                                        <div className="w-full h-full overflow-hidden">
+                                        <div className="w-full h-full">
                                             <div className="flex items-center justify-between mb-2">
                                                 <h4 className={`text-md font-semibold ${strongText}`}>Existing Tags</h4>
                                                 <TextInputWithClearButton
@@ -620,7 +626,7 @@ const CreateForm = () => {
 
                                                                 <TagActionsMenu
                                                                     t={tag}
-                                                                    openEdit={openEdit}
+                                                                    openEdit={()=>openEdit("tag", tag)}
                                                                     setOpenDeleteDialog={setOpenDeleteDialog}
                                                                     setDataToDelete={setDataToDelete}
                                                                     darkMode={darkMode as any}
@@ -661,7 +667,7 @@ const CreateForm = () => {
                                                 <button
                                                     disabled={creatingGroup}
                                                     onClick={createGroupHandler}
-                                                    className={`${darkMode ? "bg-primary-blue/90 hover:bg-primary-blue/95" : "bg-primary/90 hover:bg-primary/95"} mb-2 cursor-pointer shadow-md text-white py-2 px-4 rounded-md transition-colors w-48`}
+                                                    className={`font-semibold ${darkMode ? "bg-primary-blue/90 hover:bg-primary-blue/95" : "bg-primary/90 hover:bg-primary/95"} mb-2 cursor-pointer shadow-md text-white py-2 px-4 rounded-md transition-colors w-48`}
                                                 >
                                                     {creatingGroup ? "Saving…" : "Save Group"}
                                                 </button>
@@ -723,7 +729,7 @@ const CreateForm = () => {
                                                            
                                                                 <TagActionsMenu
                                                                     t={g}
-                                                                    openEdit={openEdit}
+                                                                    openEdit={()=>openEdit("group", g)}
                                                                     setOpenDeleteDialog={setOpenDeleteDialog}
                                                                     setDataToDelete={setDataToDelete}
                                                                     darkMode={darkMode as any}
@@ -775,8 +781,8 @@ const CreateForm = () => {
                                         <button
                                             disabled={creatingModule}
                                             onClick={createModuleHandler}
-                                            className={`cursor-pointer disabled:opacity-60 shadow-md text-white py-2 px-4 rounded-md transition-colors w-48
-                        ${darkMode ? "bg-slate-600 hover:bg-slate-500" : "bg-slate-600 hover:bg-slate-700"}`}
+                                            className={`font-semibold cursor-pointer disabled:opacity-60 shadow-md text-white py-2 px-4 rounded-md transition-colors w-48
+                                                ${darkMode ? "bg-primary-blue/90 hover:bg-primary-blue/95" : "bg-primary/90 hover:bg-primary/80"}`}
                                         >
                                             {creatingModule ? "Saving…" : "Save Module"}
                                         </button>
@@ -837,7 +843,7 @@ const CreateForm = () => {
 
                                                                 <TagActionsMenu
                                                                     t={m}
-                                                                    openEdit={openEdit}
+                                                                    openEdit={()=>openEdit("module", m)}
                                                                     setOpenDeleteDialog={setOpenDeleteDialog}
                                                                     setDataToDelete={setDataToDelete}
                                                                     darkMode={darkMode as any}
@@ -897,8 +903,9 @@ const CreateForm = () => {
                                             <button
                                                 disabled={creatingSubmodule}
                                                 onClick={createSubmoduleHandler}
-                                                className={`cursor-pointer disabled:opacity-60 shadow-md text-white py-2 px-4 rounded-md transition-colors w-48
-                        ${darkMode ? "bg-slate-600 hover:bg-slate-500" : "bg-slate-600 hover:bg-slate-700"}`}
+                                                className={`font-semibold cursor-pointer disabled:opacity-60 shadow-md text-white py-2 px-4 rounded-md transition-colors w-48
+                                                ${darkMode ? "bg-primary-blue/90 hover:bg-primary-blue/95" : "bg-primary/90 hover:bg-primary/80"}`}
+
                                             >
                                                 {creatingSubmodule ? "Saving…" : "Save Submodule"}
                                             </button>
@@ -964,7 +971,7 @@ const CreateForm = () => {
 
                                                                 <TagActionsMenu
                                                                     t={s}
-                                                                    openEdit={openEdit}
+                                                                    openEdit={()=>openEdit("submodule", s)}
                                                                     setOpenDeleteDialog={setOpenDeleteDialog}
                                                                     setDataToDelete={setDataToDelete}
                                                                     darkMode={darkMode as any}
@@ -982,6 +989,116 @@ const CreateForm = () => {
                     />
                 </div>
 
+                
+                 {isEditOpen && (
+                    <ModalCustom
+                        open={isEditOpen}
+                        onClose={closeEdit}
+                        width="sm:max-w-lg"
+                        isDarkMode={darkMode}
+                    >
+                        
+                    <div className={`flex flex-col gap-4 p-4 ${darkMode ? "" : "bg-white text-gray-900"}`}>
+                         <div className="flex items-center justify-between">
+                                <h4 className={`text-lg font-semibold ${strongText}`}>
+                                    Edit {editEntityType}
+                                </h4>
+                            </div>
+
+                            <TextInputWithClearButton
+                                label="Enter Name"
+                                id="edit-name"
+                                type="text"
+                                inputMode="text"
+                                placeholder="Name"
+                                onChangeHandler={(e: any) => onEditField("name", e.target.value)}
+                                value={editEntity?.name || ""}
+                                isDarkMode={darkMode}
+                            />
+
+                            {editEntityType === "module" && (
+                                <SearchField
+                                    label="Group"
+                                    value={editModuleGroupValue}
+                                    onChange={(v: string) => {
+                                        onEditField("groupId", v);
+                                        const match = (groupOptions || []).find((o) => o.value === v);
+                                        if (match) onEditField("groupName", match.label);
+                                    }}
+                                    options={groupOptions}
+                                    placeholder={loadingGroups ? "Loading groups…" : "Select group"}
+                                    darkMode={darkMode}
+                                    className={`${darkMode ? "bg-gray-800 text-gray-100 border-gray-700" : ""}`}
+                                    customDarkColor="bg-gray-800 text-gray-100 border-gray-700"
+                                    usePortal
+                                    dropdownZ={9999}
+                                />
+                            )}
+
+                            {editEntityType === "submodule" && (
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                    <SearchField
+                                        label="Group"
+                                        value={
+                                            editEntity?.groupId ||
+                                            (groupOptions.find((o) => o.label === editEntity?.groupName)?.value ??
+                                                "")
+                                        }
+                                        onChange={(v: string) => {
+                                            onEditField("groupId", v);
+                                            const match = (groupOptions || []).find((o) => o.value === v);
+                                            if (match) onEditField("groupName", match.label);
+                                        }}
+                                        options={groupOptions}
+                                        placeholder={loadingGroups ? "Loading groups…" : "Select group"}
+                                        darkMode={darkMode}
+                                    />
+                                    <SearchField
+                                        label="Parent Module"
+                                        value={
+                                            editEntity?.moduleId ||
+                                            (modules.find((m) => m.name === editEntity?.moduleName)?.id ?? "")
+                                        }
+                                        onChange={(v: string) => {
+                                            onEditField("moduleId", v);
+                                            const match = modules.find((m) => m.id === v);
+                                            if (match) onEditField("moduleName", match.name);
+                                        }}
+                                        options={editModuleOptions}
+                                        placeholder={loadingModules ? "Loading modules…" : "Select module"}
+                                        darkMode={darkMode}
+                                    />
+                                </div>
+                            )}
+
+                            <SearchField
+                                label="Created By"
+                                value={editEntity?.createdBy || ""}
+                                onChange={(v: string) => onEditField("createdBy", v)}
+                                options={userOptions}
+                                placeholder={loadingUsers ? "Loading users…" : "Select creator"}
+                                darkMode={darkMode}
+                                usePortal
+                            />
+
+                            <div className="flex justify-end gap-2 pt-2">
+                                <button
+                                    onClick={() => setIsEditOpen(false)}
+                                    className={`cursor-pointer font-semibold px-3 py-2 rounded ${darkMode ? "bg-gray-700 hover:bg-gray-600 text-white" : "bg-gray-200 hover:bg-gray-300 text-gray-800"}`}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={submitEdit}
+                                    className={`cursor-pointer font-semibold px-3 py-2 rounded ${darkMode ? "bg-primary-blue/90 hover:bg-primary-blue/95 text-white" : "bg-primary/90 hover:bg-primary/95 text-white"}`}
+                                >
+                                    Save
+                                </button>
+                            </div>
+                    </div>
+                    </ModalCustom>
+                 )}
+                            
                 <ModalCustom
                     open={openDeleteDialog}
                     onClose={() => setOpenDeleteDialog(false)}

@@ -28,7 +28,7 @@ const TabsUnderline = ({ tabs, value, setValue, className, defaultValue,isDarkMo
             <TabsTrigger
               key={tab.value}
               value={tab.value}
-              className={`data-[state=active]:border-primary-blue font-semibold flex gap-1 items-center dark:data-[state=active]:border-primary-blue h-full rounded-none border-0 border-b-2 ${isDarkMode ? "border-transparent":"border-transparent"} data-[state=active]:shadow-none`}
+              className={`cursor-pointer data-[state=active]:border-primary-blue font-semibold flex gap-1 items-center dark:data-[state=active]:border-primary-blue h-full rounded-none border-0 border-b-2 ${isDarkMode ? "border-transparent":"border-transparent"} data-[state=active]:shadow-none`}
             >
               {tab.icon} {tab.name}
             </TabsTrigger>

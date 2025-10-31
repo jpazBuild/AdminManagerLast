@@ -8,7 +8,7 @@ import {
   DropdownMenuItem
 } from "@/components/ui/dropdown-menu";
 
-const TagActionsMenu = ({ t, openEdit, setOpenDeleteDialog, setDataToDelete }: any) =>{
+const TagActionsMenu = ({ t, openEdit, setOpenDeleteDialog, setDataToDelete,darkMode }: any) =>{
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -16,12 +16,12 @@ const TagActionsMenu = ({ t, openEdit, setOpenDeleteDialog, setDataToDelete }: a
           <MoreVertical className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-40 bg-white shadow-2xs border border-primary/20">
-        <DropdownMenuItem className="text-primary/90" onClick={() => openEdit("tag", { ...t })}>
+      <DropdownMenuContent align="end" className={`w-40 font-semibold shadow-2xs border ${darkMode ? "bg-gray-900 text-white border-gray-600":"bg-white border-gray-200"}`}>
+        <DropdownMenuItem className="cursor-pointer" onClick={() => openEdit("tag", { ...t })}>
           <Edit3 className="mr-2 h-4 w-4" /> Edit
         </DropdownMenuItem>
         <DropdownMenuItem
-          className="text-red-600 focus:text-red-600"
+          className="text-red-600 cursor-pointer focus:text-red-600"
           onClick={() => { setOpenDeleteDialog(true); setDataToDelete({ id: t.id, type: "tag" }); }}
         >
           <Trash2 className="mr-2 h-4 w-4" /> Delete

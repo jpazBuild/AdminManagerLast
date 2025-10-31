@@ -6,7 +6,7 @@ import { URL_API_ALB } from "@/config";
 import LoadingSkeleton from "../components/loadingSkeleton";
 import NoData from "../components/NoData";
 import Link from "next/link";
-import { PlusIcon, Trash2 } from "lucide-react";
+import { Link2Icon, PlusIcon, Trash2 } from "lucide-react";
 import TextInputWithClearButton from "../components/InputClear";
 import { SearchField } from "@/app/components/SearchField";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import { RiInformation2Line } from "react-icons/ri";
 import { FaXmark } from "react-icons/fa6";
 import PaginationResults from "../dashboard/components/PaginationResults";
 import { usePagination } from "../hooks/usePagination";
+import CopySuiteLinkButton from "../components/CopySuiteLinkButton";
 
 type Suite = {
     id: string;
@@ -182,7 +183,7 @@ const TestSuitesPage = () => {
             await fetchDataSuites();
         } catch {
             toast.error("Failed to delete suite");
-        }finally{
+        } finally {
             setIsLoadingDelete(false);
         }
     };
@@ -226,8 +227,19 @@ const TestSuitesPage = () => {
     return (
         <DashboardHeader onDarkModeChange={setIsDarkMode} hiddenSide={openDeleteModal || openCreateModal}>
             <div className="flex flex-col items-center w-full gap-4">
-                <h1 className={`text-2xl font-semibold ${strong}`}>Test Suites</h1>
-
+                <div className="w-full flex items-center justify-between">
+                    <h1 className={`text-2xl font-semibold ${strong}`}>Test Suites</h1>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setOpenCreateModal(true)}
+                            className={`px-3 py-2 rounded-md font-semibold flex items-center gap-1 ${isDarkMode
+                                ? "bg-primary-blue/80 hover:bg-primary-blue/70 text-white"
+                                : "bg-primary/90 hover:bg-primary/80 text-white"}`}
+                        >
+                            <PlusIcon /> Create Suite
+                        </button>
+                    </div>
+                </div>
                 <TextInputWithClearButton
                     id="q"
                     type="text"
@@ -260,16 +272,7 @@ const TestSuitesPage = () => {
                     />
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={() => setOpenCreateModal(true)}
-                        className={`px-3 py-2 rounded-md font-semibold flex items-center gap-1 ${isDarkMode
-                            ? "bg-primary-blue/80 hover:bg-primary-blue/70 text-white"
-                            : "bg-primary/90 hover:bg-primary/80 text-white"}`}
-                    >
-                        <PlusIcon /> Create Suite
-                    </button>
-                </div>
+
 
                 {isLoadingSuites && <LoadingSkeleton darkMode={isDarkMode} />}
 
@@ -322,6 +325,8 @@ const TestSuitesPage = () => {
 
                                     <div className="flex flex-col items-center gap-8 h-full justify-between">
                                         <div className="flex gap-2">
+
+
                                             <Link
                                                 href={`/testSuites/${suite.id}`}
                                                 className={`px-3 py-2 rounded-md font-semibold ${isDarkMode
@@ -331,6 +336,7 @@ const TestSuitesPage = () => {
                                             >
                                                 View Details
                                             </Link>
+                                            <CopySuiteLinkButton isDarkMode={isDarkMode} suiteId={suite.id} />
                                             <button
                                                 onClick={() => {
                                                     setSuiteToDelete(suite);
@@ -352,7 +358,7 @@ const TestSuitesPage = () => {
                     </div>
                 )}
             </div>
-            
+
             <ModalCustom
                 open={openDeleteModal}
                 onClose={() => setOpenDeleteModal(false)}
@@ -367,7 +373,7 @@ const TestSuitesPage = () => {
                     <div className="mt-6 flex w-full gap-2">
                         <button
                             disabled={isLoadingDelete}
-                            className={`w-full px-4 py-2 rounded-md border ${isLoadingDelete?"cursor-not-allowed":""} ${isDarkMode ? "border-gray-600" : "border-gray-300"}`}
+                            className={`w-full px-4 py-2 rounded-md border ${isLoadingDelete ? "cursor-not-allowed" : ""} ${isDarkMode ? "border-gray-600" : "border-gray-300"}`}
                             onClick={() => setOpenDeleteModal(false)}
                         >
                             Cancel

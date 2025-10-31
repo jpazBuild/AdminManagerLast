@@ -4,7 +4,7 @@ import { URL_API_ALB } from "@/config";
 import axios from "axios";
 import { ArrowLeft, Database, Eye, PlayIcon, Save, X, Loader2, PlusIcon, Check, File, Trash2, Settings, RefreshCcw } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useEffect, useMemo, useState, useCallback, Fragment } from "react";
+import { useEffect, useMemo, useState, useCallback, Fragment, useRef } from "react";
 import UnifiedInput from "@/app/components/Unified";
 import InteractionItem from "@/app/components/Interaction";
 import { toast } from "sonner";
@@ -92,6 +92,17 @@ const slug = (s?: string) =>
         .trim()
         .replace(/\s+/g, "-")
         .toLowerCase();
+
+const ActiveDot = ({ on, isDark }: { on: boolean; isDark: boolean }) =>
+    on ? (
+        <span
+            className={[
+                "absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full",
+                "ring-2",
+                isDark ? "bg-emerald-400 ring-gray-900" : "bg-emerald-500 ring-white",
+            ].join(" ")}
+        />
+    ) : null;
 
 const buildReportCustomName = (suite?: SuiteResponse | null, testId?: string) => {
     const base = suite?.id || "suite";
@@ -220,6 +231,7 @@ const TestSuiteId = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedImage, setSelectedImage] = useState<string>("");
     const [suiteSummary, setSuiteSummary] = useState({ total: 0, passed: 0, failed: 0, pending: 0 });
+    const [summaryTick, setSummaryTick] = useState(0);
     const [statusById, setStatusById] = useState<Record<string, "passed" | "failed" | "pending">>({});
     const [savingDDById, setSavingDDById] = useState<Record<string, boolean>>({});
 
@@ -253,6 +265,8 @@ const TestSuiteId = () => {
         setIsModalOpen(false);
         setSelectedImage("");
     }, []);
+    const computingRef = useRef(false);
+    const computeRef = useRef<() => Promise<void>>(async () => { });
 
     useEffect(() => {
         const loadDD = async () => {
@@ -732,7 +746,6 @@ const TestSuiteId = () => {
                 prev ? { ...prev, batchItems: { count: newCount, array: newArray } } : prev
             );
 
-            // Traer headers de los agregados (en paralelo)
             const addedHeadersRes = await Promise.allSettled(
                 toAdd.map((id) => axios.post(`${URL_API_ALB}getTestHeaders`, { id }))
             );
@@ -787,12 +800,16 @@ const TestSuiteId = () => {
 
                 const reportCustomName = buildReportCustomName(suiteDetails, testId);
                 const body = { type: "tests-reports", reportCustomName };
-                const resp = await axios.post(`${URL_API_ALB}getReports`, body);
+                const resp = await axios.post(`${URL_API_ALB}getReports`, body, { headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' } });
 
                 let jsonData: any = null;
                 if (resp?.data?.responseSignedUrl) {
                     const url = resp.data.responseSignedUrl as string;
-                    const r = await fetch(url, { method: "GET" });
+                    const r = await fetch(url, {
+                        method: "GET",
+                        cache: "no-store",
+                        headers: { "Cache-Control": "no-cache", Pragma: "no-cache" }
+                    });
                     const ct = r.headers.get("content-type") || "";
                     jsonData = ct.includes("application/json") ? await r.json() : JSON.parse((await r.text()) || "null");
                 } else {
@@ -904,7 +921,8 @@ const TestSuiteId = () => {
     };
 
     const computeSuiteExecutionSummary = useCallback(async () => {
-
+        console.log("[computeSuiteExecutionSummary] start", { total: suiteTests?.length || 0, suiteId: suiteDetails?.id });
+        const t0 = performance.now();
         if (!suiteDetails || !suiteTests?.length) {
             setSuiteSummary({ total: 0, passed: 0, failed: 0, pending: 0 });
             setStatusById({});
@@ -916,6 +934,8 @@ const TestSuiteId = () => {
         let failed = 0;
         const localStatus: Record<string, "passed" | "failed" | "pending"> = {};
         setIsLoadingComputedData(true);
+        console.log("[computeSuiteExecutionSummary] fetching reports for", total, "tests");
+
         await Promise.allSettled(
             suiteTests.map(async (t) => {
                 const testId = String(t.id);
@@ -950,13 +970,28 @@ const TestSuiteId = () => {
                 }
             })
         );
+        console.log("[computeSuiteExecutionSummary] reports fetched, computing summary", { passed, failed });
 
         const pending = Math.max(0, total - passed - failed);
         setSuiteSummary({ total, passed, failed, pending });
+
         setStatusById(localStatus);
         setIsLoadingComputedData(false);
+        setSummaryTick(t => t + 1);
+        console.log("[computeSuiteExecutionSummary] done in", Math.round(performance.now() - t0), "ms",
+            { passed, failed, pending });
     }, [suiteDetails, suiteTests, URL_API_ALB]);
 
+    useEffect(() => {
+        computeRef.current = computeSuiteExecutionSummary;
+    }, [computeSuiteExecutionSummary]);
+
+    useEffect(() => {
+        if (suiteDetails && suiteTests.length) {
+            computeSuiteExecutionSummary();
+        }
+    }, [reports, progress, idReports]);
+    
     useEffect(() => {
         if (suiteDetails && suiteTests.length) {
             computeSuiteExecutionSummary();
@@ -1127,9 +1162,23 @@ const TestSuiteId = () => {
     }, [progressByTestId]);
 
 
-    const handleTestFinalStatus = useCallback((_id: string, _final: "completed" | "failed") => {
-        computeSuiteExecutionSummary();
-    }, [computeSuiteExecutionSummary]);
+    const handleTestFinalStatus = useCallback(async (_id: string, _final: "completed" | "failed") => {
+        try {
+            console.log("Test finalizado:", _id, _final);
+
+
+            if (computingRef.current) {
+                queueMicrotask(() => computeRef.current());
+                return;
+            }
+            computingRef.current = true;
+            await computeRef.current();
+        } catch (e) {
+            console.error("computeSuiteExecutionSummary falló:", e);
+        } finally {
+            computingRef.current = false;
+        }
+    }, []);
 
 
     const getStepSelectionClasses = useCallback(
@@ -1185,6 +1234,22 @@ const TestSuiteId = () => {
             return { ...prev, [testId]: nextSteps };
         });
     }, [setStepsBufById]);
+
+    const hasLiveFor = useCallback((testId: string) => {
+        const anyReport =
+            (Array.isArray(reports) && reports.some((r: any) =>
+                String(r?.testCaseId ?? r?.testId ?? r?.id) === String(testId)
+            )) ||
+            (idReports &&
+                ((Array.isArray(idReports) && idReports.includes(testId)) ||
+                    (typeof idReports === "object" && !!idReports[testId]))) ||
+            (progress && Array.isArray(progress) && progress.some((p: any) => String(p?.testCaseId) === String(testId)));
+
+        return !!anyReport;
+    }, [reports, idReports, progress]);
+
+
+    console.log("suite summary:", suiteSummary);
 
     return (
         <DashboardHeader onDarkModeChange={setIsDarkMode} hiddenSide={openAddModal || openDeleteModal || isModalOpen}>
@@ -1254,6 +1319,7 @@ const TestSuiteId = () => {
                             </div>
                         ) : (
                             <ExecutionSummary
+                                key={summaryTick}
                                 totalFailed={suiteSummary.failed}
                                 totalSuccess={suiteSummary.passed}
                                 totalPending={suiteSummary.pending}
@@ -1487,47 +1553,84 @@ const TestSuiteId = () => {
 
                                                             <td className="px-4 py-3 align-top">
                                                                 <div className="flex items-center gap-2">
+                                                                    {/* Run */}
                                                                     <button
                                                                         title={isRunningNow ? `Running... ${pForThisTest}%` : "Run"}
-                                                                        className={`cursor-pointer rounded-md p-2 border transition ${isDarkMode ? "border-gray-700 hover:bg-primary-blue/70 bg-primary-blue/60" : "border-gray-200 hover:bg-primary/90 text-white bg-primary/70"}`}
+                                                                        className={[
+                                                                            "relative cursor-pointer rounded-md p-2 border transition",
+                                                                            isDarkMode
+                                                                                ? "border-gray-700 hover:bg-primary-blue/70 bg-primary-blue/60"
+                                                                                : "border-gray-200 hover:bg-primary/90 text-white bg-primary/70",
+                                                                        ].join(" ")}
                                                                         onClick={() => handlePlaySingle(test)}
                                                                         disabled={isRunningNow || isLoading || isSaving}
                                                                     >
                                                                         {!stopped?.[testId] && isRunningNow ? (
-                                                                            <Loader2 className={isDarkMode ? "text-white w-4 h-4 animate-spin" : "text-white w-4 h-4 animate-spin"} />
+                                                                            <Loader2 className="w-4 h-4 animate-spin text-white" />
                                                                         ) : (
-                                                                            <PlayIcon className={isDarkMode ? "text-white w-4 h-4" : "text-white w-4 h-4"} />
+                                                                            <PlayIcon className="w-4 h-4 text-white" />
                                                                         )}
                                                                     </button>
 
                                                                     <button
                                                                         title="Data"
-                                                                        className={`cursor-pointer rounded-md p-2 border transition ${isDarkMode ? "border-gray-700 hover:bg-gray-900" : "border-gray-200 hover:bg-gray-50"}`}
+                                                                        className={[
+                                                                            "relative cursor-pointer rounded-md p-2 border transition",
+                                                                            isDarkMode
+                                                                                ? showD
+                                                                                    ? "border-emerald-400 bg-gray-900"
+                                                                                    : "border-gray-700 hover:bg-gray-900"
+                                                                                : showD
+                                                                                    ? "border-emerald-500 bg-gray-100"
+                                                                                    : "border-gray-200 hover:bg-gray-50",
+                                                                        ].join(" ")}
                                                                         onClick={() => openDataView(testId)}
                                                                         disabled={isLoading || isSaving}
                                                                     >
-                                                                        <Database className={isDarkMode ? "text-white w-4 h-4" : "text-primary w-4 h-4"} />
+                                                                        <Database className={isDarkMode ? "w-4 h-4 text-white" : "w-4 h-4 text-primary"} />
+                                                                        <ActiveDot on={showD} isDark={isDarkMode} />
                                                                     </button>
 
                                                                     <button
                                                                         title="Steps"
-                                                                        className={`cursor-pointer rounded-md p-2 border transition ${isDarkMode ? "border-gray-700 hover:bg-gray-900" : "border-gray-200 hover:bg-gray-50"}`}
+                                                                        className={[
+                                                                            "relative cursor-pointer rounded-md p-2 border transition",
+                                                                            isDarkMode
+                                                                                ? showS
+                                                                                    ? "border-emerald-400 bg-gray-900"
+                                                                                    : "border-gray-700 hover:bg-gray-900"
+                                                                                : showS
+                                                                                    ? "border-emerald-500 bg-gray-100"
+                                                                                    : "border-gray-200 hover:bg-gray-50",
+                                                                        ].join(" ")}
                                                                         onClick={() => openStepsView(testId)}
                                                                         disabled={isLoading || isSaving}
                                                                     >
-                                                                        <Eye className={isDarkMode ? "text-white w-4 h-4" : "text-primary w-4 h-4"} />
+                                                                        <Eye className={isDarkMode ? "w-4 h-4 text-white" : "w-4 h-4 text-primary"} />
+                                                                        <ActiveDot on={showS} isDark={isDarkMode} />
                                                                     </button>
 
                                                                     <button
-                                                                        className={`cursor-pointer rounded-md p-2 border transition ${isDarkMode ? "border-gray-700 hover:bg-gray-900" : "border-gray-200 hover:bg-gray-50"}`}
+                                                                        className={[
+                                                                            "relative cursor-pointer rounded-md p-2 border transition",
+                                                                            isDarkMode
+                                                                                ? showR
+                                                                                    ? "border-emerald-400 bg-gray-900"
+                                                                                    : "border-gray-700 hover:bg-gray-900"
+                                                                                : showR
+                                                                                    ? "border-emerald-500 bg-gray-100"
+                                                                                    : "border-gray-200 hover:bg-gray-50",
+                                                                        ].join(" ")}
                                                                         title="View Reports"
                                                                         onClick={() => handleViewReports(test)}
                                                                     >
-                                                                        <File className={isDarkMode ? "text-white w-4 h-4" : "text-primary w-4 h-4"} />
+                                                                        <File className={isDarkMode ? "w-4 h-4 text-white" : "w-4 h-4 text-primary"} />
+                                                                        <ActiveDot on={showR} isDark={isDarkMode} />
                                                                     </button>
 
                                                                     <button
-                                                                        className={`cursor-pointer rounded-md p-2 border transition ${isDarkMode ? "border-gray-700 hover:bg-gray-900" : "border-gray-200 hover:bg-gray-50"}`}
+                                                                        className={`cursor-pointer rounded-md p-2 border transition ${isDarkMode ? "border-gray-700 hover:bg-gray-900" : "border-gray-200 hover:bg-gray-50"
+                                                                            }`}
                                                                         title="Delete from Suite"
                                                                         onClick={() => openDeleteFor(testId)}
                                                                     >
@@ -1548,6 +1651,7 @@ const TestSuiteId = () => {
                                                                     )}
                                                                 </div>
                                                             </td>
+
                                                         </tr>
 
                                                         {isOpen && (showD || showS || showReports[testId]) && (
@@ -1619,7 +1723,7 @@ const TestSuiteId = () => {
                                                                                         <button
                                                                                             onClick={() => handleSaveDynamicData(testId, test)}
                                                                                             disabled={!!savingDDById[testId]}
-                                                                                            className={`px-4 py-2 flex items-center gap-2 cursor-pointer rounded-md text-white ${isDarkMode ? "bg-primary-blue/70 hover:bg-primary-blue/80" : "hover:bg-primary/85 bg-primary/80"}`}
+                                                                                            className={`px-4 py-2 flex items-center font-semibold gap-2 cursor-pointer rounded-md text-white ${isDarkMode ? "bg-primary-blue/70 hover:bg-primary-blue/80" : "hover:bg-primary/85 bg-primary/80"}`}
                                                                                         >
                                                                                             {savingDDById[testId] ? (
                                                                                                 <>
@@ -1757,38 +1861,41 @@ const TestSuiteId = () => {
                                                                         </div>
                                                                     )}
 
+
                                                                     {showR && (
                                                                         <div className={`rounded-md border p-3 space-y-3 mt-4 ${isDarkMode ? "border-white/5" : "border-slate-200"}`}>
                                                                             <h3 className={`${isDarkMode ? "text-white/70" : "text-primary/70"} text-center mb-2 font-semibold text-lg`}></h3>
 
                                                                             <div className="flex gap-2 justify-between items-center">
-
                                                                                 <div className="flex gap-2">
+                                                                                    {hasLiveFor(testId) && (
+                                                                                        <button
+                                                                                            className={`px-3 py-1.5 rounded-md text-sm font-semibold border ${(reportsTabById[testId] ?? "live") === "live"
+                                                                                                ? (isDarkMode ? "bg-primary-blue/70 text-white border-transparent" : "bg-primary text-white border-primary")
+                                                                                                : (isDarkMode ? "border-white/15 text-white/80" : "border-slate-300 text-primary/70")}`}
+                                                                                            onClick={() => setReportsTabById(prev => ({ ...prev, [testId]: "live" }))}
+                                                                                        >
+                                                                                            Live
+                                                                                        </button>
+                                                                                    )}
+
                                                                                     <button
-                                                                                        className={`px-3 py-1.5 rounded-md text-sm font-semibold border ${(reportsTabById[testId] ?? "live") === "live"
+                                                                                        className={`px-3 py-1.5 rounded-md text-sm font-semibold border ${(reportsTabById[testId] ?? (hasLiveFor(testId) ? "live" : "saved")) === "saved"
                                                                                             ? (isDarkMode ? "bg-primary-blue/70 text-white border-transparent" : "bg-primary text-white border-primary")
                                                                                             : (isDarkMode ? "border-white/15 text-white/80" : "border-slate-300 text-primary/70")}`}
-                                                                                        onClick={() => setReportsTabById(prev => ({ ...prev, [testId]: "live" }))}
-                                                                                    >
-                                                                                        Live
-                                                                                    </button>
-                                                                                    <button
-                                                                                        className={`px-3 py-1.5 rounded-md text-sm font-semibold border ${(reportsTabById[testId] ?? "live") === "saved"
-                                                                                            ? (isDarkMode ? "bg-primary-blue/70 text-white border-transparent" : "bg-primary text-white border-primary")
-                                                                                            : (isDarkMode ? "border-white/15 text-white/80" : "border-slate-300 text-primary/70")
-                                                                                            }`}
                                                                                         onClick={() => {
                                                                                             setReportsTabById((prev) => ({ ...prev, [testId]: "saved" }));
                                                                                             const meta = historicMetaById[testId];
                                                                                             if (!meta?.fetched || meta?.empty) {
-                                                                                                const test = suiteTests.find((t) => String(t.id) === testId);
-                                                                                                if (test) fetchHistoricFor(test, { force: true });
+                                                                                                const t = suiteTests.find((x) => String(x.id) === testId);
+                                                                                                if (t) fetchHistoricFor(t, { force: true });
                                                                                             }
                                                                                         }}
                                                                                     >
                                                                                         Saved
                                                                                     </button>
                                                                                 </div>
+
                                                                                 <button
                                                                                     className={`inline-flex items-center gap-1 px-3 py-1.5 rounded border ${isDarkMode ? "border-gray-700 hover:bg-gray-900" : "border-gray-300 hover:bg-gray-100"}`}
                                                                                     onClick={() => {
@@ -1801,67 +1908,70 @@ const TestSuiteId = () => {
                                                                                 </button>
                                                                             </div>
 
-                                                                            {(reportsTabById[testId] ?? "live") === "live" ? (
-                                                                                <TestReports
-                                                                                    stopped={stopped}
-                                                                                    setStopped={setStopped}
-                                                                                    setLoading={setLoading}
-                                                                                    loading={loading}
-                                                                                    testData={computedTestDataFor}
-                                                                                    reports={reports}
-                                                                                    idReports={idReports}
-                                                                                    progress={progress}
-                                                                                    selectedCases={[test]}
-                                                                                    selectedTest={[test]}
-                                                                                    darkMode={isDarkMode}
-                                                                                    onPlayTest={handlePlaySingle}
-                                                                                    stopAll={stopAll}
-                                                                                    showOnlySingletest={true}
-                                                                                    onFinalStatus={handleTestFinalStatus}
-
-                                                                                />
-                                                                            ) : (
-                                                                                <div className="space-y-3">
-                                                                                    {loadingHistoric[testId] && (
-                                                                                        <div className={isDarkMode ? "text-white/80" : "text-primary/80"}>Cargando historial…</div>
-                                                                                    )}
-                                                                                    {!!errorHistoric[testId] && (
-                                                                                        <div className={isDarkMode ? "text-red-300" : "text-red-600"}>{errorHistoric[testId]}</div>
-                                                                                    )}
-                                                                                    {!loadingHistoric[testId] && !errorHistoric[testId] && (
-                                                                                        (() => {
-                                                                                            const evs = (historicById[testId] || []).slice().sort((a, b) => (a.indexStep ?? 0) - (b.indexStep ?? 0));
-                                                                                            if (evs.length === 0) {
-                                                                                                return <NoData darkMode={isDarkMode} text="No historical reports found for this test." />;
-                                                                                            }
-                                                                                            return (
-                                                                                                <div className={`rounded-md border ${isDarkMode ? "border-white/5" : "border-slate-200"}`}>
-                                                                                                    <div className={isDarkMode ? "bg-gray-900/40 p-2" : "bg-slate-50 p-2"}>
-                                                                                                        <div className="text-lg opacity-80 text-center">
-                                                                                                            Report
+                                                                            {(() => {
+                                                                                const activeTab = reportsTabById[testId] ?? (hasLiveFor(testId) ? "live" : "saved");
+                                                                                if (activeTab === "live" && hasLiveFor(testId)) {
+                                                                                    return (
+                                                                                        <TestReports
+                                                                                            stopped={stopped}
+                                                                                            setStopped={setStopped}
+                                                                                            setLoading={setLoading}
+                                                                                            loading={loading}
+                                                                                            testData={computedTestDataFor}
+                                                                                            reports={reports}
+                                                                                            idReports={idReports}
+                                                                                            progress={progress}
+                                                                                            selectedCases={[test]}
+                                                                                            selectedTest={[test]}
+                                                                                            darkMode={isDarkMode}
+                                                                                            onPlayTest={handlePlaySingle}
+                                                                                            stopAll={stopAll}
+                                                                                            showOnlySingletest={true}
+                                                                                            onFinalStatus={handleTestFinalStatus}
+                                                                                        />
+                                                                                    );
+                                                                                }
+                                                                                return (
+                                                                                    <div className="space-y-3">
+                                                                                        {loadingHistoric[testId] && (
+                                                                                            <LoadingSkeleton darkMode={isDarkMode} />
+                                                                                        )}
+                                                                                        {!!errorHistoric[testId] && (
+                                                                                            <div className={isDarkMode ? "text-red-300" : "text-red-600"}>{errorHistoric[testId]}</div>
+                                                                                        )}
+                                                                                        {!loadingHistoric[testId] && !errorHistoric[testId] && (
+                                                                                            (() => {
+                                                                                                const evs = (historicById[testId] || []).slice().sort((a, b) => (a.indexStep ?? 0) - (b.indexStep ?? 0));
+                                                                                                if (evs.length === 0) {
+                                                                                                    return <NoData darkMode={isDarkMode} text="No historical reports found for this test." />;
+                                                                                                }
+                                                                                                return (
+                                                                                                    <div className={`rounded-md border ${isDarkMode ? "border-white/5" : "border-slate-200"}`}>
+                                                                                                        <div className={isDarkMode ? "bg-gray-900/40 p-2" : "bg-slate-50 p-2"}>
+                                                                                                            <div className="text-lg opacity-80 text-center">Report</div>
+                                                                                                        </div>
+                                                                                                        <div className="max-h-[60vh] overflow-y-auto flex flex-col gap-2 px-4">
+                                                                                                            {evs.map((e, i) => (
+                                                                                                                <StepCard
+                                                                                                                    key={i}
+                                                                                                                    step={e}
+                                                                                                                    index={e.indexStep || i + 1}
+                                                                                                                    darkMode={isDarkMode}
+                                                                                                                    stepData={e.stepData}
+                                                                                                                    handleImageClick={() => handleImageClick(e?.screenshot)}
+                                                                                                                />
+                                                                                                            ))}
                                                                                                         </div>
                                                                                                     </div>
-                                                                                                    <div className="max-h-[60vh] overflow-y-auto flex flex-col gap-2 px-4">
-                                                                                                        {evs.map((e, i) => (
-                                                                                                            <StepCard
-                                                                                                                key={i}
-                                                                                                                step={e}
-                                                                                                                index={e.indexStep || i + 1}
-                                                                                                                darkMode={isDarkMode}
-                                                                                                                stepData={e.stepData}
-
-                                                                                                                handleImageClick={() => handleImageClick(e?.screenshot)}
-                                                                                                            />
-                                                                                                        ))}
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            );
-                                                                                        })()
-                                                                                    )}
-                                                                                </div>
-                                                                            )}
+                                                                                                );
+                                                                                            })()
+                                                                                        )}
+                                                                                    </div>
+                                                                                );
+                                                                            })()}
                                                                         </div>
                                                                     )}
+
                                                                 </td>
                                                             </tr>
                                                         )}
@@ -1937,7 +2047,7 @@ const TestSuiteId = () => {
                 isDarkMode={isDarkMode}
                 width="max-w-3xl"
             >
-                <div className={`p-4 ${isDarkMode ? "text-white" : "text-primary"}`}>
+                <div className={`max-h-[90vh] p-4 ${isDarkMode ? "text-white" : "text-primary"}`}>
                     <h3 className="text-lg font-semibold mb-3">Add Test Case to Suite</h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -2079,7 +2189,7 @@ const TestSuiteId = () => {
                                                 checked={selectedCaseIdsForAdd.includes(r.id)}
                                                 onChange={() => toggleSelectResult(r.id)}
                                                 onClick={(e) => e.stopPropagation()}
-                                                className={`mt-1 ${isDarkMode ? "accent-primary-blue":"accent-primary"} h-4 w-4`}
+                                                className={`mt-1 ${isDarkMode ? "accent-primary-blue" : "accent-primary"} h-4 w-4`}
                                             />
                                             <div className="flex-1">
                                                 <div className="font-medium">{r.name || "Unnamed"}</div>
