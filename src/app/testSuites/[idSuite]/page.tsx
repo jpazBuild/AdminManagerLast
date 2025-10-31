@@ -165,7 +165,7 @@ const TestSuiteId = () => {
     const [isSearchingTC, setIsSearchingTC] = useState(false);
 
     const [searchResults, setSearchResults] = useState<TestHeader[]>([]);
-    const [selectedCaseIdForAdd, setSelectedCaseIdForAdd] = useState<string>("");
+    const [selectedCaseIdsForAdd, setSelectedCaseIdsForAdd] = useState<string[]>([]);
 
     const getSelectedTagId = useCallback(() => {
         if (!selectedTag) return "";
@@ -190,6 +190,12 @@ const TestSuiteId = () => {
         const sub: any = submodules.find((s: any) => s.name === selectedSubmodule);
         return sub ? sub.id : selectedSubmodule;
     }, [selectedSubmodule, submodules]);
+
+    const toggleSelectResult = useCallback((id: string) => {
+        setSelectedCaseIdsForAdd(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
+    }, []);
 
     const [isHeadless, setIsHeadless] = useState<boolean>(true);
 
@@ -693,22 +699,24 @@ const TestSuiteId = () => {
     ]);
 
     const handleAddToSuite = useCallback(async () => {
-        if (!selectedCaseIdForAdd) {
-            toast.error("Select a test case first");
+        if (!selectedCaseIdsForAdd.length) {
+            toast.error("Select at least one test case");
             return;
         }
         try {
             const currentArray = ((suiteDetails?.batchItems?.array ?? []) as BatchItem[])
                 .map(toId)
-                .filter(Boolean)
-                .map((id) => ({ id })) as { id: string }[];
+                .filter(Boolean);
 
-            if (currentArray.some((x) => x.id === selectedCaseIdForAdd)) {
-                toast.message("This test is already in the suite.");
+            const currentSet = new Set(currentArray.map(String));
+            const toAdd = selectedCaseIdsForAdd.filter(id => !currentSet.has(String(id)));
+
+            if (toAdd.length === 0) {
+                toast.message("All selected tests are already in the suite.");
                 return;
             }
 
-            const newArray = [...currentArray, { id: selectedCaseIdForAdd }];
+            const newArray = [...currentArray, ...toAdd].map((id) => ({ id }));
             const newCount = newArray.length;
 
             await axios.patch(`${URL_API_ALB}testSuite`, {
@@ -721,30 +729,39 @@ const TestSuiteId = () => {
             });
 
             setSuiteDetails((prev) =>
-                prev
-                    ? {
-                        ...prev,
-                        batchItems: { count: newCount, array: newArray }
-                    }
-                    : prev
+                prev ? { ...prev, batchItems: { count: newCount, array: newArray } } : prev
             );
 
-            const addedHeaderRes = await axios.post(`${URL_API_ALB}getTestHeaders`, { id: selectedCaseIdForAdd });
-            const addedHeader = Array.isArray(addedHeaderRes.data) ? addedHeaderRes.data[0] : addedHeaderRes.data;
-            if (addedHeader?.id) {
+            // Traer headers de los agregados (en paralelo)
+            const addedHeadersRes = await Promise.allSettled(
+                toAdd.map((id) => axios.post(`${URL_API_ALB}getTestHeaders`, { id }))
+            );
+
+            const addedHeaders: TestHeader[] = [];
+            for (const r of addedHeadersRes) {
+                if (r.status === "fulfilled") {
+                    const d = r.value.data;
+                    const item = Array.isArray(d) ? d[0] : d;
+                    if (item?.id) addedHeaders.push(item);
+                }
+            }
+
+            if (addedHeaders.length) {
                 setSuiteTests((prev) => {
-                    const exists = prev.some((t) => t.id === addedHeader.id);
-                    return exists ? prev : [...prev, addedHeader];
+                    const seen = new Set(prev.map((t) => String(t.id)));
+                    const unique = addedHeaders.filter((h) => !seen.has(String(h.id)));
+                    return unique.length ? [...prev, ...unique] : prev;
                 });
             }
 
             setOpenAddModal(false);
-            setSelectedCaseIdForAdd("");
-            toast.success("Test case added to suite");
+            setSelectedCaseIdsForAdd([]);
+            toast.success(`${toAdd.length} test(s) added to suite`);
         } catch (e: any) {
             toast.error(e?.response?.data?.message || "Failed to update suite");
         }
-    }, [idSuite, suiteDetails?.batchItems?.array, selectedCaseIdForAdd]);
+    }, [idSuite, suiteDetails?.batchItems?.array, selectedCaseIdsForAdd]);
+
 
     const handlePlaySingle = useCallback((test: TestHeader) => {
         const latestPerTestData = getPerTestData(test.id) || {};
@@ -1193,8 +1210,8 @@ const TestSuiteId = () => {
                     <div className={`w-full mt-6 p-4 rounded-md ${surface}`}>
                         <div className="flex items-center justify-between w-full">
                             <h2 className={`text-2xl font-bold ${strongText}`}>{suiteDetails.name}</h2>
-                            <button className={`${isLoadingComputedData ? "animate-spin":""}`} onClick={computeSuiteExecutionSummary}>
-                                <RefreshCcw className="w-5 h-5" size={20}/>
+                            <button className={`${isLoadingComputedData ? "animate-spin" : ""}`} onClick={computeSuiteExecutionSummary}>
+                                <RefreshCcw className="w-5 h-5" size={20} />
                             </button>
 
                         </div>
@@ -1731,7 +1748,7 @@ const TestSuiteId = () => {
                                                                                         onSetResponseData={(next: any) =>
                                                                                             setStepsBufById(prev => ({ ...prev, [testId]: Array.isArray(next?.stepsData) ? next.stepsData : (prev[testId] || []) }))
                                                                                         }
-                                                                                        
+
                                                                                     />
                                                                                 </div>
                                                                             )}
@@ -1874,11 +1891,11 @@ const TestSuiteId = () => {
                                     <button
                                         onClick={() => setOpenAddModal(true)}
                                         className={`px-4 py-2 rounded-md font-semibold ${isDarkMode ? "bg-primary-blue/70 hover:bg-primary-blue/80 text-white" : "bg-primary/90 hover:bg-primary/85 text-white"
-                                        }`}
+                                            }`}
                                     >
                                         <PlusIcon className="w-5 h-5 mr-2 inline-block" /> Add Test Case
                                     </button>
-                                        
+
                                 </div>
                             </div>
                         )}
@@ -2031,7 +2048,8 @@ const TestSuiteId = () => {
                                 setSelectedTag(""); setSelectedGroup(""); setSelectedModule("");
                                 setSelectedSubmodule(""); setSelectedCreatedBy("");
                                 setSearchTestCaseName(""); setSearchTestCaseId("");
-                                setSearchResults([]); setSelectedCaseIdForAdd("");
+                                setSelectedCaseIdsForAdd([]);
+
                             }}
                         >
                             Clear
@@ -2040,33 +2058,50 @@ const TestSuiteId = () => {
 
                     <div className="mt-4 max-h-[45vh] overflow-y-auto rounded-md p-2">
                         {searchResults.length === 0 ? (
-                            <div className={`text-sm ${softText}`}>No results</div>
+                            <NoData text="No test cases found." darkMode={isDarkMode} />
                         ) : (
                             <ul className="space-y-2">
                                 {searchResults.map((r) => (
                                     <li
                                         key={r.id}
-                                        className={`p-2 rounded-md cursor-pointer ${isDarkMode ? "bg-gray-800" : ""}  ${selectedCaseIdForAdd === r.id ? (isDarkMode ? "bg-gray-700" : "bg-gray-100") : ""}`}
-                                        onClick={() => setSelectedCaseIdForAdd(r.id)}
+                                        onClick={() => toggleSelectResult(r.id)}
+                                        className={[
+                                            "p-2 rounded-md cursor-pointer transition",
+                                            isDarkMode ? "bg-gray-800 hover:bg-gray-700" : "hover:bg-gray-100",
+                                            selectedCaseIdsForAdd.includes(r.id)
+                                                ? (isDarkMode ? "ring-1 ring-primary-blue/60 bg-gray-700" : "ring-1 ring-primary/40 bg-gray-100")
+                                                : ""
+                                        ].join(" ")}
                                     >
-                                        <div className="font-medium">{r.name || "Unnamed"}</div>
-                                        <div className="text-xs opacity-75">ID: {r.id}</div>
-                                        {Array.isArray(r.tagNames) && r.tagNames.length > 0 && (
-                                            <div className="mt-1 flex flex-wrap gap-1">
-                                                {r.tagNames.map((t) => (
-                                                    <span key={t} className={`text-[10px] ${isDarkMode ? "bg-gray-600" : "bg-primary/20 text-primary"} px-2 py-0.5 rounded`}>
-                                                        {t}
-                                                    </span>
-                                                ))}
+                                        <div className="flex items-start gap-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedCaseIdsForAdd.includes(r.id)}
+                                                onChange={() => toggleSelectResult(r.id)}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className={`mt-1 ${isDarkMode ? "accent-primary-blue":"accent-primary"} h-4 w-4`}
+                                            />
+                                            <div className="flex-1">
+                                                <div className="font-medium">{r.name || "Unnamed"}</div>
+                                                <div className="text-xs opacity-75">ID: {r.id}</div>
+                                                {Array.isArray(r.tagNames) && r.tagNames.length > 0 && (
+                                                    <div className="mt-1 flex flex-wrap gap-1">
+                                                        {r.tagNames.map((t) => (
+                                                            <span key={t} className={`text-[10px] ${isDarkMode ? "bg-gray-600" : "bg-primary/20 text-primary"} px-2 py-0.5 rounded`}>
+                                                                {t}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {selectedCaseIdsForAdd.includes(r.id) && (
+                                                    <div className={`mt-2 text-sm font-bold ${isDarkMode ? "text-white" : "text-primary"}`}>
+                                                        <Check className="w-4 h-4 inline-block mr-1" /> Selected
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-
-                                        {selectedCaseIdForAdd === r.id && (
-                                            <div className={`mt-2 text-sm font-semibold ${isDarkMode ? "text-primary-blue" : "text-primary"}`}>
-                                                <Check className="w-4 h-4 inline-block mr-1" /> Selected
-                                            </div>
-                                        )}
+                                        </div>
                                     </li>
+
                                 ))}
                             </ul>
                         )}
@@ -2083,9 +2118,9 @@ const TestSuiteId = () => {
                             className={`px-4 py-2 rounded-md font-semibold ${isDarkMode ? "bg-primary-blue/70 hover:bg-primary-blue/80 text-white" : "bg-primary/90 hover:bg-primary/85 text-white"
                                 }`}
                             onClick={handleAddToSuite}
-                            disabled={!selectedCaseIdForAdd}
+                            disabled={selectedCaseIdsForAdd.length === 0}
                         >
-                            Add to Suite
+                            Add {selectedCaseIdsForAdd.length > 0 ? `(${selectedCaseIdsForAdd.length})` : ""} to Suite
                         </button>
                     </div>
                 </div>
