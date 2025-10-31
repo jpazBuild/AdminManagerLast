@@ -2,7 +2,7 @@
 import { DashboardHeader } from "@/app/Layouts/main";
 import { URL_API_ALB } from "@/config";
 import axios from "axios";
-import { ArrowLeft, Database, Eye, PlayIcon, Save, X, Loader2, PlusIcon, Check, File, Trash2, Settings } from "lucide-react";
+import { ArrowLeft, Database, Eye, PlayIcon, Save, X, Loader2, PlusIcon, Check, File, Trash2, Settings, RefreshCcw } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState, useCallback, Fragment } from "react";
 import UnifiedInput from "@/app/components/Unified";
@@ -223,6 +223,7 @@ const TestSuiteId = () => {
     const [filterSubmodule, setFilterSubmodule] = useState<string>("");
     const [filterStatus, setFilterStatus] = useState<"" | "passed" | "failed" | "pending">("");
     const [selectionModeById, setSelectionModeById] = useState<Record<string, boolean>>({});
+    const [isLoadingComputedData, setIsLoadingComputedData] = useState<boolean>(false);
     const [selectedStepsForReusableById, setSelectedStepsForReusableById] = useState<Record<string, number[]>>({});
     const [showReusableModalById, setShowReusableModalById] = useState<Record<string, boolean>>({});
     const transformedStepsToCopy = useCallback((steps: any[]) => steps, []);
@@ -886,6 +887,7 @@ const TestSuiteId = () => {
     };
 
     const computeSuiteExecutionSummary = useCallback(async () => {
+
         if (!suiteDetails || !suiteTests?.length) {
             setSuiteSummary({ total: 0, passed: 0, failed: 0, pending: 0 });
             setStatusById({});
@@ -896,7 +898,7 @@ const TestSuiteId = () => {
         let passed = 0;
         let failed = 0;
         const localStatus: Record<string, "passed" | "failed" | "pending"> = {};
-
+        setIsLoadingComputedData(true);
         await Promise.allSettled(
             suiteTests.map(async (t) => {
                 const testId = String(t.id);
@@ -935,6 +937,7 @@ const TestSuiteId = () => {
         const pending = Math.max(0, total - passed - failed);
         setSuiteSummary({ total, passed, failed, pending });
         setStatusById(localStatus);
+        setIsLoadingComputedData(false);
     }, [suiteDetails, suiteTests, URL_API_ALB]);
 
     useEffect(() => {
@@ -1188,7 +1191,13 @@ const TestSuiteId = () => {
 
                 {suiteDetails && !isLoadingSuiteDetails && (
                     <div className={`w-full mt-6 p-4 rounded-md ${surface}`}>
-                        <h2 className={`text-xl font-semibold ${strongText}`}>{suiteDetails.name}</h2>
+                        <div className="flex items-center justify-between w-full">
+                            <h2 className={`text-2xl font-bold ${strongText}`}>{suiteDetails.name}</h2>
+                            <button className={`${isLoadingComputedData ? "animate-spin":""}`} onClick={computeSuiteExecutionSummary}>
+                                <RefreshCcw className="w-5 h-5" size={20}/>
+                            </button>
+
+                        </div>
                         {suiteDetails.description && <p className={`mt-2 ${softText}`}>{suiteDetails.description}</p>}
 
                         <div className="mt-3 flex flex-wrap gap-2 items-center mb-4">
