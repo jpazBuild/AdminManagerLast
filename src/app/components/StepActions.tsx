@@ -179,7 +179,7 @@ const StepActions: React.FC<StepActionsProps> = ({
         }
     };
 
-    const ReusableStepActions = ({ idx,darkMode }: { idx: number,darkMode:boolean }) => {
+    const ReusableStepActions = ({ idx, darkMode }: { idx: number, darkMode: boolean }) => {
         const [localWait, setLocalWait] = useState<string>("1000");
         const [showWait, setShowWait] = useState(false);
         const [showCustom, setShowCustom] = useState(false);
@@ -383,6 +383,7 @@ const StepActions: React.FC<StepActionsProps> = ({
                 onClose={() => setIsModalOpen(false)}
                 width="max-w-3xl"
                 isDarkMode={darkMode}
+                height={"max-h-[90vh]"}
             >
                 <div className="relative">
                     {selectedReusable && (
@@ -401,7 +402,7 @@ const StepActions: React.FC<StepActionsProps> = ({
                         : "Select a Reusable Step"}
                 </h2>
 
-                <div className="flex flex-col overflow-y-auto p-4 space-y-4 min-h-[80vh]">
+                <div className="flex flex-col overflow-y-auto p-4 space-y-4">
                     {!selectedReusable ? (
                         <>
 
@@ -426,25 +427,28 @@ const StepActions: React.FC<StepActionsProps> = ({
                                 </div>
                             )}
 
-                            {!loading && filteredReusable.length === 0 && !loading ? (
-                                <div className="text-sm text-gray-500">No matches.</div>
-                            ) : (!loading &&
-                                filteredReusable.map((item) => (
-                                    <div
-                                        key={item.id}
-                                        className={`${darkMode ? "p-3 border border-gray-700 rounded-md cursor-pointer hover:bg-gray-700" : "p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100"}`}
-                                        onClick={() => {
-                                            setSelectedReusable(item);
-                                            fetchReusableSteps(item.id);
-                                        }}
-                                    >
-                                        <div className={`${darkMode ? "text-white/70" : "text-gray-600"} text-sm font-semibold`}>{item.name}</div>
-                                        <div className={`${darkMode ? "text-gray-400" : "text-gray-600"} text-sm`}>
-                                            {item.description || "No description"}
+                            <div className="flex flex-col gap-2 mb-2 h-full max-h-[50vh] overflow-y-auto">
+                                {!loading && filteredReusable.length === 0 && !loading ? (
+                                    <div className="text-sm text-gray-500">No matches.</div>
+                                ) : (!loading &&
+                                    filteredReusable.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            className={`${darkMode ? "p-3 border border-gray-700 rounded-md cursor-pointer hover:bg-gray-700" : "p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100"}`}
+                                            onClick={() => {
+                                                setSelectedReusable(item);
+                                                fetchReusableSteps(item.id);
+                                            }}
+                                        >
+                                            <div className={`${darkMode ? "text-white/70" : "text-gray-600"} text-sm font-semibold`}>{item.name}</div>
+                                            <div className={`${darkMode ? "text-gray-400" : "text-gray-600"} text-sm`}>
+                                                {item.description || "No description"}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))
-                            )}
+                                    ))
+                                )}
+                            </div>
+
                         </>
                     ) : (
                         <>
@@ -457,10 +461,10 @@ const StepActions: React.FC<StepActionsProps> = ({
                                 </div>
                             )}
 
-                            <div className="flex gap-2 mb-2">
+                            <div className="flex gap-2 mb-2 h-full max-h-[60vh] overflow-y-auto">
 
                                 <button
-                                    className={`${darkMode ? `flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md rounded text-white ${isEditingReusable ? "bg-gray-700 hover:bg-gray-600":"bg-primary-blue/80 hover:bg-primary-blue/90"}`: "flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded bg-primary/90 text-white hover:bg-primary/95"}`}
+                                    className={`${darkMode ? `flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md rounded text-white ${isEditingReusable ? "bg-gray-700 hover:bg-gray-600" : "bg-primary-blue/80 hover:bg-primary-blue/90"}` : "flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded bg-primary/90 text-white hover:bg-primary/95"}`}
                                     onClick={() => setIsEditingReusable(!isEditingReusable)}
                                 >
                                     <Edit className="mr-1 h-3 w-3" />{" "}

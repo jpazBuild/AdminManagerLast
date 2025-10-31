@@ -434,7 +434,6 @@ const Reports = () => {
   const toggleFiltersBtn =
     "flex items-center gap-2 cursor-pointer font-medium transition " +
     (darkMode ? "text-gray-200 hover:text-white" : "text-gray-700 hover:text-gray-900");
-  // const subtleText = darkMode ? "text-gray-400" : "text-gray-500";
   const disclosureHeader = darkMode ? "bg-gray-800" : "bg-primary/5";
   const disclosureBorderPassed = darkMode ? "border-l-4 border-green-500" : "border-l-4 border-green-500";
   const disclosureBorderFailed = darkMode ? "border-l-4 border-red-500" : "border-l-4 border-red-500";
@@ -444,9 +443,6 @@ const Reports = () => {
   const pillPrimary = darkMode ? "bg-primary/80 text-white" : "bg-primary/70 text-white";
   const pillSecondary = darkMode ? "bg-primary/60 text-white" : "bg-primary/50 text-white";
   const pillTertiary = darkMode ? "bg-primary/20 text-primary" : "bg-primary/20 text-primary";
-  // const inputDateCls =
-  //   "px-3 py-2 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full border " +
-  //   (darkMode ? "bg-gray-900 text-gray-100 border-gray-700 placeholder-gray-500" : "border-gray-300");
   const btnPrimary =
     "cursor-pointer flex items-center gap-2 px-4 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed" +
     (darkMode ? "bg-primary-blue/90 text-white hover:bg-primary-blue/95" : "bg-primary/90 text-white hover:bg-primary/80");

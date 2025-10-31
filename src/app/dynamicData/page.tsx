@@ -529,7 +529,6 @@ const DynamicDataCrudPage = () => {
     setPage(1);
   }, [searchDD, setPage]);
 
-  // Helpers de clases para dark / light
   const pageTitle = darkMode ? "text-gray-100" : "text-primary/80";
   const cardBase =
     "rounded-2xl shadow-md overflow-hidden border transition-colors duration-200";
@@ -1127,10 +1126,8 @@ const DynamicDataCrudPage = () => {
                                     darkMode ? "text-gray-400" : "text-gray-500";
 
                                   const switchCls =
-                                    // pista/fondo del switch
                                     (darkMode ? "bg-gray-700" : "bg-gray-300") +
                                     " data-[state=checked]:bg-primary/70 " +
-                                    // borde sutil en dark
                                     (darkMode ? " border border-gray-600" : " border border-transparent");
 
                                   return (

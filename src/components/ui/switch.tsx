@@ -11,14 +11,12 @@ function Switch({
     <SwitchPrimitive.Root
       data-slot="switch"
       className={cn(
-        // Track styles
         "relative peer inline-flex h-6 w-11 items-center rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:cursor-not-allowed disabled:opacity-50",
         "bg-input data-[state=checked]:bg-primary data-[state=unchecked]:bg-primary/80",
         className
       )}
       {...props}
     >
-      {/* Thumb styles */}
       <SwitchPrimitive.Thumb
         data-slot="switch-thumb"
         className={cn(

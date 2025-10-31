@@ -20,6 +20,7 @@ interface TagSelectorProps {
   darkMode?: boolean;
   widthComponent?: string;
   showSearch?: boolean;
+  customDarkColor?: string;
 }
 
 export const SearchField = ({
@@ -35,6 +36,7 @@ export const SearchField = ({
   darkMode = false,
   widthComponent = "w-full",
   showSearch = true,
+  customDarkColor="bg-gray-800"
 }: TagSelectorProps) => {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -110,10 +112,10 @@ export const SearchField = ({
             disabled ? "opacity-50 cursor-not-allowed" : "",
             open
               ? darkMode
-                ? "bg-gray-800 border border-transparent"
+                ? `${customDarkColor} border border-transparent`
                 : "bg-primary/15 border border-transparent"
               : darkMode
-              ? "bg-gray-800 border border-transparent"
+              ? `${customDarkColor} border border-transparent`
               : "bg-primary/10 border border-transparent",
             className,
           ].join(" ")}

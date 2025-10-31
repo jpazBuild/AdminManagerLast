@@ -33,7 +33,6 @@ const KeyValueEditor = ({
         const isObject = val && typeof val === "object" && !Array.isArray(val);
 
         if (isArrayOfObjects) {
-          // ej: selectors
           return (
             <ExpandablePanel
               key={getId(key, idx)}

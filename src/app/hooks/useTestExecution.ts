@@ -59,6 +59,7 @@ export const useTestExecution = () => {
   const socketsRef = useRef<Record<string, WebSocket | undefined>>({});
   const killSwitchRef = useRef<boolean>(false);
 
+  const reportNameByIdRef = useRef<Record<string, string>>({});
 
   useEffect(() => { testDataRef.current = testData; }, [testData]);
   useEffect(() => { stoppedRef.current = stopped; }, [stopped]);
@@ -102,6 +103,8 @@ export const useTestExecution = () => {
     activeTestsRef.current = Math.max(0, activeTestsRef.current - 1);
     runningTestsRef.current.delete(testId);
     socketsRef.current[testId] = undefined;
+    delete reportNameByIdRef.current[testId];
+
     setActiveTests(activeTestsRef.current);
     if (killSwitchRef.current) return;
     processQueue();
@@ -154,6 +157,8 @@ export const useTestExecution = () => {
       setStepsCountMap(prev => ({ ...prev, [testId]: totalCount }));
 
       const rawData = testDataRef.current?.[testId] ?? {};
+      const rn = reportNameByIdRef.current[testId] || `report-${testId}`;
+
       const payload = {
         action: "executeTest",
         testCaseId: testId,
@@ -161,6 +166,7 @@ export const useTestExecution = () => {
         testCaseName: testCase?.testCaseName || testCase?.name,
         testData: sanitizeTestData(rawData),
         temp: false,
+        reportName: rn
       };
 
       const payloadStr = JSON.stringify(payload);
@@ -294,6 +300,7 @@ export const useTestExecution = () => {
   );
 
   const runTestCaseRef = useRef(runTestCase);
+
   useEffect(() => {
     runTestCaseRef.current = runTestCase;
   }, [runTestCase]);
@@ -342,7 +349,7 @@ export const useTestExecution = () => {
     pendingSetRef.current = new Set();
     processingQueueRef.current = false;
     socketsRef.current = {};
-
+    reportNameByIdRef.current = {};
     setActiveTests(0);
 
     loadingRef.current = {};
@@ -353,7 +360,7 @@ export const useTestExecution = () => {
   }, []);
 
   const queueAddTests = useCallback(
-    (cases: any[], testDataInput?: any, headlessOverride?: boolean, isSingle: boolean = false) => {
+    (cases: any[], testDataInput?: any, headlessOverride?: boolean, isSingle: boolean = false, reportName = "report") => {
       if (typeof headlessOverride === "boolean") {
         setIsHeadless(headlessOverride);
         isHeadlessRef.current = headlessOverride;
@@ -362,7 +369,6 @@ export const useTestExecution = () => {
       const normalized = Object.fromEntries(
         Object.entries(testDataInput || {}).map(([k, v]) => [String(k), v])
       );
-
       setTestData((prev: any) => ({ ...prev, ...normalized }));
       testDataRef.current = { ...testDataRef.current, ...normalized };
 
@@ -374,6 +380,10 @@ export const useTestExecution = () => {
         if (!isSingle && (runningTestsRef.current.has(testId) || pendingSetRef.current.has(testId))) {
           return;
         }
+
+        const fallback = `report-${testId}`;
+        reportNameByIdRef.current[testId] = reportName || fallback;
+
         newLoading[testId] = true;
         newStopped[testId] = false;
 
@@ -419,7 +429,8 @@ export const useTestExecution = () => {
   const runSingleTest = async (
     testCase: any,
     testDataForThisTest?: any,
-    headlessOverride?: boolean
+    headlessOverride?: boolean,
+    reportName?: string
   ) => {
     const testId = String(testCase?.id);
     const perTest = testDataForThisTest
@@ -428,7 +439,7 @@ export const useTestExecution = () => {
     console.log(`▶️ Ejecutando single test ${testId}`, { perTest, headlessOverride });
 
     setReports(prev => prev.filter(r => r.testCaseId !== testId));
-    queueAddTests([testCase], perTest, headlessOverride, true);
+    queueAddTests([testCase], perTest, headlessOverride, true, reportName);
   };
 
   const stopTest = (

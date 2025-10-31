@@ -12,8 +12,8 @@ export function useLockScrollBubbling(ref: React.RefObject<HTMLElement>) {
       const { scrollTop, scrollHeight, clientHeight } = el;
       const delta = e.deltaY;
       if (
-        (delta < 0 && scrollTop === 0) || // scroll up at top
-        (delta > 0 && scrollTop + clientHeight >= scrollHeight) // scroll down at bottom
+        (delta < 0 && scrollTop === 0) ||
+        (delta > 0 && scrollTop + clientHeight >= scrollHeight)
       ) {
         e.preventDefault();
       }

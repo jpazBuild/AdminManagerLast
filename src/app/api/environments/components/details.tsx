@@ -26,7 +26,7 @@ interface EnvironmentDetailsProps {
     removeRow: (id: string) => void;
 
     isDirty: boolean;
-    onSave: (opts?: { nameOverride?: string }) => void | Promise<void>; // <-- acepta override
+    onSave: (opts?: { nameOverride?: string }) => void | Promise<void>;
     saving: boolean;
     confirmReset: () => void;
 

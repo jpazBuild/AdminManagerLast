@@ -244,7 +244,7 @@ const ReportUI = ({
                 key={`report-${testcaseId}`}
                 className="text-primary w-full p-1 shadow-md rounded-lg flex flex-col"
             >
-                <span className="mt-3 text-xl font-semibold tracking-wide pb-2 mb-2 self-center text-primary/80">Report</span>
+                <span className={`mt-3 text-xl font-semibold tracking-wide pb-2 mb-2 self-center ${darkMode ?"text-white/90":"text-primary/80"}`}>Report</span>
                 <div className="flex flex-col gap-4">
                     {result?.map((step: StepEvent) => {
                         return (

@@ -664,8 +664,9 @@ const SortableTestCaseItem: React.FC<Props> = ({
                     onClose={handleAccordionToggle}
                     width="max-w-2/3"
                     isDarkMode={isDarkMode}
+                    height="h-full max-h-[90vh]"
                 >
-                    <div className={`flex flex-col w-full px-6 pb-6 pt-2 ${isDarkMode ? ' text-white' : 'bg-white text-primary'}`}>
+                    <div className={`flex flex-col max-h-[80vh] overflow-y-auto w-full px-6 pb-6 pt-2 ${isDarkMode ? ' text-white' : 'bg-white text-primary'}`}>
                         <TabsUnderline isDarkMode={isDarkMode} value={viewMode} setValue={handleViewModeChange} defaultValue="data" tabs={[
                             {
                                 name: 'Data', value: 'Data', icon: <File className="ml-1 h-5 w-5" />,
@@ -732,7 +733,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                             {
                                 name: 'Steps', value: 'Steps', icon: <Eye className="ml-1 h-5 w-5" />,
                                 content: (
-                                    <div className="w-full text-primary/80">
+                                    <div className="w-full text-primary/80 max-h-[80vh] flex flex-col">
                                         <div className={styleClasses.stepsStickyHeader}>
                                             <div className="flex flex-wrap items-center gap-4 justify-between">
                                                 <div className="flex items-center gap-2 font-semibold">
@@ -770,9 +771,9 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="w-full max-h-[70vh] flex flex-col gap-2 overflow-y-auto" >
+                                        <div className="w-full max-h-[60vh] flex flex-col gap-2 overflow-y-auto" >
                                             {!isLoadingTest && responseTest?.stepsData?.map((step: any, i: number) => (
-                                                <div key={i} className="flex flex-col gap-2">
+                                                <div key={i} className="flex flex-col gap-2 max-h-[60vh] ">
                                                     <>
                                                         <div
                                                             className={getStepSelectionClasses(i)}

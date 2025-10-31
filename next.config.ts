@@ -6,7 +6,6 @@ const nextConfig: NextConfig = {
     resolveAlias: {
       "refractor/lib/core": "refractor/core",
       "refractor/lib/all": "refractor/all",
-      // If you ever switch to the HLJS build:
       "lowlight/lib/core": "lowlight/core",
     },
   },

@@ -101,7 +101,7 @@ export const FakerInputWithAutocomplete: React.FC<Props> = ({
     if (input === lastInputRef.current) return;
     lastInputRef.current = input;
 
-    const pathParts = input.slice(6).split('.'); // Remove 'faker.'
+    const pathParts = input.slice(6).split('.');
     const searchTerm = pathParts.pop()?.toLowerCase() || '';
     const basePath = pathParts.length > 0 ? `faker.${pathParts.join('.')}` : 'faker';
     

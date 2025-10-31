@@ -1,4 +1,3 @@
-// types auxiliares (puedes moverlos arriba de useFlowRunner)
 type ApiStep = {
   startedAt?: number;
   completedAt?: number;
@@ -11,12 +10,11 @@ type ApiStep = {
 
 export type ExecutedApi = {
   name: string;
-  order: number;         // primer avistamiento para ordenar
-  request?: ApiStep;     // info de request
-  test?: ApiStep;        // info del test script (listen: "test")
+  order: number;
+  request?: ApiStep;
+  test?: ApiStep; 
 };
 
-// Detecta tipo y nombre a partir de `payload.item`
 function parseItem(item?: string): { kind: "request" | "test" | "iteration" | "other"; name?: string } {
   const txt = String(item || "");
   if (/^Running request:\s*/i.test(txt)) {
@@ -37,10 +35,8 @@ function parseItem(item?: string): { kind: "request" | "test" | "iteration" | "o
   return { kind: "other" };
 }
 
-// Determina si el mensaje es ruido/ignorable
 function isIgnorable(payload: any): boolean {
   if (!payload) return true;
-  // Mensajes de “processing/iteration/completed de iteración”
   if (payload?.response === "Processing...") return true;
   const item = String(payload?.item || "");
   if (/^Running iteration:/i.test(item)) return true;
@@ -48,7 +44,6 @@ function isIgnorable(payload: any): boolean {
   return false;
 }
 
-// Construye el merge por flow a partir del array de messages
 export function buildExecutedApis(messages: Array<{ ts: number; kind: string; payload: any }>): ExecutedApi[] {
   const map = new Map<string, ExecutedApi>();
   let orderCounter = 0;
@@ -58,7 +53,6 @@ export function buildExecutedApis(messages: Array<{ ts: number; kind: string; pa
     const p = m?.payload;
     if (!p) continue;
 
-    // Captura summary del mensaje final si viene
     const isDone =
       (m.kind === "done") ||
       (p?.routeKey === "runApis" && p?.response?.message === "APIs run completed");
@@ -69,26 +63,21 @@ export function buildExecutedApis(messages: Array<{ ts: number; kind: string; pa
       if (Array.isArray(results)) finalSummaryResults = results;
     }
 
-    // Filtra ruido
     if (isIgnorable(p)) continue;
 
     const { kind, name } = parseItem(p?.item);
     if (!name || (kind !== "request" && kind !== "test")) continue;
 
-    // Crea/obtiene registro de la API por nombre
     if (!map.has(name)) {
       map.set(name, { name, order: orderCounter++ });
     }
     const entry = map.get(name)!;
 
-    // Merge según el tipo + contenido del response
     const resp = p?.response || {};
     if (kind === "request") {
-      // "Running request: X" no trae status, marcamos started
       if (/^Running request:/i.test(String(p.item))) {
         entry.request = { ...(entry.request || {}), startedAt: entry.request?.startedAt ?? m.ts };
       }
-      // "Request completed: X" trae toda la info
       if (/^Request completed:/i.test(String(p.item))) {
         entry.request = {
           ...(entry.request || {}),
@@ -102,11 +91,9 @@ export function buildExecutedApis(messages: Array<{ ts: number; kind: string; pa
         };
       }
     } else if (kind === "test") {
-      // "Running test script: X"
       if (/^Running test script:/i.test(String(p.item))) {
         entry.test = { ...(entry.test || {}), startedAt: entry.test?.startedAt ?? m.ts };
       }
-      // "Test script completed: X"
       if (/^Test script completed:/i.test(String(p.item))) {
         entry.test = {
           ...(entry.test || {}),
@@ -119,12 +106,11 @@ export function buildExecutedApis(messages: Array<{ ts: number; kind: string; pa
     }
   }
 
-  // Merge con summary.results (si vino en el “done”)
   if (finalSummaryResults) {
     for (const r of finalSummaryResults) {
       const name = r?.name;
       if (!name) continue;
-      if (!map.has(name)) map.set(name, { name, order: 9999 }); // por si sólo vino en el summary
+      if (!map.has(name)) map.set(name, { name, order: 9999 });
       const entry = map.get(name)!;
 
       if (r?.type === "request") {
@@ -132,7 +118,6 @@ export function buildExecutedApis(messages: Array<{ ts: number; kind: string; pa
           ...(entry.request || {}),
           success: r?.success,
           status: r?.status ?? entry.request?.status,
-          // el summary no siempre trae request/response completos, mantenemos los ya vistos
         };
       } else if (r?.type === "script" && r?.listen === "test") {
         entry.test = {
@@ -143,7 +128,6 @@ export function buildExecutedApis(messages: Array<{ ts: number; kind: string; pa
     }
   }
 
-  // Sólo las APIs que realmente tuvieron request o test (ejecutadas)
   const executed = Array
     .from(map.values())
     .filter(e => e.request || e.test)

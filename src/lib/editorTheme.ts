@@ -11,7 +11,6 @@ export const editorTheme = {
   code: "block w-full rounded-md font-mono text-xs px-4 py-3 overflow-auto " +
         "bg-[#fafafa] text-[#383a42] dark:bg-[#282c34] dark:text-[#abb2bf]",
   codeHighlight: {
-    // opcional: añade clases por token si quieres
   },
   heading: {
     h1: "text-2xl font-bold",

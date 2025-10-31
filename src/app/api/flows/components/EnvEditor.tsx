@@ -57,7 +57,6 @@ const EnvEditor: React.FC<Props> = ({
   const [name, setName] = useState(() => initialName || "");
   const [rows, setRows] = useState<KV[]>(() => mapEnvToRows(initialEnv));
 
-  // Evita reinit infinito: solo sincroniza si initialEnv realmente difiere de lo que ya hay en filas
   const prevInitEnvKeyRef = useRef<string | null>(null);
   useEffect(() => {
     const currentFromRows = rowsToEnv(rows);
@@ -73,7 +72,7 @@ const EnvEditor: React.FC<Props> = ({
       setRows(mapEnvToRows(initialEnv));
       prevInitEnvKeyRef.current = nextKey;
     }
-  }, [initialEnv]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initialEnv]);
 
   const addRow = () => setRows((p) => [...p, { id: newId(), enabled: true, key: "", value: "" }]);
   const updateRow = (id: string, patch: Partial<KV>) =>
@@ -89,7 +88,6 @@ const EnvEditor: React.FC<Props> = ({
     };
   }, [rows, name, environmentInfo?.createdByName]);
 
-  // Notifica draft al padre solo si cambió realmente (evita bucle)
   const lastDraftRef = useRef<{ name: string; env: Record<string, string> } | null>(null);
   useEffect(() => {
     if (!onChangeDraft) return;

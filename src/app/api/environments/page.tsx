@@ -132,12 +132,10 @@ const EnvironmentsPage = () => {
         try {
             if (sourceType === "values") {
                 const payload = buildSavePayload(selectedEnvironment, rows, sourceType);
-                // Normaliza y aplica overrides
                 delete (payload as any).createdAt;
                 delete (payload as any).type;
                 delete (payload as any).route;
                 renameKey(payload, "createdByName", "updatedBy");
-                // <-- aplicar el nombre nuevo en el mismo PATCH
                 payload.name = effectiveName;
 
                 await axios.patch(`${URL_API_ALB}envs`, payload);

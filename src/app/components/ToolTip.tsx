@@ -1,35 +1,3 @@
-// import {
-//   Tooltip,
-//   TooltipContent,
-//   TooltipTrigger,
-// } from "@/components/ui/tooltip"
-
-// import { ReactNode } from "react";
-
-// interface TooltipLocationProps {
-//   children: ReactNode;
-//   text: string;
-//   position?: "top" | "right" | "bottom" | "left";
-// }
-
-// const TooltipLocation = ({ children, text,position }: TooltipLocationProps) => {
-//   return (
-//     <Tooltip>
-//       <TooltipTrigger asChild>
-//         {children}
-//       </TooltipTrigger>
-//       <TooltipContent side={position} className="bg-primary text-white/80 w-48 p-2 font-semibold text-sm">
-//         <p>{text}</p>
-//       </TooltipContent>
-//     </Tooltip>
-//   );
-// }
-
-
-// export default TooltipLocation;
-
-
-// TooltipLocation.tsx
 "use client"
 
 import * as React from "react"

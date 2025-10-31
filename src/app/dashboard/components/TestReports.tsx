@@ -33,6 +33,9 @@ type TestReportsProps = {
   darkMode?: boolean;
   stopAll?: any;
   isLoadingSearch?: boolean;
+  showOnlySingletest?: boolean;
+  onFinalStatus?: (reportId: string, final: "completed" | "failed", latestStep?: any) => void;
+
 };
 
 const TestReports = ({
@@ -49,13 +52,21 @@ const TestReports = ({
   onRunPending,
   stopAll,
   darkMode = false,
-  isLoadingSearch
+  isLoadingSearch,
+  showOnlySingletest = false,
+  onFinalStatus,
 }: TestReportsProps) => {
   const [expandedReports, setExpandedReports] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState<FilterKey>("all");
   const { stopTest } = useTestExecution();
   const stepMap: Record<string, { connectionId: string; steps: Record<number, any> }> = {};
   const containerRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const lastNotifiedRef = useRef<Record<string, "completed" | "failed">>({});
+
+  const getPct = useCallback(
+    (id: string) => progress.find((p: any) => p.testCaseId === id)?.percent ?? 0,
+    [progress]
+  );
 
   reports.forEach((report: any) => {
     const testCaseId = report.testCaseId || report.id;
@@ -93,6 +104,29 @@ const TestReports = ({
     if (latest?.ev?.action === "Test execution failed" && status === "failed") return "failed";
     return "pending";
   };
+
+  useEffect(() => {
+    if (!Array.isArray(selectedTest) || selectedTest.length === 0) return;
+
+    selectedTest.forEach((t: any) => {
+      const reportId = String(t.id || t.testCaseId);
+      const latest = getLatestFor(reportId);
+      const action = (latest?.ev?.action || latest?.ev?.Action || "").toLowerCase();
+      const status = (latest?.ev?.status || latest?.ev?.finalStatus || "").toLowerCase();
+      const pct = getPct(reportId);
+
+      const isCompleted = action === "Test execution completed" && status === "completed";
+      const isFailed = action === "Test execution failed" && status === "failed";
+
+      if (pct === 100 && (isCompleted || isFailed)) {
+        const finalKey: "completed" | "failed" = isCompleted ? "completed" : "failed";
+        if (lastNotifiedRef.current[reportId] !== finalKey) {
+          lastNotifiedRef.current[reportId] = finalKey;
+          onFinalStatus?.(reportId, finalKey, latest?.ev);
+        }
+      }
+    });
+  }, [selectedTest, steps, progress, onFinalStatus, getPct]);
 
   const { successList, failedList, pendingList } = useMemo(() => {
     const succ: any[] = [];
@@ -188,7 +222,7 @@ const TestReports = ({
     [setFilter]
   );
 
-  const TabBtn = ({ k, label, count,darkMode }: { k: FilterKey; label: string; count: number,darkMode?:boolean }) => {
+  const TabBtn = ({ k, label, count, darkMode }: { k: FilterKey; label: string; count: number, darkMode?: boolean }) => {
     const active = filter === k;
     return (
       <button
@@ -202,8 +236,8 @@ const TestReports = ({
           active
             ? `${darkMode ? "bg-primary-blue/50 text-white border-primary-blue/50" : "bg-primary/90 text-white border-primary"}`
             : darkMode
-            ? "bg-gray-800 text-white/70 border-white/10 hover:bg-gray-700"
-            : "bg-white text-primary/60 border-slate-200 hover:bg-slate-50 shadow-md",
+              ? "bg-gray-800 text-white/70 border-white/10 hover:bg-gray-700"
+              : "bg-white text-primary/60 border-slate-200 hover:bg-slate-50 shadow-md",
         ].join(" ")}
       >
         <span className="inline-flex items-center gap-2">
@@ -225,11 +259,13 @@ const TestReports = ({
     return pct > 0 && pct < 100 && !stopped[id];
   };
 
+
+
   return (
     <div className={`space-y-6 mt-6 flex flex-col overflow-y-auto w-full ${darkMode ? "text-white" : "text-primary"}`}>
       {!isLoadingSearch && selectedTest.length === 0 && <EmptyStateSelectAnimation darkMode={darkMode} />}
 
-      {totalTests > 0 && (
+      {!showOnlySingletest && totalTests > 0 && (
         <div className="space-y-2">
           <ExecutionSummary darkMode={darkMode} totalSuccess={totalSuccess} totalFailed={totalFailed} totalPending={totalPending} />
 
@@ -237,7 +273,7 @@ const TestReports = ({
             <div className="flex flex-wrap items-center gap-2">
               <TabBtn darkMode={darkMode} k="all" label="All" count={totalTests} />
               <TabBtn darkMode={darkMode} k="success" label="Success" count={totalSuccess} />
-              <TabBtn darkMode={darkMode}  k="failed" label="Failed" count={totalFailed} />
+              <TabBtn darkMode={darkMode} k="failed" label="Failed" count={totalFailed} />
               <TabBtn darkMode={darkMode} k="pending" label="Pending" count={totalPending} />
             </div>
 
@@ -304,7 +340,7 @@ const TestReports = ({
         </div>
       )}
 
-      {totalTests > 0 && paginatedSelectedTests.length > 0 && (
+      {!showOnlySingletest && totalTests > 0 && paginatedSelectedTests.length > 0 && (
         <PaginationResults darkMode={darkMode} totalItems={totalItems} pageSize={pageSize} setPageSize={setPageSize} page={page} setPage={setPage} />
       )}
 
@@ -430,54 +466,70 @@ const TestReports = ({
                 )}
               </div>
 
-              <Card
-                className={[
-                  "relative cursor-pointer shadow-lg transition-all duration-300 hover:shadow-xl border-3 border-l-4 rounded-xl overflow-hidden",
-                  darkMode ? "bg-gray-800 text-white" : "bg-white",
-                  isFailed ? "border-red-500" : stopped[reportId] ? "border-gray-400" : progressValue === 0 ? "border-blue-500" : progressValue < 100 ? "border-yellow-500" : "border-emerald-500",
-                ].join(" ")}
-                onClick={() => toggleReport(reportId)}
-              >
-                <div className="relative h-28 p-2">
-                  <div className="absolute top-0 left-3">
-                    <span
-                      className={[
-                        "flex items-center text-white px-3 py-1 rounded-full text-xs font-semibold shadow-md",
-                        darkMode ? "bg-linear-to-r from-gray-600 to-gray-800" : "bg-linear-to-r from-primary/90 to-primary/80",
-                      ].join(" ")}
-                    >
-                      {reportId} <CopyToClipboard text={reportId} isDarkMode={darkMode} />
-                    </span>
-                  </div>
+              {!showOnlySingletest && (
+                <Card
+                  className={[
+                    "relative cursor-pointer shadow-lg transition-all duration-300 hover:shadow-xl border-3 border-l-4 rounded-xl overflow-hidden",
+                    darkMode ? "bg-gray-800 text-white" : "bg-white",
+                    isFailed ? "border-red-500" : stopped[reportId] ? "border-gray-400" : progressValue === 0 ? "border-blue-500" : progressValue < 100 ? "border-yellow-500" : "border-emerald-500",
+                  ].join(" ")}
+                  onClick={() => toggleReport(reportId)}
+                >
+                  <div className="relative h-28 p-2">
+                    <div className="absolute top-0 left-3">
+                      <span
+                        className={[
+                          "flex items-center text-white px-3 py-1 rounded-full text-xs font-semibold shadow-md",
+                          darkMode ? "bg-linear-to-r from-gray-600 to-gray-800" : "bg-linear-to-r from-primary/90 to-primary/80",
+                        ].join(" ")}
+                      >
+                        {reportId} <CopyToClipboard text={reportId} isDarkMode={darkMode} />
+                      </span>
+                    </div>
 
-                  <div className="flex flex-col justify-between h-full pt-8">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className={["text-lg font-bold truncate pr-4 leading-tight", darkMode ? "text-white" : "text-gray-800"].join(" ")}>
-                        {test.name || test.testCaseName || "Unnamed Test"}
-                      </CardTitle>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <Badge
-                          className={[
-                            "text-white font-bold px-3 py-1",
-                            isFailed ? "bg-red-500" : stopped[reportId] ? "bg-gray-500" : progressValue === 0 ? "bg-blue-500" : progressValue < 100 ? "bg-yellow-500" : "bg-green-500",
-                          ].join(" ")}
-                        >
-                          {progressValue}%
-                        </Badge>
-                        <div className={darkMode ? "text-white/60 transition-transform duration-200" : "text-gray-400 transition-transform duration-200"}>
-                          {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
+                    <div className="flex flex-col justify-between h-full pt-8">
+                      <div className="flex justify-between items-start">
+                        <CardTitle className={["text-lg font-bold truncate pr-4 leading-tight", darkMode ? "text-white" : "text-gray-800"].join(" ")}>
+                          {test.name || test.testCaseName || "Unnamed Test"}
+                        </CardTitle>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <Badge
+                            className={[
+                              "text-white font-bold px-3 py-1",
+                              isFailed ? "bg-red-500" : stopped[reportId] ? "bg-gray-500" : progressValue === 0 ? "bg-blue-500" : progressValue < 100 ? "bg-yellow-500" : "bg-green-500",
+                            ].join(" ")}
+                          >
+                            {progressValue}%
+                          </Badge>
+                          <div className={darkMode ? "text-white/60 transition-transform duration-200" : "text-gray-400 transition-transform duration-200"}>
+                            {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="mt-3">
-                      <ProgressBar darkMode={darkMode} stopped={!!stopped[reportId]} progressValue={progressValue} finalStatus={finalStatus} />
+                      <div className="mt-3">
+                        <ProgressBar darkMode={darkMode} stopped={!!stopped[reportId]} progressValue={progressValue} finalStatus={finalStatus} />
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Card>
+                </Card>
+              )}
+              {showOnlySingletest && (
+                <div className="w-full px-2 flex flex-col items-center">
+                  <Badge
+                    className={[
+                      `${darkMode ? "text-primary" : "text-white"} text-[14px] font-bold px-3 py-1`,
+                      isFailed ? "bg-red-500" : stopped[reportId] ? "bg-gray-500" : progressValue === 0 ? "bg-blue-500" : progressValue < 100 ? "bg-yellow-500" : "bg-green-500",
+                      darkMode ? "opacity-85" : "opacity-100",
+                    ].join(" ")}
+                  >
+                    {progressValue}%
+                  </Badge>
+                  <ProgressBar darkMode={darkMode} stopped={!!stopped[reportId]} progressValue={progressValue} finalStatus={finalStatus} />
 
-              {isExpanded && (test?.stepsData || test?.stepsIds) && (
+                </div>
+              )}
+              {(isExpanded || showOnlySingletest) && (test?.stepsData || test?.stepsIds) && (
                 <div className="p-1 max-h-[60vh] overflow-y-auto" ref={(el) => { containerRefs.current[reportId] = el; }}>
                   <ReportUI
                     testcaseId={reportId}
@@ -513,7 +565,7 @@ const ProgressBar = ({
   const animatedText = isCompleted ? (finalStatus === "failed" ? "Failed" : "Completed") : stopped ? "Stopped" : "In progress";
   return (
     <div className="flex w-full items-center gap-4 mb-4 pb-4">
-      <Progress colorProgress={`${darkMode ? "bg-white/90":"bg-primary"}`} colorBase={`${darkMode ? "bg-white/30":"bg-primary/20"}`} value={progressValue} className="h-2 flex-1 " />
+      <Progress colorProgress={`${darkMode ? "bg-primary-blue/20" : "bg-primary"}`} colorBase={`${darkMode ? "bg-white/30" : "bg-primary/20"}`} value={progressValue} className="h-2 flex-1 " />
       <span
         className={[
           "text-sm",

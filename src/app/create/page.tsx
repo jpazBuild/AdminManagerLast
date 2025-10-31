@@ -114,7 +114,6 @@ const CreateForm = () => {
     const [dataToDelete, setDataToDelete] = useState<{ id: string; type: Tab } | null>(null);
     const [isLoadingDelete, setIsLoadingDelete] = useState(false);
 
-    // ===== Fetchers
     const fetchUsers = async () => {
         try {
             setLoadingUsers(true);
@@ -428,7 +427,6 @@ const CreateForm = () => {
         }
     };
 
-    // ===== Edit
     const openEdit = (type: Tab, entity: any) => {
         setEditEntityType(type);
         setEditEntity(entity);

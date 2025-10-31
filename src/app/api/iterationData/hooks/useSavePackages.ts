@@ -24,7 +24,7 @@ const buildBody = (pkg: Pkg) => {
   const nested = rowsToNested(pkg.rows);
   return {
     id: pkg.id,
-    tagNames: pkg.tagNames ?? [], // 👈 enviar tags
+    tagNames: pkg.tagNames ?? [],
     name: pkg.name,
     description: pkg.description ?? "",
     iterationData: [

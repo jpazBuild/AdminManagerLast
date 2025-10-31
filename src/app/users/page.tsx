@@ -29,7 +29,6 @@ const UsersPage = () => {
     const [editForm, setEditForm] = useState<{ name: string; passwordHash?: string }>({ name: "" });
     const [q, setQ] = useState("");
 
-    // ===== UI helpers (dark mode)
     const surface = darkMode ? "bg-gray-900 border-gray-700" : "bg-white border-gray-200";
     const subSurface = darkMode ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-200";
     const cardBg = darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200";

@@ -14,9 +14,9 @@ export type IterationHeader = {
 export type Row = { id: string; variable: string; value: string };
 
 export type IterBlock = {
-  id: string;        // UI id
-  label: string;     // “Tag 1”, “Tag 2”, etc
-  rows: Row[];       // pares variable/value de esa iteración
+  id: string; 
+  label: string;
+  rows: Row[];
 };
 
 export type DetailResponse = {

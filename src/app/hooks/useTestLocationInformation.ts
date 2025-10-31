@@ -52,7 +52,6 @@ export const useTestLocationInformation = () => {
         return sub ? sub.id : selectedSubmodule;
     }, [selectedSubmodule, submodules]);
 
-    // fetchers
     const fetchTags = useCallback(async () => {
         try {
             safeSet(setIsLoadingTags)(true);

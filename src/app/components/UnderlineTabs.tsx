@@ -23,11 +23,10 @@ export const UnderlineTabs: React.FC<UnderlineTabsProps> = ({
   const btnRefs   = useRef<(HTMLButtonElement | null)[]>([]);
   const [pos, setPos] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
 
-  // ✅ ref callback que NO devuelve nada
   const setBtnRef = useCallback(
     (i: number): React.RefCallback<HTMLButtonElement> =>
       (el: HTMLButtonElement | null) => {
-        btnRefs.current[i] = el; // <- sin return
+        btnRefs.current[i] = el;
       },
     []
   );
@@ -68,21 +67,6 @@ export const UnderlineTabs: React.FC<UnderlineTabsProps> = ({
     <div className={`w-full ${className} pb-4`}>
       <div ref={headerRef} className="flex gap-10 justify-start w-full">
         {tabs.map((t, i) => (
-        //   <button
-        //     key={t}
-        //     ref={setBtnRef(i)}
-        //     type="button"
-        //     role="tab"
-        //     aria-selected={value === t}
-        //     onClick={() => onChange(t)}
-        //     className={[
-        //       "pb-2 text-lg transition-colors",
-        //       value === t ? "text-[#0f2647] font-semibold" : "text-slate-500 hover:text-slate-700",
-        //     ].join(" ")}
-        //   >
-        //     {t}
-        //   </button>
-
         <ButtonTab
             key={t}
             label={t}

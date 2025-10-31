@@ -31,12 +31,12 @@ export const Dashboard = ({children,onToggleDarkMode}:any) => {
                     {mobileMenuOpen ? <FaTimes /> : <FaBars />}
                 </button>
                 <h1 className="text-xl font-bold">Admin Manager</h1>
-                <button
+                {/* <button
                     onClick={toggleDarkMode}
                     className="text-2xl p-2 cursor-pointer rounded-md focus:outline-none focus:ring-2 focus:ring-[#021d3d]/50"
                 >
                     {darkMode ? <WiDaySunny /> : <CiDark />}
-                </button>
+                </button> */}
             </header>
 
             <aside

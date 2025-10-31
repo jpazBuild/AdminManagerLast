@@ -304,10 +304,10 @@ const UnifiedInput: React.FC<UnifiedInputProps> = ({
                     <button
                         type="button"
                         onClick={clearInput}
-                        className={`absolute ${enableFaker ? 'right-3' : 'right-3'} top-1/2 -translate-y-1/2 ${enableFaker
-                                ? "text-primary/80 hover:text-primary/90"
+                        className={`absolute cursor-pointer ${enableFaker ? 'right-3' : 'right-3'} top-1/2 -translate-y-1/2 ${enableFaker
+                                ? ""
                                 : isDarkMode
-                                    ? "text-white/90 hover:text-white/80"
+                                    ? "text-white/90 hover:text-gray/60"
                                     : "text-primary/80 hover:text-primary/90"
                             }`}
                     >
