@@ -67,7 +67,9 @@ const TestSuitesPage = () => {
     const [usersAll, setUsersAll] = useState<any[]>([]);
     const [loadingTags, setLoadingTags] = useState(false);
     const [loadingUsers, setLoadingUsers] = useState(false);
-
+    const [openDeleteModal, setOpenDeleteModal] = useState(false);
+    const [suiteToDelete, setSuiteToDelete] = useState<Suite | null>(null);
+    const [isLoadingDelete, setIsLoadingDelete] = useState(false);
     const userOptionsCreate = useMemo(
         () => (usersAll || []).map((u: any) => ({ label: u.name, value: u.name })),
         [usersAll]
@@ -174,11 +176,14 @@ const TestSuitesPage = () => {
 
     const deleteSuite = async (id: string) => {
         try {
+            setIsLoadingDelete(true);
             await axios.delete(`${URL_API_ALB}testSuite`, { data: { id } });
             toast.success("Suite deleted");
             await fetchDataSuites();
         } catch {
             toast.error("Failed to delete suite");
+        }finally{
+            setIsLoadingDelete(false);
         }
     };
 
@@ -219,7 +224,7 @@ const TestSuitesPage = () => {
         items: paginatedSelectedTests,
     } = usePagination(filtered, 10);
     return (
-        <DashboardHeader onDarkModeChange={setIsDarkMode}>
+        <DashboardHeader onDarkModeChange={setIsDarkMode} hiddenSide={openDeleteModal || openCreateModal}>
             <div className="flex flex-col items-center w-full gap-4">
                 <h1 className={`text-2xl font-semibold ${strong}`}>Test Suites</h1>
 
@@ -327,14 +332,9 @@ const TestSuitesPage = () => {
                                                 View Details
                                             </Link>
                                             <button
-                                                onClick={async () => {
-                                                    if (
-                                                        confirm(
-                                                            `Delete test suite "${suite.name}"?\nThis action cannot be undone.`
-                                                        )
-                                                    ) {
-                                                        await deleteSuite(suite.id);
-                                                    }
+                                                onClick={() => {
+                                                    setSuiteToDelete(suite);
+                                                    setOpenDeleteModal(true);
                                                 }}
                                                 className={`cursor-pointer ${isDarkMode ? "bg-gray-700 hover:bg-gray-600" : "bg-gray-200 hover:bg-gray-300"} flex items-center gap-2 px-3 py-2 rounded-md`}
                                             >
@@ -352,6 +352,42 @@ const TestSuitesPage = () => {
                     </div>
                 )}
             </div>
+            
+            <ModalCustom
+                open={openDeleteModal}
+                onClose={() => setOpenDeleteModal(false)}
+                isDarkMode={isDarkMode}
+                width="max-w-md"
+            >
+                <div className={`p-4 flex flex-col ${isDarkMode ? "text-white" : "text-primary"}`}>
+                    <RiInformation2Line className="inline-block w-12 h-12 mb-1 mr-2 text-primary-blue self-center" />
+                    <h3 className="text-lg font-semibold mb-3">Delete Test Suite</h3>
+                    <p>Are you sure you want to delete the test suite <strong>{suiteToDelete?.name}</strong>? This action cannot be undone.</p>
+
+                    <div className="mt-6 flex w-full gap-2">
+                        <button
+                            disabled={isLoadingDelete}
+                            className={`w-full px-4 py-2 rounded-md border ${isLoadingDelete?"cursor-not-allowed":""} ${isDarkMode ? "border-gray-600" : "border-gray-300"}`}
+                            onClick={() => setOpenDeleteModal(false)}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            className={`w-full px-4 py-2 rounded-md font-semibold ${isDarkMode ? "bg-red-600/80 hover:bg-red-600/90 text-white" : "bg-red-500/90 hover:bg-red-500/80 text-white"}`}
+                            onClick={async () => {
+                                if (suiteToDelete) {
+                                    await deleteSuite(suiteToDelete.id);
+                                    setOpenDeleteModal(false);
+                                }
+                            }}
+                            disabled={isLoadingDelete}
+                        >
+                            {isLoadingDelete ? "Deleting..." : "Delete"}
+                        </button>
+                    </div>
+                </div>
+            </ModalCustom>
+
 
             <ModalCustom
                 open={openCreateModal}
