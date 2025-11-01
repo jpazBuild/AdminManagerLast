@@ -14,6 +14,7 @@ type CollectionTreeProps = {
     displayName: string;
     node: any;
   }) => void;
+  darkMode?: boolean;
 };
 
 const CollectionTree: React.FC<CollectionTreeProps> = ({
@@ -22,6 +23,7 @@ const CollectionTree: React.FC<CollectionTreeProps> = ({
   colName,
   httpMethodsStyle,
   onSelectRequest,
+  darkMode = false,
 }) => {
   const [openFolder, setOpenFolder] = useState<Record<string, boolean>>({});
 
@@ -47,16 +49,18 @@ const CollectionTree: React.FC<CollectionTreeProps> = ({
       return (
         <li key={key} className="select-none">
           <div
-            className="flex items-center gap-2 cursor-pointer text-primary/80"
+            className={`flex items-center gap-2 cursor-pointer ${
+              darkMode ? "text-gray-200" : "text-primary/80"
+            }`}
             onClick={() => toggleFolderOpen(key)}
           >
             {isOpen ? (
-              <ChevronDown className="w-4 h-4 text-primary" />
+              <ChevronDown className={`w-4 h-4 ${darkMode ? "text-gray-300" : "text-primary"}`} />
             ) : (
-              <ChevronRight className="w-4 h-4 text-primary" />
+              <ChevronRight className={`w-4 h-4 ${darkMode ? "text-gray-300" : "text-primary"}`} />
             )}
-            <Folder className="w-4 h-4 text-primary" />
-            <span className="font-medium">{displayName}</span>
+            <Folder className={`w-4 h-4 ${darkMode ? "text-gray-300" : "text-primary"}`} />
+            <span className={`font-medium ${darkMode ? "text-gray-100" : ""}`}>{displayName}</span>
           </div>
 
           {isOpen && (
@@ -80,7 +84,9 @@ const CollectionTree: React.FC<CollectionTreeProps> = ({
         </span>
         <button
           type="button"
-          className="text-left truncate text-primary/85 font-medium"
+          className={`text-left truncate font-medium ${
+            darkMode ? "text-gray-100" : "text-primary/85"
+          }`}
           title={displayName}
           onClick={() =>
             onSelectRequest?.({ colName: name, method, displayName, node })
@@ -95,7 +101,7 @@ const CollectionTree: React.FC<CollectionTreeProps> = ({
   const tree = useMemo(() => {
     const items = colDetail?.data?.item ?? [];
     if (!Array.isArray(items) || items.length === 0) {
-      return <p className="text-gray-500">No folders or requests</p>;
+      return <p className={darkMode ? "text-gray-400" : "text-gray-500"}>No folders or requests</p>;
     }
     return (
       <ul className="space-y-1">
@@ -104,7 +110,7 @@ const CollectionTree: React.FC<CollectionTreeProps> = ({
         )}
       </ul>
     );
-  }, [colDetail, colUid, colName, openFolder]);
+  }, [colDetail, colUid, colName, openFolder, darkMode]);
 
   return <>{tree}</>;
 };

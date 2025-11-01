@@ -32,7 +32,7 @@ const ButtonTab: React.FC<ButtonTabProps> = ({
         aria-selected={isActive}
         className={`cursor-pointer flex gap-1 items-center px-4 py-2 font-semibold tracking-wide mt-4 rounded-lg transition-colors
           ${isDarkMode
-            ? "bg-white text-[#021d3d] hover:bg-gray-200"
+            ? "bg-gray-800 text-white/90 hover:bg-gray-700"
             : "bg-gray-100 text-primary hover:bg-gray-200"}`}
       >
         {Icon} {label}

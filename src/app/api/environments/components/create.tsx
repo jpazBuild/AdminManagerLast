@@ -14,10 +14,11 @@ interface CreateEnvironmentProps {
     setCreateView: (view: boolean) => void;
     setToastMsg: (msg: string | null) => void;
     setRefetchEnvironments: (refetch: boolean) => void;
+    darkMode?: boolean;
 }
 
 
-const CreateEnvironment = ({ setToastError, setCreateView, setToastMsg, setRefetchEnvironments }: CreateEnvironmentProps) => {
+const CreateEnvironment = ({ setToastError, setCreateView, setToastMsg, setRefetchEnvironments,darkMode }: CreateEnvironmentProps) => {
     const [nameCreated, setNameCreated] = useState<{ name: string; description: string }>({ name: "", description: "" });
     const { tags, isLoadingTags, error, refresh } = useTags();
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -87,10 +88,10 @@ const CreateEnvironment = ({ setToastError, setCreateView, setToastMsg, setRefet
         }
     }
     return (
-        <div className="w-full h-full bg-white flex items-center justify-center">
-            <div className="bg-white p-6 rounded shadow-lg w-full h-full ">
+        <div className="w-full h-full flex items-center justify-center">
+            <div className={`${darkMode?"bg-gray-900":"bg-white"} p-6 rounded shadow-lg w-full h-full`}>
                 <div className="flex flex-col items-center gap-4 w-full">
-                    <h2 className="text-xl font-semibold text-primary/85">Create New Environment</h2>
+                    <h2 className={`text-xl font-semibold ${darkMode ? "text-white/85":"text-primary/85"}`}>Create New Environment</h2>
 
                     <TextInputWithClearButton
                         id="new-env-name"
@@ -100,6 +101,7 @@ const CreateEnvironment = ({ setToastError, setCreateView, setToastMsg, setRefet
                         onChangeHandler={(e) =>
                             setNameCreated({ ...nameCreated, name: e.target.value })
                         }
+                        isDarkMode={darkMode}
                     />
                     <TextInputWithClearButton
                         id="new-env-description"
@@ -109,6 +111,7 @@ const CreateEnvironment = ({ setToastError, setCreateView, setToastMsg, setRefet
                         onChangeHandler={(e) =>
                             setNameCreated({ ...nameCreated, description: e.target.value })
                         }
+                        isDarkMode={darkMode}
                     />
                     <SearchField
                         label="Tags"
@@ -124,6 +127,7 @@ const CreateEnvironment = ({ setToastError, setCreateView, setToastMsg, setRefet
                                 value: typeof tag === "string" ? tag : tag.name ?? ""
                             }))
                         }
+                        darkMode={darkMode}
                     />
                 </div>
 
@@ -136,7 +140,7 @@ const CreateEnvironment = ({ setToastError, setCreateView, setToastMsg, setRefet
                                     aria-label="Toggle all"
                                     checked={createAllEnabled}
                                     onChange={createToggleAll}
-                                    className="h-4 w-4 accent-primary"
+                                    className={`h-4 w-4 ${darkMode?"accent-primary-blue":"accent-primary"}`}
                                 />
                             </div>
                             <div className="uppercase tracking-wider">Variable</div>
@@ -153,7 +157,7 @@ const CreateEnvironment = ({ setToastError, setCreateView, setToastMsg, setRefet
                                     <div className="flex items-center">
                                         <input
                                             type="checkbox"
-                                            className="h-4 w-4 accent-primary"
+                                            className={`h-4 w-4 ${darkMode?"accent-primary-blue":"accent-primary"}`}
                                             checked={r.enabled}
                                             onChange={() => createToggleRowEnabled(r.id)}
                                         />
@@ -166,6 +170,8 @@ const CreateEnvironment = ({ setToastError, setCreateView, setToastMsg, setRefet
                                         placeholder="KEY"
                                         onChangeHandler={(e) => createUpdateRow(r.id, { key: e.target.value })}
                                         isSearch={false}
+                                        isDarkMode={darkMode}
+                                        
                                     />
 
                                     <TextInputWithClearButton
@@ -174,22 +180,23 @@ const CreateEnvironment = ({ setToastError, setCreateView, setToastMsg, setRefet
                                         value={r.value}
                                         placeholder="VALUE"
                                         onChangeHandler={(e) => createUpdateRow(r.id, { value: e.target.value })}
+                                        isDarkMode={darkMode}
                                     />
 
                                     <button
-                                        className="p-2 rounded hover:bg-gray-100"
+                                        className={`p-2 rounded cursor-pointer`}
                                         aria-label="Remove row"
                                         title="Remove"
                                         onClick={() => createRemoveRow(r.id)}
                                     >
-                                        <X className="w-4 h-4 text-gray-500" />
+                                        <X className={`w-4 h-4 ${darkMode ? "text-white/85 hover:text-white/80":"text-gray-500 text-gray-600"}`} />
                                     </button>
                                 </div>
                             ))}
 
                             <div className="mt-2 flex justify-between">
                                 <button
-                                    className="px-3 py-2 rounded-lg border text-sm hover:bg-gray-50 flex gap-2 items-center"
+                                    className={`px-3 py-2 cursor-pointer rounded-lg text-sm ${darkMode ? "bg-gray-800 hover:bg-gray-700":"bg-gray-200 hover:bg-gray-100"} flex gap-2 items-center`}
                                     onClick={createAddRow}
                                 >
                                     <PlusIcon className="w-5 h-5"/> Add variable
@@ -197,7 +204,7 @@ const CreateEnvironment = ({ setToastError, setCreateView, setToastMsg, setRefet
 
                                 <div className="flex gap-2">
                                     <button
-                                        className="px-4 py-2 rounded-lg border text-sm hover:bg-gray-50"
+                                        className={`cursor-pointer px-4 py-2 rounded-lg text-sm ${darkMode ? "bg-gray-800 hover:bg-gray-700":"bg-gray-200 hover:bg-gray-100"}`}
                                         onClick={() => {
                                             setCreateView(false);
                                             setCreateRows([makeEmptyRow()]);
@@ -207,7 +214,7 @@ const CreateEnvironment = ({ setToastError, setCreateView, setToastMsg, setRefet
                                     </button>
 
                                     <button
-                                        className="cursor-pointer px-4 py-2 rounded-lg bg-primary text-white text-sm hover:bg-primary/90"
+                                        className={`cursor-pointer px-4 py-2 rounded-lg text-sm text-white ${darkMode ? "bg-primary-blue/90":"bg-primary"} `}
                                         onClick={handlecreate}
                                     >
                                         Create

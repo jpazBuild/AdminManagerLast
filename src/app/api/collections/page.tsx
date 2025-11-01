@@ -14,11 +14,12 @@ import { useFetchCollection } from "./hooks/useFetchCollection";
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { TbBrandGraphql, TbCodeVariablePlus, TbJson } from "react-icons/tb";
 import { RiErrorWarningLine } from "react-icons/ri";
-import { stackoverflowLight, tomorrow, vs } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { nightOwl, stackoverflowLight, tomorrow, vs } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { VscJson } from "react-icons/vsc";
 import ButtonTab from "@/app/components/ButtonTab";
 import { useFlowRunner } from "../flows/hooks/useFlowRunner";
 import { toast } from "sonner";
+import { vsDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
 
 
 
@@ -80,115 +81,115 @@ const pick = (obj: any, keys: string[]) =>
     keys.reduce((acc, k) => (obj && k in obj ? ((acc as any)[k] = obj[k], acc) : acc), {} as any);
 
 const computePiecesFromMessages = (msgs: any[]) => {
-  const sorted = msgs.slice().sort((a, b) => a.ts - b.ts);
-  const byName: Record<string, ExecPiece> = {};
+    const sorted = msgs.slice().sort((a, b) => a.ts - b.ts);
+    const byName: Record<string, ExecPiece> = {};
 
-  const ensure = (name?: string | null): ExecPiece | null => {
-    if (!name) return null;
-    if (!byName[name]) byName[name] = { name };
-    return byName[name];
-  };
+    const ensure = (name?: string | null): ExecPiece | null => {
+        if (!name) return null;
+        if (!byName[name]) byName[name] = { name };
+        return byName[name];
+    };
 
-  const coalesceResponse = (p: any) => {
-    const r = p?.response;
-    if (r && typeof r === "object") return r;
-    const rr = p?.raw?.response;
-    if (rr && typeof rr === "object") return rr;
-    return null;
-  };
+    const coalesceResponse = (p: any) => {
+        const r = p?.response;
+        if (r && typeof r === "object") return r;
+        const rr = p?.raw?.response;
+        if (rr && typeof rr === "object") return rr;
+        return null;
+    };
 
-  for (const m of sorted) {
-    const payload = m?.payload ?? {};
-    const resp = coalesceResponse(payload);
-    const item = payload?.item;
+    for (const m of sorted) {
+        const payload = m?.payload ?? {};
+        const resp = coalesceResponse(payload);
+        const item = payload?.item;
 
-    if (typeof item === "string") {
-      let match = item.match(/^(?:Running request|Request completed):\s*(.+)$/i);
-      if (match?.[1]) {
-        const e = ensure(match[1].trim());
-        if (e && /^Running request:/i.test(item)) {
-          e.request = e.request ?? { success: undefined, status: null, detail: {} };
+        if (typeof item === "string") {
+            let match = item.match(/^(?:Running request|Request completed):\s*(.+)$/i);
+            if (match?.[1]) {
+                const e = ensure(match[1].trim());
+                if (e && /^Running request:/i.test(item)) {
+                    e.request = e.request ?? { success: undefined, status: null, detail: {} };
+                }
+            }
+            match = item.match(/^(?:Running test script|Test script completed):\s*(.+)$/i);
+            if (match?.[1]) {
+                const e = ensure(match[1].trim());
+                if (e && /^Running test script:/i.test(item)) {
+                    e.test = e.test ?? { success: undefined, detail: {} };
+                }
+            }
         }
-      }
-      match = item.match(/^(?:Running test script|Test script completed):\s*(.+)$/i);
-      if (match?.[1]) {
-        const e = ensure(match[1].trim());
-        if (e && /^Running test script:/i.test(item)) {
-          e.test = e.test ?? { success: undefined, detail: {} };
+
+        if (resp && (resp.name || resp.type)) {
+            const rName: string | null = resp.name ?? null;
+            const rType: string | null = resp.type ?? null;
+
+            if (rName && rType === "request") {
+                const e = ensure(rName);
+                if (!e) continue;
+
+                const statusFromResp =
+                    typeof resp.status === "number"
+                        ? resp.status
+                        : typeof resp.response?.status === "number"
+                            ? resp.response.status
+                            : typeof e.request?.status === "number"
+                                ? e.request.status
+                                : null;
+
+                const successFromResp =
+                    typeof resp.success === "boolean"
+                        ? resp.success
+                        : m?.kind === "error"
+                            ? false
+                            : e.request?.success ?? undefined;
+
+                const baseDetail = deepMerge(e.request?.detail ?? {}, pick(resp, ["request", "response", "env", "error", "message"]));
+                const extraErr: Record<string, any> = {};
+                if (payload?.error) extraErr.error = payload.error;
+                if (payload?.message && typeof payload.message === "string") extraErr.message = payload.message;
+                if (resp?.response?.message) extraErr.apiMessage = resp.response.message;
+                if (payload?.raw?.response?.error) extraErr.errorRaw = payload.raw.response.error;
+                if (payload?.raw?.response?.response?.message) extraErr.apiMessageRaw = payload.raw.response.response.message;
+                if (payload?.raw?.response?.env?.__error) extraErr.transportError = payload.raw.response.env.__error;
+
+                const nextReq = {
+                    success: successFromResp,
+                    status: statusFromResp,
+                    detail: deepMerge(baseDetail, extraErr),
+                };
+                e.request = nextReq;
+            }
+
+            if (rName && rType === "script" && resp.listen === "test") {
+                const e = ensure(rName);
+                if (!e) continue;
+
+                const nextTest = {
+                    success: typeof resp.success === "boolean" ? resp.success : e.test?.success ?? undefined,
+                    detail: deepMerge(e.test?.detail ?? {}, resp),
+                };
+                e.test = nextTest;
+            }
         }
-      }
     }
 
-    if (resp && (resp.name || resp.type)) {
-      const rName: string | null = resp.name ?? null;
-      const rType: string | null = resp.type ?? null;
+    const pieces = Object.values(byName);
 
-      if (rName && rType === "request") {
-        const e = ensure(rName);
-        if (!e) continue;
+    const totalSteps =
+        pieces.reduce((acc, p) => acc + (p.request ? 1 : 0) + (p.test ? 1 : 0), 0) || 0;
 
-        const statusFromResp =
-          typeof resp.status === "number"
-            ? resp.status
-            : typeof resp.response?.status === "number"
-              ? resp.response.status
-              : typeof e.request?.status === "number"
-                ? e.request.status
-                : null;
+    const doneSteps = pieces.reduce(
+        (acc, p) =>
+            acc +
+            (typeof p.request?.success === "boolean" ? 1 : 0) +
+            (typeof p.test?.success === "boolean" ? 1 : 0),
+        0
+    );
 
-        const successFromResp =
-          typeof resp.success === "boolean"
-            ? resp.success
-            : m?.kind === "error"
-              ? false
-              : e.request?.success ?? undefined;
+    const progressPct = totalSteps ? Math.round((doneSteps / totalSteps) * 100) : 0;
 
-        const baseDetail = deepMerge(e.request?.detail ?? {}, pick(resp, ["request", "response", "env", "error", "message"]));
-        const extraErr: Record<string, any> = {};
-        if (payload?.error) extraErr.error = payload.error;
-        if (payload?.message && typeof payload.message === "string") extraErr.message = payload.message;
-        if (resp?.response?.message) extraErr.apiMessage = resp.response.message;
-        if (payload?.raw?.response?.error) extraErr.errorRaw = payload.raw.response.error;
-        if (payload?.raw?.response?.response?.message) extraErr.apiMessageRaw = payload.raw.response.response.message;
-        if (payload?.raw?.response?.env?.__error) extraErr.transportError = payload.raw.response.env.__error;
-
-        const nextReq = {
-          success: successFromResp,
-          status: statusFromResp,
-          detail: deepMerge(baseDetail, extraErr),
-        };
-        e.request = nextReq;
-      }
-
-      if (rName && rType === "script" && resp.listen === "test") {
-        const e = ensure(rName);
-        if (!e) continue;
-
-        const nextTest = {
-          success: typeof resp.success === "boolean" ? resp.success : e.test?.success ?? undefined,
-          detail: deepMerge(e.test?.detail ?? {}, resp),
-        };
-        e.test = nextTest;
-      }
-    }
-  }
-
-  const pieces = Object.values(byName);
-
-  const totalSteps =
-    pieces.reduce((acc, p) => acc + (p.request ? 1 : 0) + (p.test ? 1 : 0), 0) || 0;
-
-  const doneSteps = pieces.reduce(
-    (acc, p) =>
-      acc +
-      (typeof p.request?.success === "boolean" ? 1 : 0) +
-      (typeof p.test?.success === "boolean" ? 1 : 0),
-    0
-  );
-
-  const progressPct = totalSteps ? Math.round((doneSteps / totalSteps) * 100) : 0;
-
-  return { pieces, progressPct, sorted };
+    return { pieces, progressPct, sorted };
 };
 
 
@@ -238,7 +239,7 @@ const CollectionsPage = () => {
     const [dataDetailCollections, setDataDetailCollections] = useState<
         Array<{ key: string; uid: string; name: string; teamId: string | number; data: any }>
     >([]);
-
+    const [darkMode, setDarkMode] = useState<boolean>(false);
 
     const selectRequest = (collectionName: string, methodName: string, node: any) => {
         setSelectedRequest({
@@ -416,20 +417,20 @@ const CollectionsPage = () => {
             return (
                 <li key={key} className="select-none">
                     <div
-                        className="flex items-center gap-2 cursor-pointer text-primary/80"
+                        className={`flex items-center gap-2 cursor-pointer ${darkMode ? "text-white/90" : "text-primary/90"}`}
                         onClick={() => toggleFolderOpen(key)}
                     >
                         {isOpen ? (
-                            <ChevronDown className="w-4 h-4 text-primary" />
+                            <ChevronDown className="w-4 h-4" />
                         ) : (
-                            <ChevronRight className="w-4 h-4 text-primary" />
+                            <ChevronRight className="w-4 h-4" />
                         )}
-                        <Folder className="w-4 h-4 text-primary" />
-                        <span className="font-medium">{displayName}</span>
+                        <Folder className="w-4 h-4" />
+                        <span className={`font-medium ${darkMode ? "text-white/90" : "text-primary/85"}`}>{displayName}</span>
                     </div>
 
                     {isOpen && (
-                        <ul className="ml-5 mt-1 space-y-1">
+                        <ul className={`ml-5 mt-1 space-y-1 ${darkMode ? "text-white/90" : "text-primary/90"}`}>
                             {node.item.map((child: any, idx: number) =>
                                 renderNode(child, colUid, colName, [...path, displayName, String(idx)])
                             )}
@@ -454,7 +455,7 @@ const CollectionsPage = () => {
 
                 <button
                     type="button"
-                    className="text-left truncate text-primary/85 font-medium"
+                    className={`text-left truncate ${darkMode ? "text-white/70" : "text-primary/85"} font-medium`}
                     onClick={() => selectRequest(colName, displayName, node)}
                     title={displayName}
                 >
@@ -665,28 +666,30 @@ const CollectionsPage = () => {
         setVariablesErr(null);
     }, [selectedRequest?.node, variablesRaw, variablesParsed]);
 
-    
+
     return (
         <DashboardHeader pageType="api" callback={(mobileSidebarOpen) => {
             setMobileSidebarOpen(mobileSidebarOpen);
-        }}>
+        }} onDarkModeChange={setDarkMode} >
             <div className="flex gap-2 w-full h-full">
-                <div className="w-72 border-r border-primary/10 bg-white flex-shrink-0 flex flex-col overflow-hidden">
-                    <div className="flex-shrink-0 p-4 space-y-4 bg-white border-b border-primary/10">
+                <div className={`w-72 border-r ${darkMode ? "bg-primary-900" : "border-primary/10 bg-white"} flex-shrink-0 flex flex-col overflow-hidden`}>
+                    <div className={`flex-shrink-0 p-4 space-y-4 ${darkMode ? "bg-primary-900" : "bg-white"} border-b border-primary/20`}>
                         <SearchField
                             label="From"
                             value={selectedTypeOrigin ?? ""}
                             onChange={setSelectedTypeOrigin}
                             placeholder="Search collections"
                             options={typeOrigin.map((t) => ({ label: t.name, value: t.name }))}
+                            darkMode={darkMode}
                         />
 
                         <TooltipLocation
                             text="Teams only can be selected from 'Postman'"
                             position="right"
                             active={selectedTypeOrigin === "BD"}
+                            darkMode={darkMode}
                         >
-                            <div className={selectedTypeOrigin === "BD" ? "bg-gray-100 text-gray-400" : ""}>
+                            <div className={selectedTypeOrigin === "BD" ? `${darkMode ? "" : "bg-gray-100 text-gray-400"}` : ""}>
                                 {loadingElements && (
                                     <div className="animate-pulse h-10 w-full rounded-md bg-gray-200 mb-2"></div>
                                 )}
@@ -704,6 +707,7 @@ const CollectionsPage = () => {
                                         }
                                         disabled={selectedTypeOrigin === "BD"}
                                         className={selectedTypeOrigin === "BD" ? "cursor-not-allowed" : ""}
+                                        darkMode={darkMode}
                                     />
                                 )}
 
@@ -718,6 +722,7 @@ const CollectionsPage = () => {
                             value={collectionQuery}
                             onChangeHandler={(e) => setCollectionQuery(e.target.value)}
                             isSearch={true}
+                            isDarkMode={darkMode}
                         />
                     </div>
 
@@ -736,18 +741,18 @@ const CollectionsPage = () => {
                                         return (
                                             <div key={idx} className="mb-2">
                                                 <div
-                                                    className="flex items-center gap-2 text-primary/80 cursor-pointer select-none"
+                                                    className={`flex items-center gap-2 ${darkMode ? "text-white/80" : "text-primary/80"} cursor-pointer select-none`}
                                                     onClick={() => handleOpenCollection(collection)}
                                                 >
                                                     {isOpen
-                                                        ? <ChevronDown className="w-4 h-4 text-primary" />
-                                                        : <ChevronRight className="w-4 h-4 text-primary" />
+                                                        ? <ChevronDown className="w-4 h-4" />
+                                                        : <ChevronRight className="w-4 h-4" />
                                                     }
                                                     <p className="text-sm">{collection.name}</p>
                                                 </div>
 
                                                 {isOpen && (
-                                                    <div className="ml-6 mt-2 text-sm text-gray-600">
+                                                    <div className={`ml-6 mt-2 text-sm ${darkMode ? "text-white/80" : "text-primary/80"}`}>
                                                         {!collectionError && dataDetailByUid?.[String(collection.uid)] && (
                                                             renderCollectionTree(
                                                                 dataDetailByUid[String(collection.uid)],
@@ -757,13 +762,13 @@ const CollectionsPage = () => {
                                                         )}
 
                                                         {isLoading && (
-                                                            <div className="flex items-center gap-2 text-primary/70">
-                                                                <div className="h-4 w-1/2 animate-pulse rounded bg-gray-200"></div>
+                                                            <div className={`flex items-center gap-2 ${darkMode ? "text-white/80" : "text-primary/80"}`}>
+                                                                <div className={`h-4 w-1/2 animate-pulse rounded ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
                                                             </div>
                                                         )}
 
                                                         {!isLoading && collectionError && (
-                                                            <div className="bg-red-200 text-primary/90 p-2 rounded font-normal items-center flex gap-2">
+                                                            <div className={`${darkMode ? "bg-red-700 text-white/90" : "bg-red-200 text-primary/90"} p-2 rounded font-normal items-center flex gap-2`}>
                                                                 <RiErrorWarningLine className="w-4 h-4" />
                                                                 {String(collectionError)}
                                                             </div>
@@ -779,12 +784,12 @@ const CollectionsPage = () => {
                 </div>
 
                 <div className="flex h-full w-full flex-col gap-4 overflow-hidden">
-                    <div className="flex w-full h-full border border-primary/20 rounded-md bg-white shadow-sm justify-center overflow-y-auto">
+                    <div className={`flex w-full h-full border ${darkMode ? "border-gray-800" : "border-primary/20 bg-white"} rounded-md  shadow-sm justify-center overflow-y-auto`}>
                         {selectedRequest ? (
                             <div className="flex justify-center self-center h-full w-full p-2 overflow-y-auto">
                                 <div className="w-2/3 py-2 h-full">
                                     <div className="flex flex-col gap-2 mb-4">
-                                        <div className="flex items-center text-lg font-semibold text-primary/80">
+                                        <div className={`flex items-center text-lg font-semibold ${darkMode ? "text-white/90" : "text-primary/85"}`}>
                                             {selectedRequest?.node?.name}
                                             <span
                                                 className={`ml-2 text-xs px-2 py-1 rounded ${httpMethodsStyle(selectedRequest?.node?.request?.method)}`}
@@ -792,21 +797,23 @@ const CollectionsPage = () => {
                                                 {selectedRequest?.node?.request?.method ?? "GET"}
                                             </span>
                                         </div>
-                                        <p className="text-gray-500">Set the information for this collection below</p>
+                                        <p className={`${darkMode ? "text-white/50" : "text-gray-500"}`}>Set the information for this collection below</p>
                                     </div>
 
-                                    <div className="flex justify-center gap-2 mb-4 text-primary/85">
+                                    <div className={`flex justify-center gap-2 mb-4 ${darkMode ? "text-white/85" : "text-primary/85"}`}>
                                         <ButtonTab
                                             label="Request"
                                             value="request"
                                             isActive={activeTab === "request"}
                                             onClick={() => setActiveTab("request")}
+                                            isDarkMode={darkMode}
                                         />
                                         <ButtonTab
                                             label="Test"
                                             value="test"
                                             isActive={activeTab === "test"}
                                             onClick={() => setActiveTab("test")}
+                                            isDarkMode={darkMode}
                                         />
 
                                     </div>
@@ -820,6 +827,7 @@ const CollectionsPage = () => {
                                                 onChangeHandler={(e) => setRequestUrl(e.target.value)}
                                                 placeholder="Enter request URL"
                                                 label="Enter request URL"
+                                                isDarkMode={darkMode}
                                             />
                                             {selectedRequest?.node?.request?.body?.mode === "graphql" && (
                                                 <div className="flex items-center gap-2 mt-4">
@@ -828,24 +836,27 @@ const CollectionsPage = () => {
                                                         value="headers"
                                                         isActive={activeTabRequest === "headers"}
                                                         onClick={() => setActiveTabRequest("headers")}
-                                                        Icon={<TbBrandGraphql className="text-primary/85 w-5 h-5" />}
+                                                        Icon={<TbBrandGraphql className=" w-5 h-5" />}
                                                         className="text-[14px]"
+                                                        isDarkMode={darkMode}
                                                     />
                                                     <ButtonTab
                                                         label="Query/Mutation"
                                                         value="graphql"
                                                         isActive={activeTabRequest === "graphql"}
                                                         onClick={() => setActiveTabRequest("graphql")}
-                                                        Icon={<TbBrandGraphql className="text-primary/85 w-5 h-5" />}
+                                                        Icon={<TbBrandGraphql className=" w-5 h-5" />}
                                                         className="text-[14px]"
+                                                        isDarkMode={darkMode}
                                                     />
                                                     <ButtonTab
                                                         label="Variables"
                                                         value="variables"
                                                         isActive={activeTabRequest === "variables"}
                                                         onClick={() => setActiveTabRequest("variables")}
-                                                        Icon={<TbCodeVariablePlus className="text-primary/85 w-5 h-5" />}
+                                                        Icon={<TbCodeVariablePlus className=" w-5 h-5" />}
                                                         className="text-[14px]"
+                                                        isDarkMode={darkMode}
                                                     />
                                                 </div>
                                             )}
@@ -857,13 +868,15 @@ const CollectionsPage = () => {
                                                         value="headers"
                                                         isActive={activeTabRequest === "headers"}
                                                         onClick={() => setActiveTabRequest("headers")}
+                                                        isDarkMode={darkMode}
                                                     />
                                                     <ButtonTab
                                                         label="Body"
                                                         value="body"
                                                         isActive={activeTabRequest === "body"}
                                                         onClick={() => setActiveTabRequest("body")}
-                                                        Icon={<VscJson className="text-primary/85 w-5 h-5" />}
+                                                        Icon={<VscJson className=" w-5 h-5" />}
+                                                        isDarkMode={darkMode}
                                                     />
                                                 </div>
                                             )}
@@ -872,7 +885,7 @@ const CollectionsPage = () => {
                                                     <SyntaxHighlighter
                                                         language="json"
                                                         style={vs}
-                                                        customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem", backgroundColor: "#F3F6F9", marginTop: "1rem" }}
+                                                        customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem", backgroundColor: `${darkMode ? "#1e2939" : "#F3F6F9"}`, marginTop: "1rem" }}
                                                     >
                                                         {selectedRequest?.node?.request?.body?.raw ?? "// Request body"}
                                                     </SyntaxHighlighter>
@@ -886,8 +899,12 @@ const CollectionsPage = () => {
                                                             <div className="max-h-[400px] overflow-y-auto">
                                                                 <SyntaxHighlighter
                                                                     language={selectedRequest?.node?.request?.body?.mode === "graphql" ? "graphql" : "json"}
-                                                                    style={selectedRequest?.node?.request?.body?.mode === "graphql" ? tomorrow : stackoverflowLight}
-                                                                    customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem", backgroundColor: "#F3F6F9", marginTop: "1rem" }}
+                                                                    style={
+                                                                        selectedRequest?.node?.request?.body?.mode === "graphql"
+                                                                            ? (darkMode ? nightOwl : stackoverflowLight)
+                                                                            : (darkMode ? tomorrow : stackoverflowLight)
+                                                                    }
+                                                                    customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem", backgroundColor: `${darkMode ? "#1e2939" : "#F3F6F9"}`, marginTop: "1rem" }}
                                                                 >
                                                                     {selectedRequest?.node?.request?.body?.mode === "graphql"
                                                                         ? selectedRequest?.node?.request?.body?.graphql.query ?? "// Request body"
@@ -903,11 +920,11 @@ const CollectionsPage = () => {
                                             {activeTabRequest === "variables" && (
                                                 <div className="space-y-2">
                                                     <div className="flex items-center justify-between">
-                                                        <h2 className="text-sm text-slate-600">Variables (JSON)</h2>
+                                                        <h2 className={`text-sm ${darkMode ? "text-white/50" : "text-slate-600"}`}>Variables (JSON)</h2>
                                                         <div className="flex items-center gap-2">
                                                             <button
                                                                 type="button"
-                                                                className="px-2 py-1 text-xs rounded border bg-white hover:bg-slate-50"
+                                                                className={`px-2 py-1 text-xs rounded ${darkMode ? "bg-gray-700 text-white" : "bg-white hover:bg-slate-50"}`}
                                                                 onClick={() => {
                                                                     try {
                                                                         const pretty = JSON.stringify(JSON.parse(variablesCode || "{}"), null, 2);
@@ -922,7 +939,7 @@ const CollectionsPage = () => {
                                                             </button>
                                                             <button
                                                                 type="button"
-                                                                className="px-2 py-1 text-xs rounded border bg-white hover:bg-slate-50"
+                                                                className={`px-2 py-1 text-xs rounded ${darkMode ? "bg-gray-700 text-white" : "bg-white hover:bg-slate-50"}`}
                                                                 onClick={() => {
                                                                     setVariablesCode("{}");
                                                                     setVariablesErr(null);
@@ -956,7 +973,7 @@ const CollectionsPage = () => {
                                                                 }
                                                             }}
                                                             spellCheck={false}
-                                                            className="w-full font-mono text-[13px] leading-5 rounded-md border border-slate-200 bg-[#F3F6F9] p-3 outline-none focus:ring-2 focus:ring-primary/30"
+                                                            className={`w-full font-mono text-[13px] leading-5 rounded-md border ${darkMode ? "bg-gray-800 text-white border-gray-200":"border-slate-200 bg-gray-200 "} p-3 outline-none focus:ring-2 focus:ring-transparent focus:border-transparent resize-none`}
                                                             rows={14}
                                                             placeholder='{"foo":"bar"}'
                                                         />
@@ -969,7 +986,7 @@ const CollectionsPage = () => {
                                             )}
                                             {activeTabRequest === "headers" && (
                                                 <div className="mt-4 w-full">
-                                                    <h2 className="text-sm text-slate-600 mb-2">Headers</h2>
+                                                    <h2 className={`text-sm ${darkMode?"text-white/85":"text-slate-600"} mb-2`}>Headers</h2>
                                                     <div className="flex flex-col gap-2 w-full h-full">
                                                         {requestHeaders.map((h, i) => (
                                                             <div key={i} className="flex gap-2 w-full items-center">
@@ -986,6 +1003,7 @@ const CollectionsPage = () => {
                                                                         }}
                                                                         placeholder="Enter key"
                                                                         label="Key"
+                                                                        isDarkMode={darkMode}
                                                                     />
                                                                 </div>
                                                                 <div className="flex w-full">
@@ -1001,6 +1019,7 @@ const CollectionsPage = () => {
                                                                         }}
                                                                         placeholder="Enter value"
                                                                         label="Value"
+                                                                        isDarkMode={darkMode}
                                                                     />
                                                                 </div>
                                                                 <button
@@ -1008,16 +1027,16 @@ const CollectionsPage = () => {
                                                                         const arr = requestHeaders.filter((_, idx) => idx !== i);
                                                                         setRequestHeaders(arr.length ? arr : [{ key: "", value: "" }]);
                                                                     }}
-                                                                    className="w-10 p-2 rounded-md hover:bg-gray-100"
+                                                                    className={`w-10 p-2 rounded-md ${darkMode ? " hover:bg-gray-600":"bg-gray-100 hover:bg-gray-200"}`}
                                                                 >
-                                                                    <Trash2Icon className="w-5 h-5 text-primary/60 hover:text-red-700" />
+                                                                    <Trash2Icon className={`w-5 h-5 ${darkMode?"text-white/60":"text-primary/60 hover:text-red-700"}`} />
                                                                 </button>
                                                             </div>
                                                         ))}
                                                     </div>
                                                     <button
                                                         onClick={() => setRequestHeaders([...requestHeaders, { key: "", value: "" }])}
-                                                        className="text-blue-600 text-sm flex items-center gap-1 hover:underline"
+                                                        className="text-primary-blue text-sm flex items-center gap-1 hover:underline"
                                                     >
                                                         <PlusIcon className="w-4 h-4" /> Add header
                                                     </button>
@@ -1028,12 +1047,12 @@ const CollectionsPage = () => {
 
                                     {activeTab === "test" && (
                                         <div>
-                                            <h2 className="text-sm text-slate-600 mb-2">Test Script</h2>
+                                            <h2 className={`text-sm ${darkMode?"text-white/90":"text-slate-600"} mb-2`}>Test Script</h2>
                                             <div className="max-h-[400px] overflow-y-auto">
                                                 <SyntaxHighlighter
                                                     language="javascript"
-                                                    style={vs}
-                                                    customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem", backgroundColor: "#F3F6F9", marginTop: "1rem" }}
+                                                    style={darkMode ? nightOwl : stackoverflowLight}
+                                                    customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem", backgroundColor: `${darkMode ? "#1e2939" : "#F3F6F9"}`, marginTop: "1rem" }}
                                                 >
                                                     {selectedRequest?.node?.event?.find((e: any) => e.listen === "test")?.script?.exec?.join("\n") ?? "// Test script"}
                                                 </SyntaxHighlighter>
@@ -1045,7 +1064,7 @@ const CollectionsPage = () => {
                                         <button
                                             onClick={() => runRequest(selectedRequest.collection, selectedRequest.method)}
                                             disabled={isRequestRunning}
-                                            className="bg-primary/90 text-white px-6 py-2 rounded-md hover:opacity-95 disabled:opacity-50"
+                                            className={`${darkMode?"bg-primary-blue/90":"bg-primary/90"} text-white px-6 py-2 rounded-md hover:opacity-95 disabled:opacity-50`}
                                         >
                                             {isRequestRunning ? "Running..." : "Run"}
                                         </button>
@@ -1053,7 +1072,7 @@ const CollectionsPage = () => {
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex w-full flex-col items-center justify-center text-center text-slate-500">
+                            <div className={`flex w-full flex-col items-center justify-center text-center ${darkMode ? "text-white/70" : "text-primary/85"} p-4`}>
                                 <Image
                                     src={colletEmptyState}
                                     alt="Select a collection"
@@ -1061,16 +1080,16 @@ const CollectionsPage = () => {
                                 />
                                 <div>
                                     <p className="font-medium text-lg">Select a collection</p>
-                                    <p className="text-sm text-slate-400">Run a collection to see the API response</p>
+                                    <p className={`text-sm ${darkMode ? "text-white/50" : "text-primary/50"}`}>Run a collection to see the API response</p>
                                 </div>
                             </div>
                         )}
                     </div>
 
-                    <div className={`flex border border-primary/20 rounded-md bg-white shadow-sm flex-col ${isOpen ? "h-full" : ""}`}>
+                    <div className={`flex border ${darkMode ? "bg-gray-800 " : "border-primary/20 bg-white"} rounded-md  shadow-sm flex-col ${isOpen ? "h-full" : ""}`}>
                         <button
                             onClick={() => setIsOpen(!isOpen)}
-                            className="flex-shrink-0 w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-slate-800 hover:bg-slate-50 border-b border-primary/10"
+                            className={`flex-shrink-0 w-full flex items-center justify-between px-4 py-3 text-sm font-medium ${darkMode ? "text-white/50 hover:bg-gray-700 " : "text-primary/50 hover:bg-gray-300 border-primary/10"} border-b `}
                         >
                             <span>Response · JSON</span>
                             <ChevronDown
@@ -1080,7 +1099,7 @@ const CollectionsPage = () => {
 
 
                         {isOpen && (
-                            <div className="w-full h-full flex p-4 overflow-y-auto text-sm bg-slate-50">
+                            <div className={`w-full h-full flex p-4 overflow-y-auto text-sm ${darkMode ? "" : "bg-gray-100"}`}>
                                 {singleFlowId ? (
                                     singlePieces.length ? (
                                         <div className="w-full">
@@ -1103,7 +1122,7 @@ const CollectionsPage = () => {
                                                                     ? "border-red-600 text-red-600"
                                                                     : "border-slate-300 text-slate-600";
                                                         return (
-                                                            <span className={`px-3 py-1 rounded-full border bg-white ${cls}`}>
+                                                            <span className={`px-3 font-semibold py-1 rounded-full border ${darkMode ? "bg-gray-900" : "bg-white"} ${cls}`}>
                                                                 {label}{typeof req?.status === "number" ? ` · ${req.status}` : ""}
                                                             </span>
                                                         );
@@ -1121,7 +1140,7 @@ const CollectionsPage = () => {
                                                         margin: 0,
                                                         padding: "12px 16px",
                                                         borderRadius: "0.375rem",
-                                                        background: "#ffffff",
+                                                        background: `${darkMode ? "#101828" : "#F3F6F9"}`,
                                                         fontSize: "0.9rem",
                                                         width: "100%",
                                                     }}
@@ -1155,7 +1174,7 @@ const CollectionsPage = () => {
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
+                                        <div className={`w-full h-full flex items-center justify-center ${darkMode ? "text-white/50" : "text-primary/50"} text-sm`}>
                                             {anyRunning ? "Running..." : "No response yet. Run the flow to see results."}
                                         </div>
                                     )

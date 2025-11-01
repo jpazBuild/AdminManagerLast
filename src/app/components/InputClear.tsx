@@ -90,7 +90,7 @@ const TextInputWithClearButton: React.FC<TextInputWithClearButtonProps> = ({
   const ringFocus = isDarkMode ? "focus:ring-white/90" : "focus:ring-[#033a5c]/90";
 
   return (
-    <div className={`relative w-full text-[14px] ${baseSurface} rounded-lg`}>
+    <div className={`relative w-full text-[14px] ${className} ${baseSurface} rounded-lg`}>
       <div className="relative w-full">
         {useTextarea ? (
           <textarea

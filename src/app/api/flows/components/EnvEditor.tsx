@@ -14,6 +14,7 @@ type Props = {
   saving?: boolean;
   environmentInfo?: any;
   onChangeDraft?: (payload: { name: string; env: Record<string, string> }) => void;
+  darkMode?: boolean;
 };
 
 const newId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -53,6 +54,7 @@ const EnvEditor: React.FC<Props> = ({
   saving,
   environmentInfo,
   onChangeDraft,
+  darkMode = false,
 }) => {
   const [name, setName] = useState(() => initialName || "");
   const [rows, setRows] = useState<KV[]>(() => mapEnvToRows(initialEnv));
@@ -72,7 +74,7 @@ const EnvEditor: React.FC<Props> = ({
       setRows(mapEnvToRows(initialEnv));
       prevInitEnvKeyRef.current = nextKey;
     }
-  }, [initialEnv]);
+  }, [initialEnv, rows]);
 
   const addRow = () => setRows((p) => [...p, { id: newId(), enabled: true, key: "", value: "" }]);
   const updateRow = (id: string, patch: Partial<KV>) =>
@@ -99,25 +101,31 @@ const EnvEditor: React.FC<Props> = ({
   }, [payload.name, payload.env, onChangeDraft]);
 
   return (
-    <div className="flex w-full h-full relative justify-center">
+    <div className={`flex w-full h-full relative justify-center ${darkMode ? "bg-gray-900" : ""}`}>
       <button className="absolute top-6 left-6" title="Back">
-        <ArrowLeft className="w-6 h-6 text-primary/80 hover:underline" onClick={onCancel} />
+        <ArrowLeft
+          className={`w-6 h-6 ${darkMode ? "text-gray-200 hover:text-white" : "text-primary/80 hover:underline"}`}
+          onClick={onCancel}
+        />
       </button>
       <div className="flex flex-col h-full w-2/3">
         <div className="px-6 pt-6 pb-2">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-[28px] font-semibold leading-tight text-primary/90">
+              <h1 className={`text-[28px] font-semibold leading-tight ${darkMode ? "text-gray-100" : "text-primary/90"}`}>
                 {name.trim() || "Custom environment"}
               </h1>
-              <p className="text-primary/50">
+              <p className={`${darkMode ? "text-gray-400" : "text-primary/50"}`}>
                 {name.trim() !== "Custom environment" ? "Edit variables and values" : "Use it as a temporal environment"}
               </p>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onSave(payload)}
-                className="inline-flex items-center gap-2 bg-primary-blue hover:bg-primary-blue/90 text-white px-6 h-11 rounded-full font-semibold shadow disabled:opacity-60"
+                className={`inline-flex items-center gap-2 px-6 h-11 rounded-full font-semibold shadow disabled:opacity-60 ${darkMode
+                    ? "bg-blue-600 hover:bg-blue-500 text-white"
+                    : "bg-primary-blue hover:bg-primary-blue/90 text-white"
+                  }`}
                 disabled={!!saving}
               >
                 {saving ? "Saving..." : "Save"}
@@ -135,13 +143,19 @@ const EnvEditor: React.FC<Props> = ({
               value={name}
               placeholder="Custom environment"
               onChangeHandler={(e) => setName(e.target.value)}
+              isDarkMode={darkMode}
             />
           </div>
 
-          <div className="rounded-2xl border border-[#E1E8F0] bg-white p-4">
+          <div
+            className={`rounded-2xl p-4 ${darkMode
+                ? "border border-gray-700 bg-gray-900"
+                : "border border-[#E1E8F0] bg-white"
+              }`}
+          >
             <div className="grid grid-cols-[1fr_1fr_auto] gap-2 mb-2 px-1 items-end">
-              <label className="text-xs font-medium text-gray-500">Variable</label>
-              <label className="text-xs font-medium text-gray-500">Value</label>
+              <label className={`text-xs font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Variable</label>
+              <label className={`text-xs font-medium ${darkMode ? "text-gray-400" : "text-gray-500"}`}>Value</label>
               <span className="text-xs text-transparent">.</span>
             </div>
 
@@ -155,6 +169,7 @@ const EnvEditor: React.FC<Props> = ({
                     value={r.key}
                     placeholder=""
                     onChangeHandler={(e) => updateRow(r.id, { key: e.target.value })}
+                    isDarkMode={darkMode}
                   />
                   <TextInputWithClearButton
                     id={`v-${r.id}`}
@@ -163,9 +178,10 @@ const EnvEditor: React.FC<Props> = ({
                     value={r.value}
                     placeholder=""
                     onChangeHandler={(e) => updateRow(r.id, { value: e.target.value })}
+                    isDarkMode={darkMode}
                   />
                   <button className="px-2 py-2 self-center" onClick={() => removeRow(r.id)} title="Delete row">
-                    <Trash2Icon className="w-5 h-5 text-primary/80" />
+                    <Trash2Icon className={`${darkMode ? "text-gray-300 hover:text-red-400" : "text-primary/80 hover:text-red-600"} w-5 h-5`} />
                   </button>
                 </div>
               ))}
@@ -174,7 +190,10 @@ const EnvEditor: React.FC<Props> = ({
             <div className="mt-3">
               <button
                 onClick={addRow}
-                className="inline-flex items-center gap-2 rounded-full border border-[#E1E8F0] px-4 py-2 text-[#0A2342] hover:bg-[#F5F8FB]"
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 ${darkMode
+                    ? "border border-gray-700 text-gray-100 hover:bg-gray-800"
+                    : "border border-[#E1E8F0] text-[#0A2342] hover:bg-[#F5F8FB]"
+                  }`}
               >
                 <PlusIcon className="w-5 h-5" /> Add row
               </button>

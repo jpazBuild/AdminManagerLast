@@ -1,7 +1,7 @@
 import { ModalTab } from "@/types/types";
-import Modal from "./Modal";
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { stackoverflowLight } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import ModalCustom from "@/app/components/ModalCustom";
 
 type ModalRenderChipsProps = {
     chipModal: {
@@ -15,151 +15,46 @@ type ModalRenderChipsProps = {
     stateLabel: (state: boolean | undefined) => string;
     setChipModal: (val: (prev: any) => any) => void;
     closeChipModal: () => void;
+    darkMode?: boolean;
 };
 
 
-const  ModalRenderChips = ({chipModal,getApiPiece,stateLabel,setChipModal,closeChipModal}:ModalRenderChipsProps) => {
+const ModalRenderChips = ({ chipModal, getApiPiece, stateLabel, setChipModal, closeChipModal, darkMode }: ModalRenderChipsProps) => {
 
     return (
-        <Modal
+        <ModalCustom
             open={chipModal.open}
             onClose={closeChipModal}
-            title={
-                chipModal.stage === "pre"
-                    ? "Pre-request"
-                    : chipModal.stage === "post"
-                        ? "Post-response"
-                        : "Request"
-            }
+            width="max-w-3xl"
+            isDarkMode={darkMode}
         >
-            {(() => {
-                if (!chipModal.flowId || !chipModal.apiName) return null;
-                const piece = getApiPiece(chipModal.flowId, chipModal.apiName);
-                const req = piece?.request;
-                const test = piece?.test;
-
-                const detailReq = req?.detail ?? {};
-                const detailTest = test?.detail ?? {};
-
-                const envObj =
-                    chipModal.stage === "request"
-                        ? detailReq?.env
-                        : chipModal.stage === "post"
-                            ? detailTest?.env
-                            : undefined;
-
-                const meta = chipModal.stage === "request"
-                    ? {
-                        Name: piece?.name ?? "—",
-                        Status: typeof req?.status === "number" ? String(req.status) : "—",
-                        Type: "request",
-                        Success: stateLabel(req?.success),
-                    }
-                    : chipModal.stage === "post"
-                        ? {
-                            Name: piece?.name ?? "—",
-                            Status: "—",
-                            Type: "script(test)",
-                            Success: stateLabel(test?.success),
-                        }
-                        : {
-                            Name: piece?.name ?? "—",
-                            Status: "—",
-                            Type: "pre-request",
-                            Success: "Pending/No data",
-                        };
-
-                const TabBtnSmall: React.FC<{ k: ModalTab; label: string }> = ({ k, label }) => (
+            <div className={`flex flex-col gap-4 p-6 ${darkMode ? "bg-gray-900 text-white/90" : "bg-white text-gray-900"}`}>
+                <h2 className="text-lg font-semibold">Chips for {chipModal.apiName}</h2>
+                <div className="max-h-[500px] overflow-y-auto">
+                    <SyntaxHighlighter
+                        language="javascript"
+                        style={darkMode ? stackoverflowLight : stackoverflowLight}
+                        customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem", backgroundColor: `${darkMode ? "#1e2939" : "#F3F6F9"}` }}
+                    >
+                        {getApiPiece(chipModal.flowId!, chipModal.apiName!)?.[`${chipModal?.stage}Chips`]?.length > 0
+                            ? getApiPiece(chipModal.flowId!, chipModal.apiName!)?.[`${chipModal?.stage}Chips`]
+                                .map((chip: any) => `{{${chip}}}`)
+                                .join("\n")
+                            : `// No chips available for the ${chipModal.stage} stage.`}
+                    </SyntaxHighlighter>
+                </div>
+                <div className="flex justify-end mt-4">
                     <button
-                        onClick={() => setChipModal(prev => ({ ...prev, tab: k }))}
-                        className={`px-3 py-2 text-sm border-b-2 cursor-pointer ${chipModal.tab === k ? "border-primary-blue text-slate-800" : "border-transparent text-slate-500"
+                        onClick={closeChipModal}
+                        className={`px-4 py-2 rounded-md font-semibold ${darkMode ? "bg-primary-blue/90 text-white hover:opacity-95" : "bg-primary/90 text-white hover:opacity-95"
                             }`}
                     >
-                        {label}
+                        Close
                     </button>
-                );
+                </div>
+            </div>
 
-                const JSONBox = ({ obj }: { obj: any }) => (
-
-                    <div className="overflow-auto w-full max-h-80 border border-slate-200 rounded bg-slate-100 p-2">
-                        <SyntaxHighlighter
-                        language="json"
-                        style={stackoverflowLight}
-                        customStyle={{
-                            backgroundColor: "transparent",
-                            padding: "0",
-                            margin: "0",
-                            fontSize: 12,
-                            lineHeight: "16px",
-                        }}
-                    >
-                        {JSON.stringify(obj ?? {}, null, 2)}
-                    </SyntaxHighlighter>
-                    </div>
-                );
-
-                const errorFromReq = detailReq?.response?.error || detailReq?.error;
-                const errorFromTest = detailTest?.error || detailTest?.__error;
-
-                const errorData =
-                    chipModal.stage === "request" ? errorFromReq : chipModal.stage === "post" ? errorFromTest : null;
-
-                const metadataBlock = (
-                    <div className="space-y-3">
-                        {Object.entries(meta).map(([k, v]) => (
-                            <div key={k}>
-                                <div className="text-xs text-slate-500">{k}</div>
-                                <div className="mt-1 rounded bg-slate-100 text-[13px] px-3 py-2">{String(v)}</div>
-                            </div>
-                        ))}
-                        {chipModal.stage === "request" && (
-                            <>
-                                <div>
-                                    <div className="text-xs text-slate-500">Request</div>
-                                    <JSONBox obj={detailReq?.request} />
-                                </div>
-                                <div>
-                                    <div className="text-xs text-slate-500">Response</div>
-                                    <div className="overflow-auto w-full max-h-60 border border-slate-200 rounded bg-slate-100 p-2">
-                                        <JSONBox obj={detailReq?.response} />
-                                    </div>
-                                </div>
-                            </>
-                        )}
-                        {chipModal.stage === "post" && (
-                            <>
-                                <>
-                                    <div className="text-xs text-slate-500">Script payload</div>
-                                    <JSONBox obj={detailTest} />
-                                </>
-                            </>
-                        )}
-                    </div>
-                );
-
-                const errorBlock = (
-                    <div>
-                        {errorData ? <JSONBox obj={errorData} /> : <div className="text-sm text-slate-500">No errors</div>}
-                    </div>
-                );
-
-                const environmentBlock = <JSONBox obj={envObj} />;
-
-                return (
-                    <div>
-                        <div className="flex items-center gap-4 border-b border-primary/20 mb-4">
-                            <TabBtnSmall k="metadata" label="Metadata" />
-                            <TabBtnSmall k="error" label="Error" />
-                            <TabBtnSmall k="environment" label="Environment" />
-                        </div>
-
-                        {chipModal.tab === "metadata" && metadataBlock}
-                        {chipModal.tab === "error" && errorBlock}
-                        {chipModal.tab === "environment" && environmentBlock}
-                    </div>
-                );
-            })()}
-        </Modal>
+        </ModalCustom>
     )
 }
 

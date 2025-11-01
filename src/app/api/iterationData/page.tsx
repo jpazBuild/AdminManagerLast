@@ -14,6 +14,7 @@ import useTags, { Tag } from "../hooks/useTags";
 import { useIterationList } from "./hooks/useIterationList";
 import { useIterationEditor } from "./hooks/useIterationEditor";
 import { useToast } from "./hooks/useToast";
+import ModalCustom from "@/app/components/ModalCustom";
 
 const newLocalId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -33,7 +34,7 @@ export default function IterationDataPage() {
   const editor = useIterationEditor();
   const { toast, show, hide } = useToast();
   const [confirmOpen, setConfirmOpen] = useState(false);
-
+  const [darkMode, setDarkMode] = useState(false);
   const { tags, isLoadingTags } = useTags();
   const tagOptionsRaw = (tags ?? [])
     .map((t: string | Tag) => (typeof t === "string" ? t : t?.name ?? ""))
@@ -62,7 +63,7 @@ export default function IterationDataPage() {
   };
 
   return (
-    <DashboardHeader pageType="api">
+    <DashboardHeader onDarkModeChange={setDarkMode} pageType="api">
       <div className="flex gap-2 w-full h-full overflow-hidden">
         <SidebarList
           iterations={iterations}
@@ -84,17 +85,18 @@ export default function IterationDataPage() {
             });
           }}
           selectedId={editor.selected?.id}
+          darkMode={darkMode}  
         />
 
         <div className="flex flex-col w-full h-full max-h-[80vh]">
           {editor.selected && (
             <div className="px-6 pt-6 pb-2">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h1 className="text-[24px] font-semibold leading-tight text-primary">
+              <div className={`flex items-center justify-between ${darkMode ? "text-white":"text-primary/90"}`}>
+                <div className="">
+                  <h1 className="text-[24px] font-semibold leading-tight ">
                     Data packages
                   </h1>
-                  <p className="text-primary/50 mt-1">Selected sets will be used in iterations.</p>
+                  <p className=" mt-1 opacity-60">Selected sets will be used in iterations.</p>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -103,7 +105,7 @@ export default function IterationDataPage() {
                       editor.reset();
                       show("Changes reset.", "success", 2000);
                     }}
-                    className="cursor-pointer items-center gap-2 px-6 py-1.5 rounded-full border border-primary/50 text-primary font-semibold hover:bg-[#F5F8FB] transition disabled:opacity-60"
+                    className={`cursor-pointer items-center gap-2 px-6 py-1.5 rounded-full ${darkMode?"bg-gray-800 text-white hover:bg-gray-700":" text-primary font-semibold bg-gray-200 hover:bg-gray-100"} transition disabled:opacity-60`}
                     disabled={!editor.isDirty && !editor.isNew}
                   >
                     Reset changes
@@ -111,7 +113,7 @@ export default function IterationDataPage() {
 
                   <button
                     onClick={handleSave}
-                    className="cursor-pointer items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-1.5 rounded-full font-semibold shadow transition disabled:opacity-60"
+                    className={`cursor-pointer items-center gap-2 px-6 py-1.5 rounded-full ${darkMode?"bg-primary-blue/90 text-white hover:bg-primary-blue/80":" bg-primary text-white hover:bg-primary/90"} font-semibold shadow transition disabled:opacity-60`}
                     disabled={editor.saving}
                   >
                     {editor.saving ? "Saving..." : "Save"}
@@ -131,6 +133,7 @@ export default function IterationDataPage() {
                 onToggleChecked={editor.toggleChecked}
                 isCollapsed={editor.isCollapsed}
                 toggleCollapse={() => editor.setIsCollapsed((v) => !v)}
+                darkMode={darkMode}
                 headerExtras={
                   <div className="flex items-center gap-3">
                     <div className="w-full md:w-[420px]">
@@ -144,21 +147,23 @@ export default function IterationDataPage() {
                           if (!v) return;
                           editor.addTag(v);
                         }}
+                        darkMode={darkMode}
+                        customDarkColor="bg-gray-900"
                       />
                     </div>
 
                     <div className="relative">
                       <button
-                        className="p-2 rounded-md hover:bg-gray-100"
+                        className={`p-2 rounded-md hover:bg-gray-100 ${darkMode ? "text-white bg-gray-800 hover:bg-gray-700":"bg-gray-200 hover:bg-gray-300"}`}
                         onClick={() => editor.setMenuOpen((m) => !m)}
                         aria-label="More options"
                       >
-                        <MoreVertical className="w-5 h-5 text-primary/80" />
+                        <MoreVertical className="w-5 h-5" />
                       </button>
                       {editor.menuOpen && (
-                        <div className="absolute right-0 mt-2 w-44 rounded-xl border border-gray-200 bg-white shadow-lg z-30">
+                        <div className={`absolute right-0 mt-2 w-44 rounded-xl shadow-2xl border ${darkMode?"bg-gray-800 text-white border-none":"border-gray-200 bg-white"} shadow-lg z-30`}>
                           <button
-                            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-[#0A2342] hover:bg-gray-50"
+                            className={`flex w-full items-center gap-2 px-4 py-2 text-sm ${darkMode?"text-white hover:bg-gray-700":"text-primary hover:bg-gray-100"}`}
                             onClick={async () => {
                               editor.setMenuOpen(false);
                               const res = await editor.duplicateAsNew();
@@ -176,7 +181,7 @@ export default function IterationDataPage() {
                           </button>
 
                           <button
-                            className="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                            className={`flex w-full items-center gap-2 px-4 py-2 text-sm ${darkMode?"text-white hover:bg-gray-700":"text-primary hover:bg-gray-100"}`}
                             onClick={() => {
                               editor.setMenuOpen(false);
                               setConfirmOpen(true);
@@ -218,9 +223,9 @@ export default function IterationDataPage() {
                     return { id: `${iterKey}:${k}`, variable: clean, value: v };
                   });
                   return (
-                    <div key={iterKey} className="rounded-xl border border-[#E6ECF3] p-4 mb-4">
+                    <div key={iterKey} className={`rounded-xl border border-gray-200 p-4 mb-4`}>
                       <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-sm font-semibold text-[#0A2342]">
+                        <h3 className={`${darkMode ? "text-gray-200":"text-primary/70"} text-lg font-semibold`}>
                           {`Iteration ${idx + 1}`}
                         </h3>
                       </div>
@@ -242,6 +247,7 @@ export default function IterationDataPage() {
                           editor.removeRow(ik, storedKey);
                         }}
                         onAdd={() => editor.addRow(iterKey)}
+                        darkMode={darkMode}
                       />
                     </div>
                   );
@@ -258,7 +264,7 @@ export default function IterationDataPage() {
                 </div>
               </PackageCard>
             ) : (
-              <div className="min-h-[80vh] flex flex-col items-center justify-center h-full w-full my-auto text-center rounded-2xl border border-[#E1E8F0] bg-white p-8">
+              <div className={`min-h-[80vh] flex flex-col items-center justify-center h-full w-full my-auto text-center rounded-2xl ${darkMode ? "":"] bg-white"}  p-8`}>
                 <Image
                   src={selectIterationDataIcon}
                   alt="Select a collection"
@@ -345,24 +351,46 @@ export default function IterationDataPage() {
         </div>
       </div>
 
-      <ConfirmModal
+      <ModalCustom
         open={confirmOpen}
-        title="Are you sure you want to delete this package?"
-        message="This action cannot be undone."
-        onCancel={() => setConfirmOpen(false)}
-        onConfirm={async () => {
-          const res = await editor.deleteOnServer();
-          if (res.ok) {
-            await refresh();
-            editor.clearSelection();
-            show("The data package has been deleted.", "success");
-          } else {
-            const prefix = res.status ? `(${res.status}) ` : "";
-            show(`Delete failed: ${prefix}${res.error}`, "error");
-          }
-          setConfirmOpen(false);
-        }}
-      />
+        onClose={() => setConfirmOpen(false)}
+        width="max-w-md"
+        isDarkMode={darkMode}
+      >
+        <div className={`flex flex-col gap-4 p-6 ${darkMode ? "text-white":"text-primary/90"}`}>
+          <h3 className="text-lg font-semibold text-center">
+            Are you sure you want to delete this package?
+          </h3>z
+          <p className="text-sm  my-4 text-center">
+            This action cannot be undone.
+          </p>
+          <div className="flex items-center w-full gap-2">
+            <button
+              className={`cursor-pointer w-1/2 px-4 py-2 rounded-lg text-sm ${darkMode ? "bg-gray-800 hover:bg-gray-700":"bg-gray-200 hover:bg-gray-100"}`}
+              onClick={() => setConfirmOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="cursor-pointer w-1/2 px-4 py-2 rounded-lg bg-red-600 text-white text-sm hover:bg-red-700"
+              onClick={async () => {
+                const res = await editor.deleteOnServer();
+                if (res.ok) {
+                  await refresh();
+                  editor.clearSelection();
+                  show("The data package has been deleted.", "success");
+                } else {
+                  const prefix = res.status ? `(${res.status}) ` : "";
+                  show(`Delete failed: ${prefix}${res.error}`, "error");
+                }
+                setConfirmOpen(false);
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </ModalCustom>
 
       {toast.visible && (
         <div className="fixed lg:w-1/2 bottom-4 left-1/2 -translate-x-1/2 z-40">

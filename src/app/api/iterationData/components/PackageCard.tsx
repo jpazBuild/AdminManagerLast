@@ -23,6 +23,7 @@ type Props = {
   onDelete?: () => void;
 
   children?: React.ReactNode;
+  darkMode?: boolean;
 };
 
 const PackageCard: React.FC<Props> = ({
@@ -37,12 +38,13 @@ const PackageCard: React.FC<Props> = ({
   onDuplicate,
   onDelete,
   children,
+  darkMode=false
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   return (
-    <div className="rounded-2xl border border-[#E1E8F0] bg-white overflow-hidden h-full">
+    <div className={`rounded-lg border ${darkMode ? "border-gray-700 bg-gray-800":"border-gray-200 bg-white"} shadow-sm min-w-[320px]`}>
       <div className="w-full">
         <div className="px-4 pt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
           <div className="flex items-start gap-3 min-w-0">
@@ -52,7 +54,7 @@ const PackageCard: React.FC<Props> = ({
               onClick={onToggleChecked}
               className={`mt-1 h-7 w-7 flex items-center justify-center rounded-lg border ${
                 checked
-                  ? "bg-[#0A2342] border-[#0A2342] text-white"
+                  ? "bg-primary-blue border-[#0A2342] text-white"
                   : "bg-white border-[#D8E0EA] text-[#0A2342]"
               }`}
             >
@@ -67,6 +69,8 @@ const PackageCard: React.FC<Props> = ({
                 placeholder="Number1"
                 isSearch={false}
                 onChangeHandler={(e) => onChangeName(e.target.value)}
+                isDarkMode={darkMode}
+                className={`${darkMode ? "!bg-gray-900":""}`}
               />
               {pkgId ? (
                 <div className="mt-2 text-xs text-gray-500 select-all">{pkgId}</div>
@@ -81,7 +85,7 @@ const PackageCard: React.FC<Props> = ({
               <div className="relative shrink-0" ref={menuRef}>
                 <button
                   type="button"
-                  className="p-2 rounded-md hover:bg-gray-100"
+                  className={`p-2 rounded-md hover:bg-gray-100 ${darkMode ? "text-white bg-gray-800 hover:bg-gray-700":"bg-gray-200 hover:bg-gray-300"}`}
                   onClick={() => setMenuOpen((v) => !v)}
                   aria-label="More options"
                 >
@@ -132,12 +136,12 @@ const PackageCard: React.FC<Props> = ({
             type="button"
             onClick={toggleCollapse}
             aria-label={isCollapsed ? "Expand" : "Collapse"}
-            className="absolute left-1/2 -translate-x-1/2 -top-4 bg-white rounded-full border border-gray-300 w-8 h-8 flex items-center justify-center shadow-sm"
+            className={`absolute left-1/2 -translate-x-1/2 -top-4 ${darkMode?"bg-gray-900 text-white":"bg-white border-gray-300 "} rounded-full w-8 h-8 flex items-center justify-center shadow-sm`}
           >
             {isCollapsed ? (
-              <ChevronDown className="h-4 w-4 text-[#0A2342]" />
+              <ChevronDown className="h-4 w-4" />
             ) : (
-              <ChevronUp className="h-4 w-4 text-[#0A2342]" />
+              <ChevronUp className="h-4 w-4" />
             )}
           </button>
         </div>

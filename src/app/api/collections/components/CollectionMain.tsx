@@ -20,6 +20,7 @@ type CollectionMainProps = {
   response?: any;
   children: React.ReactNode;
   envEditorOpen?: boolean;
+  darkMode?: boolean;
 };
 
 const isPlainObj = (v: any) => v && typeof v === "object" && !Array.isArray(v);
@@ -132,7 +133,7 @@ function buildPiecesFromMessages(msgs: any[]): { pieces: ExecPiece[]; progressPc
   return { pieces: list, progressPct: pct };
 }
 
-const CollectionMain = ({ response, children, envEditorOpen }: CollectionMainProps) => {
+const CollectionMain = ({ response, children, envEditorOpen, darkMode = false }: CollectionMainProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const normalized = useMemo(() => {
@@ -197,6 +198,34 @@ const CollectionMain = ({ response, children, envEditorOpen }: CollectionMainPro
   const closeChipModal = () => setChipModal((p) => ({ ...p, open: false }));
   const getApiPiece = (apiName: string) => activeIter?.pieces.find((p) => p.name === apiName);
 
+  const surfaceBox = darkMode
+    ? "border border-gray-700 rounded-md bg-gray-900 shadow-sm text-gray-100"
+    : "border border-primary/20 rounded-md bg-white shadow-sm";
+  const headerBtn = darkMode
+    ? "text-gray-100 hover:bg-gray-800 border-b border-gray-700"
+    : "text-slate-800 hover:bg-slate-50 border-b border-primary/10";
+  const respArea = darkMode ? "text-sm bg-gray-900/40 text-gray-100" : "text-sm bg-slate-50";
+  const mutedText = darkMode ? "text-gray-300" : "text-slate-400";
+  const cardBorderOk = "border-emerald-600";
+  const cardBorderFail = "border-red-300";
+  const cardBorderPending = darkMode ? "border-gray-600" : "border-primary/50";
+  const chipBase = darkMode
+    ? "px-3 py-1 rounded-full text-xs border bg-gray-800"
+    : "px-3 py-1 rounded-full text-xs border bg-white";
+  const chipClass = (state: "ok" | "fail" | "pending") =>
+    state === "ok"
+      ? `${chipBase} border-emerald-600 ${darkMode ? "text-emerald-300" : "text-primary/80"}`
+      : state === "fail"
+        ? `${chipBase} border-red-600 text-red-500`
+        : `${chipBase} ${darkMode ? "border-gray-600 text-gray-300" : "border-primary/90 text-primary/70"}`;
+  const panelBg = darkMode ? "bg-gray-900" : "bg-white";
+  const panelBorder = darkMode ? "border-gray-700" : "border-primary/20";
+  const panelText = darkMode ? "text-gray-100" : "text-slate-800";
+  const modalOverlay = "fixed inset-0 z-[100] flex items-center justify-center bg-black/30";
+  const hlBg = darkMode ? "#0f172a" : "#ffffff";
+  const hlNumColor = darkMode ? "#94a3b8" : "#9AA0A6";
+  const hlTextColor = darkMode ? "#e5e7eb" : undefined;
+
   const apisCards = useMemo(() => {
     if (!activeIter || !activeIter.pieces.length) return null;
 
@@ -211,10 +240,11 @@ const CollectionMain = ({ response, children, envEditorOpen }: CollectionMainPro
                 activeIdx={activeIt}
                 onSelect={(idx) => setActiveIt(idx)}
                 labelPrefix="IT"
+                darkMode={darkMode}
               />
             ))}
           </div>
-          <div className="text-xs text-slate-400">{Math.round(activeIter.progressPct)}%</div>
+          <div className={`text-xs ${mutedText}`}>{Math.round(activeIter.progressPct)}%</div>
         </div>
 
         <div className="space-y-3 pt-2">
@@ -234,56 +264,38 @@ const CollectionMain = ({ response, children, envEditorOpen }: CollectionMainPro
             const testState =
               api.test?.success === true ? "ok" : api.test?.success === false ? "fail" : "pending";
 
-            const chipBase = "px-3 py-1 rounded-full text-xs border bg-white";
-            const chip = (state: "ok" | "fail" | "pending") =>
-              state === "ok"
-                ? `${chipBase} border-emerald-600 text-primary/80`
-                : state === "fail"
-                  ? `${chipBase} border-red-600 text-red-600`
-                  : `${chipBase} border-primary/90 text-primary/70`;
-
             return (
               <div
                 key={`${api.name}-${activeIter.index}`}
                 className={`rounded-2xl border-2 px-4 py-3 ${reqState === "fail" || testState === "fail"
-                    ? "border-red-300"
+                    ? cardBorderFail
                     : reqState === "ok" && testState === "ok"
-                      ? "border-emerald-600"
-                      : "border-primary/50"
-                  }`}
+                      ? cardBorderOk
+                      : cardBorderPending
+                  } ${darkMode ? "bg-gray-900" : "bg-white"}`}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <div className="text-base font-semibold text-primary/80 truncate">{api.name}</div>
+                    <div className={`text-base font-semibold truncate ${darkMode ? "text-gray-100" : "text-primary/80"}`}>
+                      {api.name}
+                    </div>
 
                     <div className="mt-2 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openChipModal(api.name, "pre")}
-                        className={`${chip("pending")}`}
-                      >
+                      <button type="button" onClick={() => openChipModal(api.name, "pre")} className={chipClass("pending")}>
                         Pre-request
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => openChipModal(api.name, "request")}
-                        className={chip(reqState as any)}
-                      >
+                      <button type="button" onClick={() => openChipModal(api.name, "request")} className={chipClass(reqState as any)}>
                         Request
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => openChipModal(api.name, "post")}
-                        className={chip("pending")}
-                      >
+                      <button type="button" onClick={() => openChipModal(api.name, "post")} className={chipClass("pending")}>
                         Post-response
                       </button>
                     </div>
                   </div>
 
-                  <div className="text-xs text-primary/80 whitespace-nowrap">
+                  <div className={`text-xs whitespace-nowrap ${darkMode ? "text-gray-300" : "text-primary/80"}`}>
                     {durSec != null ? `${durSec.toFixed(2)} s` : ""}
                   </div>
                 </div>
@@ -293,7 +305,7 @@ const CollectionMain = ({ response, children, envEditorOpen }: CollectionMainPro
         </div>
       </div>
     );
-  }, [iterations, activeIter, activeIt]);
+  }, [iterations, activeIter, activeIt, darkMode, mutedText, chipClass, cardBorderFail, cardBorderOk, cardBorderPending]);
 
   const modalContent = useMemo(() => {
     if (!chipModal.open || !chipModal.apiName || !activeIter) return null;
@@ -334,7 +346,13 @@ const CollectionMain = ({ response, children, envEditorOpen }: CollectionMainPro
     const TabBtnSmall: React.FC<{ k: ModalTab; label: string }> = ({ k, label }) => (
       <button
         onClick={() => setChipModal((prev) => ({ ...prev, tab: k }))}
-        className={`px-3 py-2 text-sm border-b-2 ${chipModal.tab === k ? "border-primary-blue text-slate-800" : "border-transparent text-slate-500"
+        className={`px-3 py-2 text-sm border-b-2 ${chipModal.tab === k
+            ? darkMode
+              ? "border-primary-blue text-gray-100"
+              : "border-primary-blue text-slate-800"
+            : darkMode
+              ? "border-transparent text-gray-400"
+              : "border-transparent text-slate-500"
           }`}
       >
         {label}
@@ -345,17 +363,21 @@ const CollectionMain = ({ response, children, envEditorOpen }: CollectionMainPro
       <SyntaxHighlighter
         language="json"
         style={stackoverflowLight}
-        customStyle={{ backgroundColor: "transparent", padding: 0, margin: 0, fontSize: 12, lineHeight: "16px" }}
+        customStyle={{
+          backgroundColor: "transparent",
+          padding: 0,
+          margin: 0,
+          fontSize: 12,
+          lineHeight: "16px",
+          color: darkMode ? "#e5e7eb" : undefined,
+        }}
       >
         {JSON.stringify(obj ?? {}, null, 2)}
       </SyntaxHighlighter>
     );
 
     const errorFromReq =
-      detailReq?.response?.error ||
-      detailReq?.response?.errors ||
-      detailReq?.error ||
-      detailReq?._error;
+      detailReq?.response?.error || detailReq?.response?.errors || detailReq?.error || detailReq?._error;
 
     const errorFromTest =
       detailTest?.error || detailTest?.__error || detailTest?._error || detailTest?.env?.__error || undefined;
@@ -366,18 +388,20 @@ const CollectionMain = ({ response, children, envEditorOpen }: CollectionMainPro
       <div className="space-y-3">
         {Object.entries(meta).map(([k, v]) => (
           <div key={k}>
-            <div className="text-xs text-slate-500">{k}</div>
-            <div className="mt-1 rounded bg-slate-100 text-[13px] px-3 py-2">{String(v)}</div>
+            <div className={`text-xs ${darkMode ? "text-gray-400" : "text-slate-500"}`}>{k}</div>
+            <div className={`mt-1 rounded px-3 py-2 text-[13px] ${darkMode ? "bg-gray-800 text-gray-100" : "bg-slate-100"}`}>
+              {String(v)}
+            </div>
           </div>
         ))}
         {chipModal.stage === "request" && (
           <>
             <div>
-              <div className="text-xs text-slate-500">Request</div>
+              <div className={`text-xs ${darkMode ? "text-gray-400" : "text-slate-500"}`}>Request</div>
               <J obj={detailReq?.request} />
             </div>
             <div>
-              <div className="text-xs text-slate-500">Response</div>
+              <div className={`text-xs ${darkMode ? "text-gray-400" : "text-slate-500"}`}>Response</div>
               <J obj={detailReq?.response} />
             </div>
           </>
@@ -385,12 +409,12 @@ const CollectionMain = ({ response, children, envEditorOpen }: CollectionMainPro
         {chipModal.stage === "post" && (
           <>
             <div>
-              <div className="text-xs text-slate-500">Script payload</div>
+              <div className={`text-xs ${darkMode ? "text-gray-400" : "text-slate-500"}`}>Script payload</div>
               <J obj={detailTest} />
             </div>
             {(detailTest?._error || detailTest?.env?.__error) && (
               <div className="mt-3">
-                <div className="text-xs text-slate-500">Post error (_error)</div>
+                <div className={`text-xs ${darkMode ? "text-gray-400" : "text-slate-500"}`}>Post error (_error)</div>
                 <J obj={detailTest?._error ?? detailTest?.env?.__error} />
               </div>
             )}
@@ -399,12 +423,14 @@ const CollectionMain = ({ response, children, envEditorOpen }: CollectionMainPro
       </div>
     );
 
-    const errorBlock = <div>{errorData ? <J obj={errorData} /> : <div className="text-sm text-slate-500">No errors</div>}</div>;
+    const errorBlock = (
+      <div className={darkMode ? "text-gray-100" : ""}>{errorData ? <J obj={errorData} /> : <div className={`text-sm ${darkMode ? "text-gray-400" : "text-slate-500"}`}>No errors</div>}</div>
+    );
     const environmentBlock = <J obj={envObj} />;
 
     return (
-      <div>
-        <div className="flex items-center gap-4 border-b border-primary/20 mb-4">
+      <div className={darkMode ? "text-gray-100" : ""}>
+        <div className={`flex items-center gap-4 border-b mb-4 ${panelBorder}`}>
           <TabBtnSmall k="metadata" label="Metadata" />
           <TabBtnSmall k="error" label="Error" />
           <TabBtnSmall k="environment" label="Environment" />
@@ -415,7 +441,7 @@ const CollectionMain = ({ response, children, envEditorOpen }: CollectionMainPro
         {chipModal.tab === "environment" && environmentBlock}
       </div>
     );
-  }, [chipModal, activeIter]);
+  }, [chipModal, activeIter, darkMode, panelBorder]);
 
   const lastErrorMsg = useMemo(() => {
     const errs = allMessages.filter((m: any) => m?.kind === "error");
@@ -425,28 +451,23 @@ const CollectionMain = ({ response, children, envEditorOpen }: CollectionMainPro
   }, [allMessages]);
 
   return (
-    <div className="flex h-full w-full flex-col gap-4 overflow-hidden">
-      <div className="flex w-full h-full border border-primary/20 rounded-md bg-white shadow-sm justify-center overflow-y-auto">
-        {children}
-      </div>
+    <div className={`flex h-full w-full flex-col gap-4 overflow-hidden ${darkMode ? "text-gray-100" : ""}`}>
+      <div className={`flex w-full h-full justify-center overflow-y-auto ${surfaceBox}`}>{children}</div>
 
       {!envEditorOpen && (
-        <div className={`flex border border-primary/20 rounded-md bg-white shadow-sm flex-col ${isOpen ? "h-full" : ""}`}>
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="flex-shrink-0 w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-slate-800 hover:bg-slate-50 border-b border-primary/10"
-          >
+        <div className={`flex flex-col ${surfaceBox} ${isOpen ? "h-full" : ""}`}>
+          <button onClick={() => setIsOpen(!isOpen)} className={`flex-shrink-0 w-full flex items-center justify-between px-4 py-3 text-sm font-medium ${headerBtn}`}>
             <span>Response</span>
-            <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+            <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""} ${darkMode ? "text-gray-300" : ""}`} />
           </button>
 
           {isOpen && (
-            <div className="w-full h-full flex p-4 overflow-y-auto text-sm bg-slate-50">
+            <div className={`w-full h-full flex p-4 overflow-y-auto ${respArea}`}>
               {normalized ? (
                 iterations.length && activeIter ? (
                   <div className="w-full">
                     {normalized.status === "error" && lastErrorMsg && (
-                      <div className="mb-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-red-700">
+                      <div className={`mb-3 rounded-xl border px-3 py-2 ${darkMode ? "border-red-400 bg-red-950 text-red-200" : "border-red-200 bg-red-50 text-red-700"}`}>
                         {String(lastErrorMsg)}
                       </div>
                     )}
@@ -454,17 +475,13 @@ const CollectionMain = ({ response, children, envEditorOpen }: CollectionMainPro
                     {apisCards}
 
                     {chipModal.open && (
-                      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30">
-                        <div className="w-full max-w-3xl mx-4 bg-white rounded-2xl shadow-xl flex flex-col max-h-[85vh]">
-                          <div className="flex items-center justify-between px-5 py-4 border-b border-primary/20 flex-shrink-0">
-                            <div className="text-[15px] font-semibold text-slate-800">
-                              {chipModal.stage === "pre"
-                                ? "Pre-request"
-                                : chipModal.stage === "post"
-                                  ? "Post-response"
-                                  : "Request"}
+                      <div className={modalOverlay}>
+                        <div className={`w-full max-w-3xl mx-4 ${panelBg} ${panelText} rounded-2xl shadow-xl flex flex-col max-h-[85vh] border ${panelBorder}`}>
+                          <div className={`flex items-center justify-between px-5 py-4 border-b ${panelBorder} flex-shrink-0`}>
+                            <div className="text-[15px] font-semibold">
+                              {chipModal.stage === "pre" ? "Pre-request" : chipModal.stage === "post" ? "Post-response" : "Request"}
                             </div>
-                            <button onClick={closeChipModal} className="rounded p-1.5 hover:bg-slate-100 focus:outline-none" aria-label="Close">
+                            <button onClick={closeChipModal} className={`rounded p-1.5 ${darkMode ? "hover:bg-gray-800" : "hover:bg-slate-100"}`} aria-label="Close">
                               ✕
                             </button>
                           </div>
@@ -475,9 +492,7 @@ const CollectionMain = ({ response, children, envEditorOpen }: CollectionMainPro
                     )}
                   </div>
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
-                    No response yet. Run the flow to see results.
-                  </div>
+                  <div className={`w-full h-full flex items-center justify-center ${mutedText} text-sm`}>No response yet. Run the flow to see results.</div>
                 )
               ) : typeof response === "string" ? (
                 <SyntaxHighlighter
@@ -489,7 +504,8 @@ const CollectionMain = ({ response, children, envEditorOpen }: CollectionMainPro
                     margin: 0,
                     padding: "12px 16px",
                     borderRadius: "0 0 0.375rem 0.375rem",
-                    background: "#ffffff",
+                    background: hlBg,
+                    color: hlTextColor,
                     fontSize: "0.9rem",
                     width: "100%",
                     height: "100%",
@@ -497,16 +513,14 @@ const CollectionMain = ({ response, children, envEditorOpen }: CollectionMainPro
                   lineNumberStyle={{
                     minWidth: "2ch",
                     paddingRight: "12px",
-                    color: "#9AA0A6",
+                    color: hlNumColor,
                     userSelect: "none",
                   }}
                 >
                   {response}
                 </SyntaxHighlighter>
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm">
-                  No response yet. Run the flow to see results.
-                </div>
+                <div className={`w-full h-full flex items-center justify-center ${mutedText} text-sm`}>No response yet. Run the flow to see results.</div>
               )}
             </div>
           )}
@@ -517,3 +531,4 @@ const CollectionMain = ({ response, children, envEditorOpen }: CollectionMainPro
 };
 
 export default CollectionMain;
+

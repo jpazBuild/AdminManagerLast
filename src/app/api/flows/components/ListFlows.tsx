@@ -187,13 +187,14 @@ type ListFlowsProps = {
   messagesResult: Record<string, any>;
   onOpen: (id: string) => void;
   refreshFlows: () => void;
+  darkMode?: boolean;
 };
 
 const ListFlows = ({
   query, setQuery, onCreate, allVisibleSelected, onToggleSelectAllVisible, filteredFlows,
   selectedIds, onToggleSelect, anyRunning, runFlows, totalSuccess, totalFailed, totalPending, successRate,
   executedByFlow, flows, expandedFlows, toggleFlowExpanded, openChipModal, closeRowMenu, messagesResult,
-  onOpen, refreshFlows
+  onOpen, refreshFlows, darkMode
 }: ListFlowsProps) => {
   const {
     page, setPage,
@@ -295,10 +296,12 @@ const ListFlows = ({
           isSearch={true}
           label="Search flows"
           className="w-full"
+          isDarkMode={darkMode as any}
         />
         <button
           onClick={onCreate}
-          className="w-38 flex gap-2 items-center rounded-full bg-gray-200 text-[14px] py-3 px-4"
+          className={`w-38 flex gap-2 items-center rounded-full text-[14px] py-3 px-4 ${darkMode ? "bg-gray-800 text-white hover:bg-gray-700" : "bg-gray-200 text-primary/80"
+            }`}
         >
           <PlusIcon className="w-5 h-5" />
           <span className="font-medium">New flow</span>
@@ -309,9 +312,25 @@ const ListFlows = ({
         <Checkbox
           checked={allVisibleSelected}
           onCheckedChange={(checked) => onToggleSelectAllVisible(checked === true)}
+          className={[
+            "h-4 w-4 border transition-colors duration-200",
+            darkMode
+              ? [
+                "border-gray-600 text-white bg-gray-800",
+                "data-[state=checked]:bg-white data-[state=checked]:text-gray-900 data-[state=checked]:border-white",
+                "hover:border-gray-500",
+              ].join(" ")
+              : [
+                "border-slate-300 text-primary",
+                "data-[state=checked]:bg-primary data-[state=checked]:text-white data-[state=checked]:border-primary",
+                "hover:border-slate-400",
+              ].join(" ")
+          ].join(" ")}
         />
         <div className="flex items-center gap-2">
-          <span className="text-slate-600 text-sm">{filteredFlows.length} Results</span>
+          <span className={`${darkMode ? "text-gray-300" : "text-slate-600"} text-sm`}>
+            {filteredFlows.length} Results
+          </span>
         </div>
       </div>
 
@@ -322,6 +341,7 @@ const ListFlows = ({
           setPageSize={setPageSize}
           page={page}
           setPage={setPage}
+          darkMode={darkMode as any}
         />
 
         {paginatedSelectedTests
@@ -330,42 +350,67 @@ const ListFlows = ({
             const flowId = flow.id;
 
             return (
-              <div key={flowId} className="rounded-2xl border border-gray-300 bg-white p-0.5">
-                <div className="rounded-2xl bg-white px-5 py-6 border border-slate-100">
+              <div
+                key={flowId}
+                className={`rounded-2xl border p-0.5 ${darkMode ? "border-gray-700 bg-gray-800" : "border-gray-300 bg-white"
+                  }`}
+              >
+                <div
+                  className={`rounded-2xl px-5 py-6 border ${darkMode ? "bg-gray-800 border-gray-800" : "bg-white border-slate-100"
+                    }`}
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <Checkbox
                         checked={selectedIds.has(flowId)}
                         onCheckedChange={(checked) => onToggleSelect(flowId, checked === true)}
+                        className={[
+                          "h-4 w-4 border transition-colors duration-200",
+                          darkMode
+                            ? [
+                              "border-gray-600 text-white bg-gray-800",
+                              "data-[state=checked]:bg-white data-[state=checked]:text-gray-900 data-[state=checked]:border-white",
+                              "hover:border-gray-500",
+                            ].join(" ")
+                            : [
+                              "border-slate-300 text-primary",
+                              "data-[state=checked]:bg-primary data-[state=checked]:text-white data-[state=checked]:border-primary",
+                              "hover:border-slate-400",
+                            ].join(" ")
+                        ].join(" ")}
                       />
-                      <div className="flex flex-col items-center">
+                      <div className="flex flex-col items-start">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-primary/60 text-[14px]">{flowId}</span>
-                          <CopyToClipboard text={flowId} />
+                          <span className={`${darkMode ? "text-gray-400" : "text-primary/60"} text-[14px]`}>
+                            {flowId}
+                          </span>
+                          <CopyToClipboard text={flowId} isDarkMode={darkMode as any} />
                         </div>
                         <button
                           onClick={() => onOpen(flowId)}
-                          className="self-start text-[18px] font-semibold text-primary/70"
+                          className={`self-start text-[18px] font-semibold ${darkMode ? "text-white/80 hover:text-white" : "text-primary/70"
+                            }`}
                         >
                           {flow.name}
                         </button>
                       </div>
                     </div>
 
-                    <MoreMenu onDelete={() => changeDelete(flowId)} />
+                    <MoreMenu darkMode={darkMode} onDelete={() => changeDelete(flowId)} />
                   </div>
                 </div>
               </div>
             );
           })}
 
-        {paginatedSelectedTests.length === 0 && <NoData text="No flows found." />}
+        {paginatedSelectedTests.length === 0 && <NoData text="No flows found." darkMode={darkMode as any} />}
       </div>
 
       <button
         onClick={() => runFlows(Array.from(selectedIds))}
         disabled={anyRunning || selectedIds.size === 0}
-        className="bg-primary-blue/90 w-32 cursor-pointer text-white rounded-2xl py-3 px-5 mt-4 mb-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        className={`w-32 cursor-pointer rounded-2xl py-3 px-5 mt-4 mb-2 disabled:opacity-50 disabled:cursor-not-allowed ${darkMode ? "bg-primary-blue/80 text-white hover:bg-primary/70" : "bg-primary-blue/90 text-white"
+          }`}
       >
         {anyRunning ? "Running..." : "Run"}
       </button>
@@ -373,8 +418,10 @@ const ListFlows = ({
       <div className="mt-6 space-y-6 mb-4">
         {Array.from(selectedIds).length > 0 && (
           <div className="flex items-center gap-2">
-            <span className="text-lg font-semibold text-primary/80">Flows</span>
-            <span className="text-slate-400 text-sm">({Array.from(selectedIds).length})</span>
+            <span className={`text-lg font-semibold ${darkMode ? "text-white/80" : "text-primary/80"}`}>Flows</span>
+            <span className={`${darkMode ? "text-gray-400" : "text-slate-400"} text-sm`}>
+              ({Array.from(selectedIds).length})
+            </span>
           </div>
         )}
 
@@ -384,14 +431,13 @@ const ListFlows = ({
               totalSuccess={totalSuccess}
               totalFailed={totalFailed}
               totalPending={totalPending}
-              darkMode={false}
+              darkMode={darkMode as any}
             />
           </div>
         )}
 
-        
         {Array.from(selectedIds)
-          .filter(flowId => flowId !== SINGLE_FLOW_ID)
+          .filter((flowId) => flowId !== SINGLE_FLOW_ID)
           .map((flowId) => {
             const meta = perFlowData[flowId];
             const iterations = meta?.iterations ?? [];
@@ -400,50 +446,55 @@ const ListFlows = ({
             const lastErrMsg = meta?.lastErrMsg;
 
             const activeIdx = activeItByFlow[flowId] ?? (iterations[0]?.index ?? 0);
-            const setActive = (idx: number) => setActiveItByFlow(prev => ({ ...prev, [flowId]: idx }));
-            const activeIter = iterations.find(it => it.index === activeIdx);
+            const setActive = (idx: number) => setActiveItByFlow((prev: any) => ({ ...prev, [flowId]: idx }));
+            const activeIter = iterations.find((it: any) => it.index === activeIdx);
             const progressPct = activeIter?.progressPct ?? 0;
 
             const piecesForStatus = activeIter?.pieces ?? [];
 
             const isOkLike = (s?: SuccessFlag) => s === true || s === "skipped";
-            const hasFail = piecesForStatus.some(p => p.request?.success === false || p.test?.success === false);
+            const hasFail = piecesForStatus.some(
+              (p: any) => p.request?.success === false || p.test?.success === false
+            );
             const allOk =
               piecesForStatus.length > 0 &&
-              piecesForStatus.every(p =>
-                (p.request ? isOkLike(p.request.success) : true) &&
-                (p.test ? isOkLike(p.test.success) : true)
+              piecesForStatus.every(
+                (p: any) =>
+                  (p.request ? isOkLike(p.request.success) : true) &&
+                  (p.test ? isOkLike(p.test.success) : true)
               );
-            
-            
+
             const flowMeta = flows.find((f: any) => f.id === flowId);
             const flowName = flowMeta?.name || flowId;
             const expanded = expandedFlows[flowId] ?? true;
             const anySkipped = piecesForStatus.some(
-              p => p.request?.success === "skipped" || p.test?.success === "skipped"
+              (p: any) => p.request?.success === "skipped" || p.test?.success === "skipped"
             );
             const hasSkipped = !hasFail && anySkipped;
-            
+
             return (
               <div key={flowId} className="space-y-4">
                 <div
                   className={`rounded-2xl border-2 px-5 py-4 ${hasFail
-                      ? "border-red-500"
-                      : allOk
-                        ? "border-emerald-700"
-                        : hasSkipped
-                          ? "bg-primary"
+                    ? "border-red-500"
+                    : allOk
+                      ? "border-emerald-700"
+                      : hasSkipped
+                        ? "border-amber-500"
+                        : darkMode
+                          ? "border-gray-700"
                           : "border-slate-200"
-                    }`}
+                    } ${darkMode ? "bg-gray-800" : "bg-white"}`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p>{hasSkipped}</p>
-                      <div className="text-xs text-primary/40">{flowId}</div>
-                      <div className="text-lg font-semibold text-primary/85 truncate">{flowName}</div>
+                      <div className={`${darkMode ? "text-gray-500" : "text-primary/40"} text-xs`}>{flowId}</div>
+                      <div className={`${darkMode ? "text-white/85" : "text-primary/85"} text-lg font-semibold truncate`}>
+                        {flowName}
+                      </div>
 
                       {lastErrMsg && (
-                        <div className="mt-2 text-sm text-red-600">{lastErrMsg}</div>
+                        <div className={`mt-2 text-sm ${darkMode ? "text-red-400" : "text-red-600"}`}>{lastErrMsg}</div>
                       )}
                     </div>
 
@@ -453,7 +504,7 @@ const ListFlows = ({
                           className={`flex h-8 w-8 items-center justify-center rounded-full border ${hasFail
                             ? "border-red-300 text-red-500"
                             : "border-emerald-600 text-emerald-700"
-                            }`}
+                            } ${darkMode ? "bg-gray-900" : "bg-white"}`}
                           title={hasFail ? "Failed" : "Success"}
                         >
                           {hasFail ? <FaXmark className="w-5 h-5" /> : <Check className="w-5 h-5" />}
@@ -464,67 +515,74 @@ const ListFlows = ({
                         type="button"
                         onClick={() => runFlows([flowId])}
                         disabled={isRunning || anyRunning}
-                        className="p-2 rounded-full border border-slate-200 hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className={`p-2 rounded-full border transition ${darkMode
+                          ? "border-gray-700 hover:bg-gray-800"
+                          : "border-slate-200 hover:bg-slate-100"
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
                         title="Run this flow"
                         aria-label={`Run flow ${flowName}`}
                       >
                         {progressPct > 0 && progressPct < 100 ? (
-                          <RefreshCcw className="w-4 h-4" />
+                          <RefreshCcw className={`${darkMode ? "text-white/80" : ""} w-4 h-4`} />
                         ) : (
-                          <PlayIcon className="w-4 h-4" />
+                          <PlayIcon className={`${darkMode ? "text-white/80" : ""} w-4 h-4`} />
                         )}
                       </button>
                       <button
                         onClick={() => toggleFlowExpanded(flowId)}
-                        className="p-2 rounded-full hover:bg-slate-100 transition"
+                        className={`p-2 rounded-full transition ${darkMode ? "hover:bg-gray-800" : "hover:bg-slate-100"
+                          }`}
                         aria-expanded={expanded}
                         aria-controls={`apis-${flowId}`}
                       >
                         <ChevronDown
-                          className={`w-5 h-5 text-slate-400 transition-transform ${expanded ? "rotate-0" : "-rotate-90"}`}
+                          className={`w-5 h-5 ${darkMode ? "text-gray-400" : "text-slate-400"} transition-transform ${expanded ? "rotate-0" : "-rotate-90"
+                            }`}
                         />
                       </button>
                     </div>
                   </div>
 
                   <div className="mt-4">
-                    <div className="h-2 rounded-full bg-gray-200 overflow-hidden">
+                    <div className={`h-2 rounded-full overflow-hidden ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}>
                       <div
-                        className={`h-full rounded-full transition-all ${hasFail ? "bg-red-500"
-                          : allOk ? "bg-emerald-700"
-                            : "bg-amber-500"
+                        className={`h-full rounded-full transition-all ${hasFail ? "bg-red-500" : allOk ? "bg-emerald-700" : "bg-amber-500"
                           }`}
                         style={{ width: `${progressPct}%` }}
                       />
                     </div>
-                    <div className="mt-1 text-right text-xs text-primary/80">{progressPct}%</div>
+                    <div className={`mt-1 text-right text-xs ${darkMode ? "text-gray-300" : "text-primary/80"}`}>
+                      {progressPct}%
+                    </div>
                   </div>
                 </div>
 
                 <div
                   id={`apis-${flowId}`}
-                  className={`overflow-hidden transition-all duration-300 ${expanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"}`}
+                  className={`overflow-hidden transition-all duration-300 ${expanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
+                    }`}
                 >
-                  {!!(iterations.length) && activeIter && (
+                  {!!iterations.length && activeIter && (
                     <div className="space-y-3 pt-2">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2 overflow-x-auto">
-                          {iterations.map((it) => (
+                          {iterations.map((it: any) => (
                             <IterationTabBtn
                               key={it.index}
                               idx={it.index}
                               activeIdx={activeIdx}
                               onSelect={(idx) => setActive(idx)}
                               labelPrefix="IT"
+                              darkMode={darkMode as any}
                             />
                           ))}
                         </div>
-                        <div className="text-xs text-slate-400">
+                        <div className={`text-xs ${darkMode ? "text-gray-400" : "text-slate-400"}`}>
                           {Math.round(activeIter.progressPct)}%
                         </div>
                       </div>
 
-                      {activeIter.pieces.map((api) => {
+                      {activeIter.pieces.map((api: any) => {
                         const related = activeIter.messages.filter(
                           (m: any) =>
                             m?.payload?.response?.name === api.name ||
@@ -537,34 +595,38 @@ const ListFlows = ({
 
                         const reqState = toState(api.request?.success);
                         const testState = toState(api.test?.success);
-                        const chipBase = "px-3 py-1 rounded-full text-xs border bg-white";
+                        const chipBase = `px-3 py-1 rounded-full text-xs border ${darkMode ? "bg-gray-900" : "bg-white"}`;
                         const chip = (state: "ok" | "fail" | "pending" | "skipped") =>
                           state === "ok"
-                            ? `${chipBase} border-emerald-600 text-primary/80`
+                            ? `${chipBase} border-emerald-600 ${darkMode ? "text-white/80" : "text-primary/80"}`
                             : state === "fail"
                               ? `${chipBase} border-red-600 text-red-600`
                               : state === "skipped"
-                                ? `${chipBase} border-slate-400 text-slate-500`
-                                : `${chipBase} border-primary/70 text-primary/70`;
+                                ? `${chipBase} border-slate-400 ${darkMode ? "text-gray-400" : "text-slate-500"}`
+                                : `${chipBase} border-primary/70 ${darkMode ? "text-white/70" : "text-primary/70"}`;
 
-                         const anySkipped = piecesForStatus.some(
-                            p => p.request?.success === "skipped" || p.test?.success === "skipped"
-                          );
-                          const hasSkipped = !hasFail && anySkipped;
+                        const anySkipped = piecesForStatus.some(
+                          (p: any) => p.request?.success === "skipped" || p.test?.success === "skipped"
+                        );
+                        const hasSkipped = !hasFail && anySkipped;
+
                         return (
                           <div
                             key={`${api.name}-${activeIter.index}`}
                             className={`rounded-2xl border-2 px-4 py-3 ${reqState === "fail" || testState === "fail"
                               ? "border-red-300"
                               : reqState === "ok" && testState === "ok"
-                                ? "border-emerald-600" : hasSkipped ?
-                                  "border-amber-500"
-                                : "border-slate-200"
-                              }`}
+                                ? "border-emerald-600"
+                                : hasSkipped
+                                  ? "border-amber-500"
+                                  : darkMode
+                                    ? "border-gray-700"
+                                    : "border-slate-200"
+                              } ${darkMode ? "bg-gray-900" : "bg-white"}`}
                           >
                             <div className="flex items-start justify-between gap-4">
                               <div className="min-w-0">
-                                <div className="text-base font-semibold text-primary/80 truncate">
+                                <div className={`text-base font-semibold ${darkMode ? "text-white/80" : "text-primary/80"} truncate`}>
                                   {api.name}
                                 </div>
 
@@ -595,7 +657,7 @@ const ListFlows = ({
                                 </div>
                               </div>
 
-                              <div className="text-xs text-primary/80 whitespace-nowrap">
+                              <div className={`text-xs ${darkMode ? "text-white/70" : "text-primary/80"} whitespace-nowrap`}>
                                 {durSec != null ? `${durSec.toFixed(2)} s` : ""}
                               </div>
                             </div>
@@ -611,6 +673,5 @@ const ListFlows = ({
       </div>
     </div>
   );
-};
-
+}
 export default ListFlows;

@@ -8,9 +8,10 @@ type MoreMenuProps = {
     onDelete?: () => void;
     disabled?: boolean;
     className?: string;
+    darkMode?: boolean;
 };
 
-const MoreMenu: React.FC<MoreMenuProps> = ({ onDuplicate, onDelete, disabled, className }) => {
+const MoreMenu: React.FC<MoreMenuProps> = ({ onDuplicate, onDelete, disabled, className,darkMode }) => {
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
 
@@ -30,7 +31,7 @@ const MoreMenu: React.FC<MoreMenuProps> = ({ onDuplicate, onDelete, disabled, cl
         };
     }, []);
 
-    const itemBase =
+    const itemBase = darkMode ? "flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md hover:bg-gray-700 focus:bg-gray-700 focus:outline-none" :
         "flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md hover:bg-gray-50 focus:bg-gray-50 focus:outline-none";
 
     return (
@@ -40,16 +41,16 @@ const MoreMenu: React.FC<MoreMenuProps> = ({ onDuplicate, onDelete, disabled, cl
                 aria-haspopup="menu"
                 aria-expanded={open}
                 onClick={() => !disabled && setOpen((o) => !o)}
-                className={`h-9 w-9 grid place-items-center rounded-xl bg-gray-100 hover:bg-gray-200 transition ${disabled ? "opacity-50 cursor-not-allowed" : ""
+                className={`cursor-pointer h-9 w-9 grid place-items-center rounded-xl ${darkMode ? "bg-gray-800 text-white hover:bg-gray-700":"bg-gray-100 text-primary hover:bg-gray-200 "} transition ${disabled ? "opacity-50 cursor-not-allowed" : ""
                     }`}
             >
-                <MoreVertical className="w-4 h-4 text-gray-700" />
+                <MoreVertical className="w-4 h-4" />
             </button>
 
             {open && (
                 <div
                     role="menu"
-                    className="absolute right-0 mt-2 w-44 rounded-xl bg-white shadow-lg ring-1 ring-black/5 p-1 z-50"
+                    className={`absolute right-0 mt-2 w-40 rounded-md shadow-lg z-50 ${darkMode ? "bg-gray-800":"bg-white"} border ${darkMode ? "border-gray-700":"border-gray-200"}`}
                 >
                     {onDuplicate && (
                         <button
@@ -68,7 +69,7 @@ const MoreMenu: React.FC<MoreMenuProps> = ({ onDuplicate, onDelete, disabled, cl
 
                     <button
                         role="menuitem"
-                        className={itemBase + " text-red-600"}
+                        className={itemBase +"cursor-pointer"+ "text-red-600"}
                         onClick={() => {
                             setOpen(false);
                             onDelete?.();

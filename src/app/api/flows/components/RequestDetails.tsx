@@ -11,11 +11,21 @@ import ButtonTab from "@/app/components/ButtonTab";
 
 type HeaderKV = { key: string; value: string };
 
-const CodeBox: React.FC<{ value: string; lang?: "json" | "graphql" | "js" }> = ({ value }) => (
-  <pre className="w-full bg-[#F3F6F9] text-[13px] leading-5 font-mono rounded-lg p-4 overflow-auto">{value}</pre>
+const CodeBox: React.FC<{ value: string; lang?: "json" | "graphql" | "js"; darkMode?: boolean }> = ({
+  value,
+  darkMode = false,
+}) => (
+  <pre
+    className={`w-full text-[13px] leading-5 font-mono rounded-lg p-4 overflow-auto ${darkMode
+        ? "bg-gray-900 text-gray-100 border border-gray-800"
+        : "bg-[#F3F6F9] text-gray-800"
+      }`}
+  >
+    {value}
+  </pre>
 );
 
-const DEFAULT_VARS_OBJ = {  };
+const DEFAULT_VARS_OBJ = {};
 const DEFAULT_VARS_PRETTY = JSON.stringify(DEFAULT_VARS_OBJ, null, 2);
 
 const normalizeVarsPretty = (raw: unknown): string => {
@@ -32,7 +42,7 @@ const normalizeVarsPretty = (raw: unknown): string => {
     } catch {
       try {
         if (s.startsWith("{")) return JSON.stringify(JSON.parse(s), null, 2);
-      } catch {}
+      } catch { }
     }
     return DEFAULT_VARS_PRETTY;
   }
@@ -47,13 +57,14 @@ const RequestDetails: React.FC<{
   node: FlowNode;
   onBack: () => void;
   onUpdateNode: (patch: Partial<FlowNode>) => void;
-}> = ({ node, onBack, onUpdateNode }) => {
+  darkMode?: boolean;
+}> = ({ node, onBack, onUpdateNode, darkMode = false }) => {
   const isGraphQL = (node.rawNode?.request?.body?.mode ?? "").toLowerCase() === "graphql";
   const method = (node.method || node.rawNode?.request?.method || "GET").toUpperCase();
 
   const initialHeaders: HeaderKV[] = useMemo(() => {
     const list = (node.rawNode?.request?.header ?? []) as Array<{ key?: string; value?: string }>;
-    return list.length ? list.map(h => ({ key: h?.key ?? "", value: h?.value ?? "" })) : [{ key: "", value: "" }];
+    return list.length ? list.map((h) => ({ key: h?.key ?? "", value: h?.value ?? "" })) : [{ key: "", value: "" }];
   }, [node]);
 
   const [activeTab, setActiveTab] = useState<"request" | "test">("request");
@@ -81,8 +92,8 @@ const RequestDetails: React.FC<{
   const headersText = useMemo(
     () =>
       requestHeaders
-        .filter(h => h.key.trim() || h.value.trim())
-        .map(h => `${h.key}: ${h.value}`)
+        .filter((h) => h.key.trim() || h.value.trim())
+        .map((h) => `${h.key}: ${h.value}`)
         .join("\n") || "// Headers",
     [requestHeaders]
   );
@@ -95,7 +106,7 @@ const RequestDetails: React.FC<{
 
   useEffect(() => {
     onUpdateNode({ url: requestUrl });
-    patchRawNode(d => {
+    patchRawNode((d) => {
       d.request = d.request || {};
       d.request.url = d.request.url || {};
       d.request.url.raw = requestUrl;
@@ -103,11 +114,11 @@ const RequestDetails: React.FC<{
   }, [requestUrl]);
 
   useEffect(() => {
-    patchRawNode(d => {
+    patchRawNode((d) => {
       d.request = d.request || {};
       d.request.header = requestHeaders
-        .filter(h => h.key.trim() || h.value.trim())
-        .map(h => ({ key: h.key, value: h.value, type: "text" }));
+        .filter((h) => h.key.trim() || h.value.trim())
+        .map((h) => ({ key: h.key, value: h.value, type: "text" }));
     });
   }, [requestHeaders]);
 
@@ -116,7 +127,7 @@ const RequestDetails: React.FC<{
     try {
       const parsed = JSON.parse(variablesPretty || "{}");
       setVariablesErr(null);
-      patchRawNode(d => {
+      patchRawNode((d) => {
         d.request = d.request || {};
         d.request.body = d.request.body || {};
         d.request.body.mode = "graphql";
@@ -129,23 +140,41 @@ const RequestDetails: React.FC<{
   }, [variablesPretty, isGraphQL]);
 
   return (
-    <div className="flex justify-center self-center h-full w-full p-2 overflow-y-auto">
+    <div
+      className={`flex justify-center self-center h-full w-full p-2 overflow-y-auto ${darkMode ? "bg-gray-900" : ""
+        }`}
+    >
       <div className="w-2/3 py-2 h-full">
         <div className="flex items-center gap-2 mb-4">
-          <button onClick={onBack} className="rounded p-1 hover:bg-gray-100">
-            <ArrowLeft className="w-6 h-6 text-primary/80" />
+          <button
+            onClick={onBack}
+            className={`rounded p-1 ${darkMode ? "hover:bg-gray-800" : "hover:bg-gray-100"}`}
+          >
+            <ArrowLeft className={`w-6 h-6 ${darkMode ? "text-gray-200" : "text-primary/80"}`} />
           </button>
         </div>
 
-        <div className="flex items-center text-lg font-semibold text-primary/80 mb-1">
+        <div className={`flex items-center text-lg font-semibold mb-1 ${darkMode ? "text-gray-100" : "text-primary/80"}`}>
           {node.name}
           <span className={`ml-2 text-xs px-2 py-1 rounded ${httpMethodsStyle(method)}`}>{method}</span>
         </div>
-        <p className="text-gray-500 mb-4">Set the information for this request below</p>
+        <p className={`${darkMode ? "text-gray-400" : "text-gray-500"} mb-4`}>Set the information for this request below</p>
 
-        <div className="flex justify-center gap-2 mb-4 text-primary/85">
-          <ButtonTab label="Request" value="request" isActive={activeTab === "request"} onClick={() => setActiveTab("request")} />
-          <ButtonTab label="Test" value="test" isActive={activeTab === "test"} onClick={() => setActiveTab("test")} />
+        <div className={`flex justify-center gap-2 mb-4 ${darkMode ? "text-gray-100" : "text-primary/85"}`}>
+          <ButtonTab
+            isDarkMode={darkMode}
+            label="Request"
+            value="request"
+            isActive={activeTab === "request"}
+            onClick={() => setActiveTab("request")}
+          />
+          <ButtonTab
+            isDarkMode={darkMode}
+            label="Test"
+            value="test"
+            isActive={activeTab === "test"}
+            onClick={() => setActiveTab("test")}
+          />
         </div>
 
         {activeTab === "request" && (
@@ -158,53 +187,77 @@ const RequestDetails: React.FC<{
               onChangeHandler={(e) => setRequestUrl(e.target.value)}
               placeholder="Enter request URL"
               label="Enter request URL"
+              isDarkMode={darkMode}
             />
 
             {(node.rawNode?.request?.body?.mode ?? "").toLowerCase() === "graphql" ? (
               <div className="flex items-center gap-2 mt-4">
-                <ButtonTab label="Headers" value="headers" isActive={activeTabRequest === "headers"} onClick={() => setActiveTabRequest("headers")} />
+                <ButtonTab
+                  isDarkMode={darkMode}
+                  label="Headers"
+                  value="headers"
+                  isActive={activeTabRequest === "headers"}
+                  onClick={() => setActiveTabRequest("headers")}
+                />
                 <ButtonTab
                   label="Query/Mutation"
                   value="graphql"
                   isActive={activeTabRequest === "graphql"}
                   onClick={() => setActiveTabRequest("graphql")}
-                  Icon={<TbBrandGraphql className="text-primary/85 w-5 h-5" />}
+                  Icon={<TbBrandGraphql className={`${darkMode ? "text-gray-100" : "text-primary/85"} w-5 h-5`} />}
+                  isDarkMode={darkMode}
                 />
-                <ButtonTab label="Variables" value="variables" isActive={activeTabRequest === "variables"} onClick={() => setActiveTabRequest("variables")} />
+                <ButtonTab
+                  isDarkMode={darkMode}
+                  label="Variables"
+                  value="variables"
+                  isActive={activeTabRequest === "variables"}
+                  onClick={() => setActiveTabRequest("variables")}
+                />
               </div>
             ) : (
               <div className="flex items-center gap-2 mt-4">
-                <ButtonTab label="Headers" value="headers" isActive={activeTabRequest === "headers"} onClick={() => setActiveTabRequest("headers")} />
+                <ButtonTab
+                  isDarkMode={darkMode}
+                  label="Headers"
+                  value="headers"
+                  isActive={activeTabRequest === "headers"}
+                  onClick={() => setActiveTabRequest("headers")}
+                />
                 <ButtonTab
                   label="Body"
                   value="body"
                   isActive={activeTabRequest === "body"}
                   onClick={() => setActiveTabRequest("body")}
-                  Icon={<VscJson className="text-primary/85 w-5 h-5" />}
+                  Icon={<VscJson className={`${darkMode ? "text-gray-100" : "text-primary/85"} w-5 h-5`} />}
+                  isDarkMode={darkMode}
                 />
               </div>
             )}
 
             {activeTabRequest === "body" && (
               <div className="max-h-[420px] overflow-y-auto mt-3">
-                <CodeBox value={bodyRawString} />
+                <CodeBox value={bodyRawString} darkMode={darkMode} />
               </div>
             )}
 
             {activeTabRequest === "graphql" && (
               <div className="max-h-[420px] overflow-y-auto mt-3">
-                <CodeBox value={bodyRawString} />
+                <CodeBox value={bodyRawString} darkMode={darkMode} />
               </div>
             )}
 
             {activeTabRequest === "variables" && (
               <div className="space-y-2 mt-3">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm text-slate-600">Variables</h2>
+                  <h2 className={`text-sm ${darkMode ? "text-gray-300" : "text-slate-600"}`}>Variables</h2>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      className="px-2 py-1 text-xs rounded border bg-white hover:bg-slate-50"
+                      className={`px-2 py-1 text-xs rounded border ${darkMode
+                          ? "bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700"
+                          : "bg-white border-gray-200 hover:bg-slate-50"
+                        }`}
                       onClick={() => {
                         try {
                           const pretty = JSON.stringify(JSON.parse(variablesPretty || "{}"), null, 2);
@@ -220,7 +273,10 @@ const RequestDetails: React.FC<{
                     </button>
                     <button
                       type="button"
-                      className="px-2 py-1 text-xs rounded border bg-white hover:bg-slate-50"
+                      className={`px-2 py-1 text-xs rounded border ${darkMode
+                          ? "bg-gray-800 border-gray-700 text-gray-200 hover:bg-gray-700"
+                          : "bg-white border-gray-200 hover:bg-slate-50"
+                        }`}
                       onClick={() => {
                         setVariablesPretty(DEFAULT_VARS_PRETTY);
                         setVariablesErr(null);
@@ -254,7 +310,10 @@ const RequestDetails: React.FC<{
                       }
                     }}
                     spellCheck={false}
-                    className="w-full font-mono text-[13px] leading-5 rounded-md border border-slate-200 bg-[#F3F6F9] p-3 outline-none focus:ring-2 focus:ring-primary/30"
+                    className={`w-full font-mono text-[13px] leading-5 rounded-md p-3 outline-none focus:ring-2 ${darkMode
+                        ? "border border-gray-700 bg-gray-900 text-gray-100 placeholder:text-gray-400 focus:ring-primary/30"
+                        : "border border-slate-200 bg-[#F3F6F9] focus:ring-primary/30"
+                      }`}
                     rows={14}
                     placeholder={DEFAULT_VARS_PRETTY}
                   />
@@ -266,7 +325,7 @@ const RequestDetails: React.FC<{
 
             {activeTabRequest === "headers" && (
               <div className="mt-4 w-full">
-                <h2 className="text-sm text-slate-600 mb-2">Headers</h2>
+                <h2 className={`text-sm mb-2 ${darkMode ? "text-gray-300" : "text-slate-600"}`}>Headers</h2>
                 <div className="flex flex-col gap-2 w-full h-full">
                   {requestHeaders.map((h, i) => (
                     <div key={`${i}-${h.key}-${h.value}`} className="flex gap-2 w-full items-center">
@@ -283,6 +342,7 @@ const RequestDetails: React.FC<{
                           }}
                           placeholder="Enter key"
                           label="Key"
+                          isDarkMode={darkMode}
                         />
                       </div>
                       <div className="flex w-full">
@@ -298,6 +358,7 @@ const RequestDetails: React.FC<{
                           }}
                           placeholder="Enter value"
                           label="Value"
+                          isDarkMode={darkMode}
                         />
                       </div>
                       <button
@@ -305,23 +366,26 @@ const RequestDetails: React.FC<{
                           const arr = requestHeaders.filter((_, idx) => idx !== i);
                           setRequestHeaders(arr.length ? arr : [{ key: "", value: "" }]);
                         }}
-                        className="w-10 p-2 rounded-md hover:bg-gray-100"
+                        className={`w-10 p-2 rounded-md ${darkMode ? "hover:bg-gray-800" : "hover:bg-gray-100"}`}
                       >
-                        <Trash2Icon className="w-5 h-5 text-primary/60 hover:text-red-700" />
+                        <Trash2Icon
+                          className={`w-5 h-5 ${darkMode ? "text-gray-300 hover:text-red-500" : "text-primary/60 hover:text-red-700"}`}
+                        />
                       </button>
                     </div>
                   ))}
                 </div>
                 <button
                   onClick={() => setRequestHeaders([...requestHeaders, { key: "", value: "" }])}
-                  className="text-blue-600 text-sm flex items-center gap-1 hover:underline mt-2"
+                  className={`text-sm flex items-center gap-1 mt-2 ${darkMode ? "text-blue-400 hover:underline" : "text-blue-600 hover:underline"
+                    }`}
                 >
                   <PlusIcon className="w-4 h-4" /> Add header
                 </button>
 
                 <div className="mt-4">
-                  <h3 className="text-xs text-slate-500 mb-1">Preview</h3>
-                  <CodeBox value={headersText} />
+                  <h3 className={`text-xs mb-1 ${darkMode ? "text-gray-400" : "text-slate-500"}`}>Preview</h3>
+                  <CodeBox value={headersText} darkMode={darkMode} />
                 </div>
               </div>
             )}
@@ -330,13 +394,14 @@ const RequestDetails: React.FC<{
 
         {activeTab === "test" && (
           <div>
-            <h2 className="text-sm text-slate-600 mb-2">Test Script</h2>
+            <h2 className={`text-sm mb-2 ${darkMode ? "text-gray-300" : "text-slate-600"}`}>Test Script</h2>
             <div className="max-h-[420px] overflow-y-auto">
               <CodeBox
                 value={
                   (node.rawNode as any)?.event?.find((e: any) => e.listen === "test")?.script?.exec?.join("\n") ??
                   "// Test script"
                 }
+                darkMode={darkMode}
               />
             </div>
           </div>

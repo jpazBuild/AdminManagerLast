@@ -21,6 +21,7 @@ type ModalProps = {
   loadingTags: boolean;
   loadingUsers: boolean;
   onSave: () => void;
+  darkMode?: boolean;
 };
 
 const ModalCreateFlow: React.FC<ModalProps> = ({
@@ -40,79 +41,90 @@ const ModalCreateFlow: React.FC<ModalProps> = ({
   loadingTags,
   loadingUsers,
   onSave,
+  darkMode = false
 }) => {
   const titleId = "create-flow-title";
 
-  
-  
+
+
   return (
     <ModalCustom
       open={open}
       onClose={onClose}
+      isDarkMode={darkMode}
+      width="max-w-lg"
     >
 
-      <div className="mb-2 px-2">
-        <h2 id={titleId} className="text-lg font-semibold text-primary">
-          Create New Flow
-        </h2>
-        <p className="text-sm text-slate-500">
-          Give your test a name, description, tags and the author. You can
-          adjust advanced fields later if needed.
-        </p>
-      </div>
+      <div className="flex flex-col overflow-x-hidden">
+        <div className="overflow-x-hidden">
+          <h2 id={titleId} className={`text-lg font-semibold ${darkMode ? "text-white/90" : "text-gray-900"}`}>
+            Create New Flow
+          </h2>
+          <p className="text-sm text-slate-500">
+            Give your test a name, description, tags and the author. You can
+            adjust advanced fields later if needed.
+          </p>
+        </div>
 
-      <div className="flex flex-col gap-4 mt-4 w-full px-2 text-primary">
-        <TextInputWithClearButton
-          id="flowName"
-          label="Flow Name"
-          placeholder="Enter flow name"
-          value={nameFlow}
-          onChangeHandler={(e) => setNameFlow(e.target.value)}
-        />
+        <div className="flex flex-col gap-4 mt-4 w-full px-2 text-primary">
+          <TextInputWithClearButton
+            id="flowName"
+            label="Flow Name"
+            placeholder="Enter flow name"
+            value={nameFlow}
+            onChangeHandler={(e) => setNameFlow(e.target.value)}
+            isDarkMode={darkMode}
+          />
 
-        <TextInputWithClearButton
-          id="flowDescription"
-          label="Flow Description"
-          placeholder="Enter flow description"
-          value={descriptionFlow}
-          onChangeHandler={(e) => setDescriptionFlow(e.target.value)}
-        />
+          <TextInputWithClearButton
+            id="flowDescription"
+            label="Flow Description"
+            placeholder="Enter flow description"
+            value={descriptionFlow}
+            onChangeHandler={(e) => setDescriptionFlow(e.target.value)}
+            isDarkMode={darkMode}
+          />
 
-        <SearchField
-          value={selectedTags}
-          placeholder="Select tags"
-          label={loadingTags ? "Loading tags…" : "Select tags"}
-          onChange={setSelectedTags}
-          options={tagsOptions}
-        />
+          <SearchField
+            value={selectedTags}
+            placeholder="Select tags"
+            label={loadingTags ? "Loading tags…" : "Select tags"}
+            onChange={setSelectedTags}
+            options={tagsOptions}
+            darkMode={darkMode}
+            usePortal
+          />
 
-        <SearchField
-          value={selectedUser}
-          placeholder="Select user"
-          label={loadingUsers ? "Loading users…" : "Select user"}
-          onChange={setSelectedUser}
-          options={userOptions as any}
-          className="z-20"
-        />
-      </div>
+          <SearchField
+            value={selectedUser}
+            placeholder="Select user"
+            label={loadingUsers ? "Loading users…" : "Select user"}
+            onChange={setSelectedUser}
+            options={userOptions as any}
+            className="z-20"
+            darkMode={darkMode}
+            usePortal
+          />
+        </div>
 
-      <div className="mt-6 flex items-center justify-end gap-2 px-2">
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={saving}
-          className="inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white px-8 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={saving}
-          className="inline-flex items-center justify-center rounded-xl bg-[#3956E8] px-8 py-3 text-sm font-semibold text-white hover:opacity-95 disabled:opacity-50"
-        >
-          {saving ? "Saving..." : "Save"}
-        </button>
+        <div className="flex w-full gap-2 mt-4">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+            className="w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-8 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving}
+            className="w-full items-center justify-center rounded-xl bg-[#3956E8] px-8 py-3 text-sm font-semibold text-white hover:opacity-95 disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save"}
+          </button>
+        </div>
       </div>
     </ModalCustom>
   );

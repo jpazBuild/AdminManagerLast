@@ -14,6 +14,7 @@ type TooltipLocationProps = {
   position?: "top" | "right" | "bottom" | "left"
   active?: boolean
   sideOffset?: number
+  darkMode?: boolean
 }
 
 const TooltipLocation: React.FC<TooltipLocationProps> = ({
@@ -22,6 +23,7 @@ const TooltipLocation: React.FC<TooltipLocationProps> = ({
   position = "right",
   active = false,
   sideOffset = 8,
+  darkMode=false
 }) => {
   if (!active) {
     return <>{children}</>
@@ -45,7 +47,7 @@ const TooltipLocation: React.FC<TooltipLocationProps> = ({
         </div>
       </span>
 
-      <TooltipContent side={position} sideOffset={sideOffset} className="bg-primary text-white/80 w-48 p-2 font-semibold text-sm">
+      <TooltipContent side={position} sideOffset={sideOffset} className={`${darkMode ? "bg-gray-800 text-white/80":"bg-primary text-white/80"} w-48 p-2 font-semibold text-sm`}>
         {text}
       </TooltipContent>
     </Tooltip>

@@ -56,7 +56,7 @@ const FlowsPage: React.FC = () => {
     const [collectionQuery, setCollectionQuery] = useState<string>("");
     const [openCollection, setOpenCollection] = useState<Record<string, boolean>>({});
     const [loadingByCollection, setLoadingByCollection] = useState<Record<string, boolean>>({});
-    const { elements: elementsPostman,loading:loadingElements } = useFetchElementsPostman();
+    const { elements: elementsPostman, loading: loadingElements } = useFetchElementsPostman();
     const { getCollection, cache: collectionsCache, error: collectionError } = useFetchCollection();
     const typeOrigin = useMemo(() => [{ name: "Postman" }, { name: "BD" }], []);
     const [dataDetailCollections, setDataDetailCollections] = useState<Detail[]>([]);
@@ -64,7 +64,7 @@ const FlowsPage: React.FC = () => {
         () => Object.fromEntries(dataDetailCollections.map((dc) => [dc.uid, dc])),
         [dataDetailCollections]
     );
-
+    const [darkMode, setDarkMode] = useState<boolean>(false);
     const [selectedEnvironment, setSelectedEnvironment] = useState<any>(null);
     const [customEnv, setCustomEnv] = useState<{ name: string; env: Record<string, string> } | null>(null);
 
@@ -183,6 +183,7 @@ const FlowsPage: React.FC = () => {
                     const defaultUrl = node?.request?.url?.raw ?? `http://localhost:3000/api/${colName.toLowerCase().replace(/\s+/g, "-")}`;
                     setFlow((prev) => [...prev, { id, name: displayName, method, url: defaultUrl, rawNode: node }]);
                 }}
+                darkMode={darkMode}
             />
         ),
         []
@@ -442,27 +443,34 @@ const FlowsPage: React.FC = () => {
     };
 
     const countOptions = useMemo(() => Array.from({ length: 100 }, (_, i) => ({ id: i + 1, name: String(i + 1) })), []);
+    const skeletonBg = darkMode ? "bg-gray-800" : "bg-gray-300";
 
     return (
-        <DashboardHeader pageType="api" hiddenSide={modalCreateFlowOpen || chipModal.open || modalSureBackListFlows}>
+        <DashboardHeader onDarkModeChange={setDarkMode} pageType="api" hiddenSide={modalCreateFlowOpen || chipModal.open || modalSureBackListFlows}>
             {loadingFlows != null && loadingFlows && !errorFlows && (
-                <div className="flex w-full items-center justify-center p-4 flex-col gap-2">
+                <div className={`flex w-full items-center justify-center p-4 flex-col gap-2 ${darkMode ? "text-white/80" : "text-primary"}`}>
                     <div className="animate-pulse flex flex-col gap-4 w-full lg:w-2/3">
                         <div className="flex items-center gap-2">
-                            <div className="h-12 bg-gray-300 rounded-md w-full"></div>
-                            <div className="h-12 bg-gray-300 rounded-2xl w-32"></div>
+                            <div className={`h-12 ${skeletonBg} rounded-md w-full`} />
+                            <div className={`h-12 ${skeletonBg} rounded-2xl w-32`} />
                         </div>
+
                         <div className="flex gap-2">
-                            <div className="h-6 bg-gray-300 rounded w-6 mb-2"></div>
-                            <div className="h-6 bg-gray-300 rounded w-32 mb-2"></div>
+                            <div className={`h-6 ${skeletonBg} rounded w-6 mb-2`} />
+                            <div className={`h-6 ${skeletonBg} rounded w-32 mb-2`} />
                         </div>
-                        <div className="space-y-2">{[...Array(5)].map((_, i) => (<div key={i} className="h-32 bg-gray-300 rounded"></div>))}</div>
+
+                        <div className="space-y-2">
+                            {[...Array(5)].map((_, i) => (
+                                <div key={i} className={`h-32 ${skeletonBg} rounded`} />
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}
 
             {loadingFlows != null && !loadingFlows && createNewFlowOpen && !errorFlows && (
-                <div className="flex gap-2 w-full h-full text-primary">
+                <div className={`flex gap-2 w-full h-full ${darkMode ? "text-white/80" : "text-primary"}`}>
                     <div className="flex flex-col">
                         <CollectionsAside
                             selectedTypeOrigin={selectedTypeOrigin}
@@ -480,18 +488,19 @@ const FlowsPage: React.FC = () => {
                             dataDetailByUid={dataDetailByUid}
                             renderCollectionTree={renderCollectionTree}
                             loadingElements={loadingElements}
+                            darkMode={darkMode}
                         />
                     </div>
 
-                    <CollectionMain response={singleFlowResponseJson} envEditorOpen={envEditorState.open}>
+                    <CollectionMain response={singleFlowResponseJson} envEditorOpen={envEditorState.open} darkMode={darkMode as any}>
                         <>
                             {view === "canvas" && !envEditorState.open && (
                                 <div className="flex w-full p-4 relative">
                                     {flow.length === 0 ? (
                                         <div className="flex w-full h-full items-center justify-center p-4 flex-col gap-2">
                                             <Image alt="Flows Icon" src={Flows} width={80} height={80} className="text-[#3956E8]" />
-                                            <p className="text-[24px] font-semibold tracking-wider text-primary/85">Select an API to start</p>
-                                            <p className="text-[14px] text-gray-500">Visualize your API flow here</p>
+                                            <p className={`text-[24px] font-semibold tracking-wider ${darkMode ? "text-white/85" : "text-primary/85"}`}>Select an API to start</p>
+                                            <p className={`${darkMode ? "text-gray-400" : "text-gray-500"} text-[14px]`}>Visualize your API flow here</p>
                                         </div>
                                     ) : (
                                         <div className="w-full flex flex-col gap-2">
@@ -513,6 +522,7 @@ const FlowsPage: React.FC = () => {
                                                     widthClass="w-60"
                                                     isCustomFlow={true}
                                                     value={selectedEnvironment}
+                                                    darkMode={darkMode as any}
                                                 />
                                                 <SelectInFlows
                                                     options={rows}
@@ -523,7 +533,8 @@ const FlowsPage: React.FC = () => {
                                                     isCustomFlow={false}
                                                     value={selectedIterationData}
                                                     textOptions="Select an iteration data"
-                                                    Icon={<RefreshCcw className="w-5 h-5 text-primary" />}
+                                                    Icon={<RefreshCcw className={`w-5 h-5 ${darkMode ? "text-white/80" : "text-primary"}`} />}
+                                                    darkMode={darkMode as any}
                                                 />
                                                 <SelectInFlows
                                                     options={countOptions}
@@ -532,10 +543,11 @@ const FlowsPage: React.FC = () => {
                                                     labelDefault="Iteration count"
                                                     textOptions="Select number of counts in flows"
                                                     widthClass="w-52"
-                                                    Icon={<Hash className="w-5 h-5 text-primary" />}
+                                                    Icon={<Hash className={`w-5 h-5 ${darkMode ? "text-white/80" : "text-primary"}`} />}
                                                     isIterationCount
                                                     minCount={0}
                                                     maxCount={100}
+                                                    darkMode={darkMode as any}
                                                 />
                                             </div>
 
@@ -552,11 +564,15 @@ const FlowsPage: React.FC = () => {
                                                 refetchFlows={fetchFlows}
                                                 setCreateNewFlowOpen={setCreateNewFlowOpen}
                                                 iterationData={dataIterionData}
+                                                darkMode={darkMode as any}
                                             />
                                         </div>
                                     )}
-                                    <button className="absolute top-4 right-4 rounded p-1.5 focus:outline-none" onClick={backToListFlows}>
-                                        <FaXmark className="w-5 h-5 text-primary/40" />
+                                    <button
+                                        className={`absolute top-4 right-4 rounded p-1.5 focus:outline-none ${darkMode ? "hover:bg-gray-800" : "hover:bg-gray-100"}`}
+                                        onClick={backToListFlows}
+                                    >
+                                        <FaXmark className={`w-5 h-5 ${darkMode ? "text-white/60" : "text-primary/40"}`} />
                                     </button>
                                 </div>
                             )}
@@ -577,6 +593,7 @@ const FlowsPage: React.FC = () => {
                                             }
                                             : undefined
                                     }
+                                    darkMode={darkMode as any}
                                 />
                             )}
                             {view === "details" && activeNode && (
@@ -585,6 +602,7 @@ const FlowsPage: React.FC = () => {
                                         node={activeNode}
                                         onBack={backToCanvas}
                                         onUpdateNode={(patch) => updateNode(activeNode.id, patch)}
+                                        darkMode={darkMode as any}
                                     />
                                 </div>
                             )}
@@ -596,9 +614,14 @@ const FlowsPage: React.FC = () => {
             {loadingFlows != null && !loadingFlows && !createNewFlowOpen && !errorFlows && flows.length === 0 && (
                 <div className="flex w-full h-full items-center justify-center p-4 flex-col gap-2">
                     <Image alt="Flows Icon" src={Flows} width={80} height={80} className="text-[#3956E8]" />
-                    <p className="text-[24px] font-semibold tracking-wider text-primary/85">Flows</p>
-                    <p className="text-[14px] text-gray-500">Get results from custom API flows</p>
-                    <button onClick={() => setCreateNewFlowOpen(true)} className="bg-primary-blue font-bold text-[20px] py-3 px-10 rounded-2xl text-white">Create Flow</button>
+                    <p className={`text-[24px] font-semibold tracking-wider ${darkMode ? "text-white/85" : "text-primary/85"}`}>Flows</p>
+                    <p className={`${darkMode ? "text-gray-400" : "text-gray-500"} text-[14px]`}>Get results from custom API flows</p>
+                    <button
+                        onClick={() => setCreateNewFlowOpen(true)}
+                        className={`font-bold text-[20px] py-3 px-10 rounded-2xl ${darkMode ? "bg-primary/90 text-white hover:bg-primary/80" : "bg-primary-blue text-white"}`}
+                    >
+                        Create Flow
+                    </button>
                 </div>
             )}
 
@@ -627,24 +650,43 @@ const FlowsPage: React.FC = () => {
                     toggleFlowExpanded={toggleFlowExpanded}
                     messagesResult={messagesResult}
                     refreshFlows={fetchFlows}
+                    darkMode={darkMode}
                 />
             )}
 
             {loadingFlows != null && errorFlows && !loadingFlows && (
                 <div className="flex w-full h-full items-center justify-center p-4 flex-col gap-2">
-                    <p className="text-[20px] font-semibold tracking-wider text-primary/85">Error loading flows</p>
-                    <p className="text-[14px] text-gray-500">There was an error while fetching the flows. Please try again later.</p>
-                    <button onClick={() => fetchFlows()} className="bg-primary-blue/90 px-5 py-3 text-white font-semibold rounded-2xl">Try Reload</button>
+                    <p className={`text-[20px] font-semibold tracking-wider ${darkMode ? "text-white/85" : "text-primary/85"}`}>Error loading flows</p>
+                    <p className={`${darkMode ? "text-gray-400" : "text-gray-500"} text-[14px]`}>There was an error while fetching the flows. Please try again later.</p>
+                    <button
+                        onClick={() => fetchFlows()}
+                        className={`${darkMode ? "bg-primary/80 hover:bg-primary/70" : "bg-primary-blue/90"} px-5 py-3 text-white font-semibold rounded-2xl`}
+                    >
+                        Try Reload
+                    </button>
                 </div>
             )}
 
-            <ModalRenderChips chipModal={chipModal} getApiPiece={(flowId, apiName) => (executedByFlow[flowId] ?? []).find(p => p.name === apiName)} stateLabel={(v?: boolean) => (v === true ? "Success" : v === false ? "Failed" : "Pending")} setChipModal={setChipModal} closeChipModal={closeChipModal} />
+            <ModalRenderChips
+                chipModal={chipModal}
+                getApiPiece={(flowId, apiName) => (executedByFlow[flowId] ?? []).find(p => p.name === apiName)}
+                stateLabel={(v?: boolean) => (v === true ? "Success" : v === false ? "Failed" : "Pending")}
+                setChipModal={setChipModal}
+                closeChipModal={closeChipModal}
+                darkMode={darkMode as any}
+            />
 
             {modalSureBackListFlows && (
-                <ModalBackCanvas modalSureBackListFlows={modalSureBackListFlows} setModalSureBackListFlows={setModalSureBackListFlows} setCreateNewFlowOpen={setCreateNewFlowOpen} />
+                <ModalBackCanvas
+                    modalSureBackListFlows={modalSureBackListFlows}
+                    setModalSureBackListFlows={setModalSureBackListFlows}
+                    setCreateNewFlowOpen={setCreateNewFlowOpen}
+                    darkMode={darkMode as any}
+                />
             )}
         </DashboardHeader>
     );
-};
+}
+
 
 export default FlowsPage;
