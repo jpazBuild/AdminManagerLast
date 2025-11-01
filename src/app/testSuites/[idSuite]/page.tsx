@@ -244,6 +244,60 @@ const TestSuiteId = () => {
     const [isLoadingComputedData, setIsLoadingComputedData] = useState<boolean>(false);
     const [selectedStepsForReusableById, setSelectedStepsForReusableById] = useState<Record<string, number[]>>({});
     const [showReusableModalById, setShowReusableModalById] = useState<Record<string, boolean>>({});
+
+    const [editingTitle, setEditingTitle] = useState(false);
+    const [editingDesc, setEditingDesc] = useState(false);
+    const [titleDraft, setTitleDraft] = useState("");
+    const [descDraft, setDescDraft] = useState("");
+    const [savingMeta, setSavingMeta] = useState(false);
+
+    useEffect(() => {
+        if (suiteDetails) {
+            setTitleDraft(suiteDetails.name || "");
+            setDescDraft(suiteDetails.description || "");
+        }
+    }, [suiteDetails?.id]);
+
+    const saveMeta = async (partial: { name?: string; description?: string }) => {
+        if (!suiteDetails?.id) return;
+        setSavingMeta(true);
+        try {
+            await axios.patch(`${URL_API_ALB}testSuite`, {
+                id: suiteDetails.id,
+                ...partial,
+                updatedBy: "jpaz",
+            });
+            setSuiteDetails((prev) => (prev ? { ...prev, ...partial } : prev));
+            toast.success("Suite actualizada.");
+        } catch (e: any) {
+            toast.error(e?.response?.data?.message || "No se pudo actualizar la suite.");
+        } finally {
+            setSavingMeta(false);
+            if (partial.name !== undefined) setEditingTitle(false);
+            if (partial.description !== undefined) setEditingDesc(false);
+        }
+    };
+
+    const commitTitle = () => {
+        const v = titleDraft.trim();
+        if (!v || v === suiteDetails?.name) {
+            setEditingTitle(false);
+            setTitleDraft(suiteDetails?.name || "");
+            return;
+        }
+        saveMeta({ name: v });
+    };
+
+    const commitDesc = () => {
+        const v = descDraft.trim();
+        if ((suiteDetails?.description || "") === v) {
+            setEditingDesc(false);
+            setDescDraft(suiteDetails?.description || "");
+            return;
+        }
+        saveMeta({ description: v });
+    };
+
     const transformedStepsToCopy = useCallback((steps: any[]) => steps, []);
 
 
@@ -800,15 +854,13 @@ const TestSuiteId = () => {
 
                 const reportCustomName = buildReportCustomName(suiteDetails, testId);
                 const body = { type: "tests-reports", reportCustomName };
-                const resp = await axios.post(`${URL_API_ALB}getReports`, body, { headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' } });
+                const resp = await axios.post(`${URL_API_ALB}getReports`, body);
 
                 let jsonData: any = null;
                 if (resp?.data?.responseSignedUrl) {
                     const url = resp.data.responseSignedUrl as string;
                     const r = await fetch(url, {
-                        method: "GET",
-                        cache: "no-store",
-                        headers: { "Cache-Control": "no-cache", Pragma: "no-cache" }
+                        method: "GET"
                     });
                     const ct = r.headers.get("content-type") || "";
                     jsonData = ct.includes("application/json") ? await r.json() : JSON.parse((await r.text()) || "null");
@@ -982,15 +1034,6 @@ const TestSuiteId = () => {
             { passed, failed, pending });
     }, [suiteDetails, suiteTests, URL_API_ALB]);
 
-    useEffect(() => {
-        computeRef.current = computeSuiteExecutionSummary;
-    }, [computeSuiteExecutionSummary]);
-
-    useEffect(() => {
-        if (suiteDetails && suiteTests.length) {
-            computeSuiteExecutionSummary();
-        }
-    }, [reports, progress, idReports]);
 
     useEffect(() => {
         if (suiteDetails && suiteTests.length) {
@@ -1162,6 +1205,8 @@ const TestSuiteId = () => {
     }, [progressByTestId]);
 
 
+
+
     const handleTestFinalStatus = useCallback(async (_id: string, _final: "completed" | "failed") => {
         try {
             console.log("Test finalizado:", _id, _final);
@@ -1179,7 +1224,6 @@ const TestSuiteId = () => {
             computingRef.current = false;
         }
     }, []);
-
 
     const getStepSelectionClasses = useCallback(
         (testId: string, idx: number) => {
@@ -1249,6 +1293,34 @@ const TestSuiteId = () => {
     }, [reports, idReports, progress]);
 
 
+    const visibleIds = useMemo(
+        () => (searchResults || []).map(r => String(r.id)),
+        [searchResults]
+    );
+
+    const allVisibleSelected = useMemo(() => {
+        if (!visibleIds.length) return false;
+        return visibleIds.every(id => selectedCaseIdsForAdd.includes(id));
+    }, [visibleIds, selectedCaseIdsForAdd]);
+
+    const someVisibleSelected = useMemo(() => {
+        if (!visibleIds.length) return false;
+        const count = visibleIds.filter(id => selectedCaseIdsForAdd.includes(id)).length;
+        return count > 0 && count < visibleIds.length;
+    }, [visibleIds, selectedCaseIdsForAdd]);
+
+    const toggleAllVisible = useCallback(() => {
+        if (!visibleIds.length) return;
+        if (allVisibleSelected) {
+            setSelectedCaseIdsForAdd(prev => prev.filter(id => !visibleIds.includes(id)));
+        } else {
+            setSelectedCaseIdsForAdd(prev => {
+                const set = new Set(prev);
+                visibleIds.forEach(id => set.add(id));
+                return Array.from(set);
+            });
+        }
+    }, [visibleIds, allVisibleSelected, setSelectedCaseIdsForAdd]);
 
     return (
         <DashboardHeader onDarkModeChange={setIsDarkMode} hiddenSide={openAddModal || openDeleteModal || isModalOpen}>
@@ -1272,14 +1344,86 @@ const TestSuiteId = () => {
 
                 {suiteDetails && !isLoadingSuiteDetails && (
                     <div className={`w-full mt-6 p-4 rounded-md ${surface}`}>
-                        <div className="flex items-center justify-between w-full">
-                            <h2 className={`text-2xl font-bold ${strongText}`}>{suiteDetails.name}</h2>
-                            <button className={`${isLoadingComputedData ? "animate-spin" : ""}`} onClick={computeSuiteExecutionSummary}>
-                                <RefreshCcw className="w-5 h-5" size={20} />
-                            </button>
 
+                        <div className="flex items-center justify-between w-full">
+                            <div className="flex flex-col gap-1 min-w-0">
+                                {editingTitle ? (
+                                    <input
+                                        value={titleDraft}
+                                        onChange={(e) => setTitleDraft(e.target.value)}
+                                        onBlur={commitTitle}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter") commitTitle();
+                                            if (e.key === "Escape") {
+                                                setTitleDraft(suiteDetails?.name || "");
+                                                setEditingTitle(false);
+                                            }
+                                        }}
+                                        disabled={savingMeta}
+                                        className={[
+                                            "text-2xl font-bold rounded-md px-2 py-1 w-full",
+                                            isDarkMode
+                                                ? "bg-gray-900 border border-gray-700 focus:ring-0 text-white placeholder-white/40"
+                                                : "bg-white border border-gray-300 text-primary placeholder-primary/50",
+                                        ].join(" ")}
+                                        placeholder="Nombre de la suite"
+                                        autoFocus
+                                    />
+
+
+                                ) : (
+                                    <h2
+                                        className={`text-2xl font-bold truncate ${strongText} cursor-text`}
+                                        title="Doble click para editar"
+                                        onDoubleClick={() => !savingMeta && setEditingTitle(true)}
+                                    >
+                                        {suiteDetails.name}
+                                    </h2>
+                                )}
+
+                                {editingDesc ? (
+                                    <textarea
+                                        value={descDraft}
+                                        onChange={(e) => setDescDraft(e.target.value)}
+                                        onBlur={commitDesc}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) commitDesc();
+                                            if (e.key === "Escape") {
+                                                setDescDraft(suiteDetails?.description || "");
+                                                setEditingDesc(false);
+                                            }
+                                        }}
+                                        disabled={savingMeta}
+                                        rows={2}
+                                        className={[
+                                            "rounded-md px-2 py-1 w-full resize-y",
+                                            isDarkMode
+                                                ? "bg-gray-900 border border-gray-700 text-white placeholder-white/40"
+                                                : "bg-white border border-gray-300 text-primary placeholder-primary/50",
+                                        ].join(" ")}
+                                        placeholder="Añade una descripción"
+                                        autoFocus
+                                    />
+                                ) : (
+                                    <p
+                                        className={`mt-1 break-words ${softText} cursor-text`}
+                                        title="Doble click para editar"
+                                        onDoubleClick={() => !savingMeta && setEditingDesc(true)}
+                                    >
+                                        {suiteDetails.description || <span className="opacity-60">Sin descripción</span>}
+                                    </p>
+                                )}
+                            </div>
+
+                            <button
+                                className={`${isLoadingComputedData ? "animate-spin" : ""}`}
+                                onClick={computeSuiteExecutionSummary}
+                                disabled={savingMeta}
+                                title={savingMeta ? "Guardando..." : "Actualizar resumen"}
+                            >
+                                <RefreshCcw className="w-5 h-5" />
+                            </button>
                         </div>
-                        {suiteDetails.description && <p className={`mt-2 ${softText}`}>{suiteDetails.description}</p>}
 
                         <div className="mt-3 flex flex-wrap gap-2 items-center mb-4">
                             {suiteDetails.tagNames?.map((t) => (
@@ -1562,9 +1706,9 @@ const TestSuiteId = () => {
                                                                                 : "border-gray-200 hover:bg-primary/90 text-white bg-primary/70",
                                                                         ].join(" ")}
                                                                         onClick={() => handlePlaySingle(test)}
-                                                                        disabled={isRunningNow || isLoading || isSaving}
+                                                                        disabled={loading[testId]}
                                                                     >
-                                                                        {!stopped?.[testId] && isRunningNow ? (
+                                                                        {loading[testId]? (
                                                                             <Loader2 className="w-4 h-4 animate-spin text-white" />
                                                                         ) : (
                                                                             <PlayIcon className="w-4 h-4 text-white" />
@@ -2046,7 +2190,7 @@ const TestSuiteId = () => {
                 isDarkMode={isDarkMode}
                 width="max-w-3xl"
             >
-                <div className={`max-h-[90vh] p-4 ${isDarkMode ? "text-white" : "text-primary"}`}>
+                <div className={`max-h-[80vh] p-4 ${isDarkMode ? "text-white" : "text-primary"}`}>
                     <h3 className="text-lg font-semibold mb-3">Add Test Case to Suite</h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -2165,6 +2309,44 @@ const TestSuiteId = () => {
                         </button>
                     </div>
 
+                    <div className="mt-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <label className="inline-flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={allVisibleSelected}
+                                    ref={el => {
+                                        if (el) el.indeterminate = someVisibleSelected && !allVisibleSelected;
+                                    }}
+                                    onChange={toggleAllVisible}
+                                    className={`${isDarkMode ? "accent-primary-blue" : "accent-primary"} h-4 w-4`}
+                                    title={allVisibleSelected ? "Unselect all" : "Select all"}
+                                />
+                                <span className={isDarkMode ? "text-white/80" : "text-primary/80"}>
+                                    {allVisibleSelected ? "Unselect all (visible)" : "Select all (visible)"}
+                                </span>
+                            </label>
+
+                            <span className={isDarkMode ? "text-xs text-white/60" : "text-xs text-primary/60"}>
+                                Selected: {selectedCaseIdsForAdd.length}
+                            </span>
+                        </div>
+
+                        {selectedCaseIdsForAdd.length > 0 && (
+                            <button
+                                onClick={() => setSelectedCaseIdsForAdd([])}
+                                className={[
+                                    "px-3 py-1.5 rounded-md text-xs font-medium",
+                                    isDarkMode ? "bg-gray-800 hover:bg-gray-700 text-white" : "bg-gray-200 hover:bg-gray-300 text-primary",
+                                    "transition"
+                                ].join(" ")}
+                                title="Clear selection"
+                            >
+                                Clear selection
+                            </button>
+                        )}
+                    </div>
+
                     <div className="mt-4 max-h-[45vh] overflow-y-auto rounded-md p-2">
                         {searchResults.length === 0 ? (
                             <NoData text="No test cases found." darkMode={isDarkMode} />
@@ -2224,7 +2406,7 @@ const TestSuiteId = () => {
                             Cancel
                         </button>
                         <button
-                            className={`px-4 py-2 rounded-md font-semibold ${isDarkMode ? "bg-primary-blue/70 hover:bg-primary-blue/80 text-white" : "bg-primary/90 hover:bg-primary/85 text-white"
+                            className={`cursor-pointer px-4 py-2 rounded-md font-semibold ${isDarkMode ? "bg-primary-blue/70 hover:bg-primary-blue/80 text-white" : "bg-primary/90 hover:bg-primary/85 text-white"
                                 }`}
                             onClick={handleAddToSuite}
                             disabled={selectedCaseIdsForAdd.length === 0}

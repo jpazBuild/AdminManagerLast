@@ -119,3 +119,41 @@ export type ExecPiece = {
         detail?: any;
     };
 };
+
+
+export type BatchItem = string | { id: string };
+
+export type SuiteResponse = {
+    id: string;
+    name: string;
+    description?: string;
+    tagNames?: string[];
+    createdByName?: string;
+    createdAt?: number;
+    batchItems?: {
+        count?: number;
+        array?: BatchItem[];
+    };
+};
+
+export type TestHeader = {
+    id: string;
+    name?: string;
+    description?: string;
+    groupName?: string;
+    moduleName?: string;
+    subModuleName?: string;
+    tagNames?: string[];
+    createdByName?: string;
+    createdAt?: number | string;
+};
+
+
+export type FullTest = TestHeader & {
+    testData?: string[];
+    testDataObj?: Record<string, any>;
+    stepsData?: Step[];
+};
+
+export type TestExecutionStatus = "passed" | "failed" | "pending";
+export type ReportsTab = "live" | "saved";
