@@ -1,4 +1,5 @@
 "use client";
+import { ArrowLeftIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FaXmark } from "react-icons/fa6";
@@ -10,6 +11,8 @@ type ModalProps = {
   width?: string;
   isDarkMode?: boolean;
   height?: string;
+  backArrow?: boolean;
+  handleBack?: () => void;
 };
 
 const ModalCustom: React.FC<ModalProps> = ({
@@ -19,6 +22,8 @@ const ModalCustom: React.FC<ModalProps> = ({
   width = "max-w-2xl",
   isDarkMode = false,
   height = "max-h-[90vh]",
+  backArrow = false,
+  handleBack,
 }) => {
   const [mounted, setMounted] = useState(false);
   const [show, setShow] = useState(open);
@@ -69,31 +74,40 @@ const ModalCustom: React.FC<ModalProps> = ({
       aria-modal="true"
     >
       <div
-        className={`fixed inset-0 z-[10000] ${isDarkMode ? "bg-black/50" : "bg-black/40"} transition-opacity duration-150 ${
-          show ? "opacity-100" : "opacity-0"
-        }`}
+        className={`fixed inset-0 z-[10000] ${isDarkMode ? "bg-black/50" : "bg-black/40"} transition-opacity duration-150 ${show ? "opacity-100" : "opacity-0"
+          }`}
         onClick={handleClose}
       />
 
       <div
-        className={`relative z-[10001] w-full ${width} ${height} rounded-2xl ${
-          isDarkMode ? "bg-gray-900" : "bg-white"
-        } p-4 shadow-2xl transition-all duration-150 ${
-          show ? "scale-100 opacity-100" : "scale-95 opacity-0"
-        }`}
+        className={`relative z-[10001] w-full ${width} ${height} rounded-2xl ${isDarkMode ? "bg-gray-900" : "bg-white"
+          } p-4 shadow-2xl transition-all duration-150 ${show ? "scale-100 opacity-100" : "scale-95 opacity-0"
+          }`}
         onClick={(e) => e.stopPropagation()}
       >
+        {backArrow && (
+          <button
+            aria-label="Back"
+            onClick={handleBack}
+            className={`cursor-pointer z-50 absolute left-3 top-3 rounded-md p-2 ${isDarkMode ? "hover:bg-white/10" : "hover:bg-slate-100"
+              }`}
+          >
+            <ArrowLeftIcon className={`w-4 h-4 ${isDarkMode ? "text-slate-300" : "text-slate-500"}`} />
+
+          </button>
+        )
+
+        }
         <button
           aria-label="Close"
           onClick={handleClose}
-          className={`absolute right-3 top-3 rounded-md p-2 ${
-            isDarkMode ? "hover:bg-white/10" : "hover:bg-slate-100"
-          }`}
+          className={`cursor-pointer absolute z-50 right-3 top-3 rounded-md p-2 ${isDarkMode ? "hover:bg-white/10" : "hover:bg-slate-100"
+            }`}
         >
           <FaXmark className={`w-4 h-4 ${isDarkMode ? "text-slate-300" : "text-slate-500"}`} />
         </button>
 
-        <div className="flex flex-col max-h-[90vh] overflow-y-auto">
+        <div className="flex flex-col h-full max-h-screen overflow-y-auto">
           {children}
         </div>
       </div>

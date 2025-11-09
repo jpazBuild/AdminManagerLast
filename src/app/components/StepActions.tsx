@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Clock, Wand2, Layers, Edit, Save, ArrowLeft } from "lucide-react";
+import { Clock, Wand2, Layers, Edit, Save } from "lucide-react";
 import { FaXmark } from "react-icons/fa6";
 import { Check } from "lucide-react";
 import TextInputWithClearButton from "./InputClear";
@@ -11,6 +11,8 @@ import InteractionItem from "./Interaction";
 import { URL_API_ALB } from "@/config";
 import { checkConnection } from "@/utils/DBBUtils";
 import ModalCustom from "./ModalCustom";
+import LoadingSkeleton from "./loadingSkeleton";
+import NoData from "./NoData";
 
 interface StepActionsProps {
     index: number;
@@ -383,176 +385,180 @@ const StepActions: React.FC<StepActionsProps> = ({
                 onClose={() => setIsModalOpen(false)}
                 width="max-w-3xl"
                 isDarkMode={darkMode}
-                height={"max-h-[90vh]"}
+                height={"max-h-[100vh]"}
+                backArrow={selectedReusable !== null}
+                handleBack={() => setSelectedReusable(null)}
             >
-                <div className="relative">
-                    {selectedReusable && (
 
-                        <button className={`${darkMode ? "absolute -top-1 flex gap-2 text-white/80 items-center" : "absolute -top-1 flex gap-2 text-primary/80 items-center"}`} onClick={() => setSelectedReusable(null)}>
-                            <ArrowLeft className={`${darkMode ? "h-5 w-5 text-white/80 hover:text-white/90 cursor-pointer" : "h-5 w-5 text-primary/80 hover:text-primary/90 cursor-pointer"}`} /> Back
-                        </button>
+                <div className="max-h-[90vh] overflow-y-auto">
 
-                    )}
-
-                </div>
-
-                <h2 className={`mt-6 ${darkMode ? "text-2xl font-semibold mb-4 text-white/90" : "text-2xl font-semibold mb-4 text-primary"}`}>
-                    {selectedReusable
-                        ? `${selectedReusable.name}`
-                        : "Select a Reusable Step"}
-                </h2>
-
-                <div className="flex flex-col overflow-y-auto p-4 space-y-4">
-                    {!selectedReusable ? (
-                        <>
-
-                            <div className="flex items-center gap-2">
-                                <TextInputWithClearButton
-                                    id="filter-reusable"
-                                    type="text"
-                                    label="Filter by name"
-                                    value={nameFilter}
-                                    onChangeHandler={(e) => setNameFilter(e.target.value)}
-                                    placeholder="Filter by name…"
-                                    isDarkMode={darkMode}
-                                />
-
-                            </div>
-                            {loading && (
-                                <div className="flex flex-col w-full gap-2">
-                                    <div className={`w-full h-12 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
-                                    <div className={`w-full h-12 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
-                                    <div className={`w-full h-12 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
-
-                                </div>
-                            )}
-
-                            <div className="flex flex-col gap-2 mb-2 h-full max-h-[50vh] overflow-y-auto">
-                                {!loading && filteredReusable.length === 0 && !loading ? (
-                                    <div className="text-sm text-gray-500">No matches.</div>
-                                ) : (!loading &&
-                                    filteredReusable.map((item) => (
-                                        <div
-                                            key={item.id}
-                                            className={`${darkMode ? "p-3 border border-gray-700 rounded-md cursor-pointer hover:bg-gray-700" : "p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100"}`}
-                                            onClick={() => {
-                                                setSelectedReusable(item);
-                                                fetchReusableSteps(item.id);
-                                            }}
-                                        >
-                                            <div className={`${darkMode ? "text-white/70" : "text-gray-600"} text-sm font-semibold`}>{item.name}</div>
-                                            <div className={`${darkMode ? "text-gray-400" : "text-gray-600"} text-sm`}>
-                                                {item.description || "No description"}
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                            </div>
-
-                        </>
-                    ) : (
-                        <>
-                            {loading && (
-                                <div className="flex flex-col w-full gap-2">
-                                    <div className={`w-full h-12 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
-                                    <div className={`w-full h-12 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
-                                    <div className={`w-full h-12 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
-
-                                </div>
-                            )}
-
-                            <div className="flex gap-2 mb-2 h-full max-h-[60vh] overflow-y-auto">
-
-                                <button
-                                    className={`${darkMode ? `flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md rounded text-white ${isEditingReusable ? "bg-gray-700 hover:bg-gray-600" : "bg-primary-blue/80 hover:bg-primary-blue/90"}` : "flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded bg-primary/90 text-white hover:bg-primary/95"}`}
-                                    onClick={() => setIsEditingReusable(!isEditingReusable)}
-                                >
-                                    <Edit className="mr-1 h-3 w-3" />{" "}
-                                    {isEditingReusable ? "Cancel Edit" : "Edit Reusable"}
-                                </button>
-
-                                {isEditingReusable && (
-                                    <button
-                                        className={`${darkMode ? "flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded bg-primary-blue/80 text-white hover:bg-primary-blue/90" : "flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded bg-primary/90 text-white hover:bg-primary/95"}`}
-                                        onClick={saveReusableChanges}
-                                    >
-                                        <Save className="mr-1 h-3 w-3" /> Save Changes
-
-                                    </button>
+                    <div className={`flex justify-center border-b p-1 sticky top-0 text-center bg-${darkMode ? "gray-900" : "white"} z-10`}>
+                        <h2 className={`mt-1 wrap-break-word ${darkMode ? "text-2xl font-semibold mb-4 text-white/90" : "text-2xl font-semibold mb-4 text-primary"}`}>
+                            {selectedReusable
+                                ? `${selectedReusable.name}`
+                                : "Select a Reusable Step"}
+                        </h2>
+                    </div>
 
 
-                                )}
-                            </div>
+                    <div className="flex flex-col overflow-y-auto p-4 space-y-4">
+                        {!selectedReusable ? (
+                            <>
 
-                            {selectedReusableSteps.map((step, idx) => (
-                                <div key={idx} className="flex flex-col gap-2 border rounded p-2">
-                                    <ReusableStepActions darkMode={darkMode} idx={idx - 1} />
-
-                                    <InteractionItem
-                                        data={{ id: `reusable-${selectedReusable.id}-step-${idx}`, ...step }}
-                                        index={idx}
-                                        {...(isEditingReusable && {
-                                            onDelete: (indexToDelete) => {
-                                                const newSteps = selectedReusableSteps
-                                                    .filter((_, i) => i !== indexToDelete)
-                                                    .map((s, k) => ({ ...s, indexStep: k + 1 }));
-                                                insertReusableStep(newSteps);
-                                            },
-                                            onUpdate: (indexToUpdate, updatedStep) => {
-                                                const newSteps = [...selectedReusableSteps];
-                                                newSteps[indexToUpdate] = {
-                                                    ...newSteps[indexToUpdate],
-                                                    ...updatedStep,
-                                                };
-                                                insertReusableStep(newSteps);
-                                            }
-                                        })}
+                                <div className="flex items-center gap-2">
+                                    <TextInputWithClearButton
+                                        id="filter-reusable"
+                                        type="text"
+                                        label="Filter by name"
+                                        value={nameFilter}
+                                        onChangeHandler={(e) => setNameFilter(e.target.value)}
+                                        placeholder="Filter by name…"
                                         isDarkMode={darkMode}
-                                        test={test}
                                     />
-                                    <ReusableStepActions darkMode={darkMode} idx={idx} />
+
                                 </div>
-                            ))}
+                                {loading && (
+                                    <div className="flex flex-col w-full gap-2">
+                                        <div className={`w-full h-12 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
+                                        <div className={`w-full h-12 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
+                                        <div className={`w-full h-12 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
 
-                            <Button
-                                className={`font-semibold ${darkMode ? "bg-primary-blue/90 text-white/90 hover:bg-primary-blue/80 hover:text-white" : "bg-primary/80 text-white hover:bg-primary"} shadow-md cursor-pointer px-2 py-1 rounded-md text-sm mt-4 flex items-center gap-1`}
-                                onClick={() => {
-                                    if (!selectedReusable) return;
+                                    </div>
+                                )}
 
-                                    const newStep = reusable;
+                                <div className="flex flex-col gap-2 mb-2 h-full max-h-[50vh] overflow-y-auto">
+                                    {!loading && filteredReusable.length === 0 && !loading ? (
+                                        <div className="text-sm text-gray-500">No matches.</div>
+                                    ) : (!loading &&
+                                        filteredReusable.map((item) => (
+                                            <div
+                                                key={item.id}
+                                                className={`${darkMode ? "p-3 border border-gray-700 rounded-md cursor-pointer hover:bg-gray-700" : "p-3 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100"}`}
+                                                onClick={() => {
+                                                    setSelectedReusable(item);
+                                                    fetchReusableSteps(item.id);
+                                                }}
+                                            >
+                                                <div className={`${darkMode ? "text-white/70" : "text-gray-600"} text-sm font-semibold`}>{item.name}</div>
+                                                <div className={`${darkMode ? "text-gray-400" : "text-gray-600"} text-sm`}>
+                                                    {item.description || "No description"}
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
 
-                                    const updatedSteps = [...steps];
-                                    updatedSteps.splice(index + 1, 0, newStep);
+                            </>
+                        ) : (
+                            <div className="flex flex-col">
+                                {loading && (
+                                    <LoadingSkeleton darkMode={darkMode} />
+                                )}
 
-                                    const reindexedSteps = updatedSteps.map((step, idx) => ({
-                                        ...step,
-                                        indexStep: idx + 1,
-                                    }));
+                                {!loading && (
+                                    <div className="flex gap-2 mb-2 h-full max-h-[60vh] overflow-y-auto">
 
-                                    setResponseTest?.((prev: any) => {
-                                        if (!prev) return prev;
-                                        return { ...prev, stepsData: reindexedSteps };
-                                    });
+                                        <button
+                                            className={`${darkMode ? `flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md rounded text-white ${isEditingReusable ? "bg-gray-700 hover:bg-gray-600" : "bg-primary-blue/80 hover:bg-primary-blue/90"}` : "flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded bg-primary/90 text-white hover:bg-primary/95"}`}
+                                            onClick={() => setIsEditingReusable(!isEditingReusable)}
+                                        >
+                                            <Edit className="mr-1 h-3 w-3" />{" "}
+                                            {isEditingReusable ? "Cancel Edit" : "Edit Reusable"}
+                                        </button>
 
-                                    setTestCasesData?.((prev: any[]) => {
-                                        const updated = [...prev];
-                                        const idxCase = updated.findIndex((tc) => tc.testCaseId === test.testCaseId);
-                                        if (idxCase >= 0) {
-                                            updated[idxCase] = { ...updated[idxCase], stepsData: reindexedSteps };
-                                        }
-                                        return updated;
-                                    });
+                                        {isEditingReusable && (
+                                            <button
+                                                className={`${darkMode ? "flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded bg-primary-blue/80 text-white hover:bg-primary-blue/90" : "flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded bg-primary/90 text-white hover:bg-primary/95"}`}
+                                                onClick={saveReusableChanges}
+                                            >
+                                                <Save className="mr-1 h-3 w-3" /> Save Changes
 
-                                    setIsModalOpen(false);
-                                    toast.success(`Reusable "${selectedReusable.name}" added`);
-                                }}
-                            >
-                                Add This Reusable
-                            </Button>
-                        </>
-                    )}
+                                            </button>
+
+
+                                        )}
+                                    </div>
+                                )}
+
+                                {!loading && selectedReusableSteps.length === 0 && (
+                                    <NoData text="No steps in this reusable." darkMode={darkMode} />
+                                )}
+
+                                {!loading && selectedReusableSteps?.map((step, idx) => (
+                                    <div key={idx} className="flex flex-col gap-2 border rounded p-2">
+                                        <ReusableStepActions darkMode={darkMode} idx={idx - 1} />
+
+                                        <InteractionItem
+                                            data={{ id: `reusable-${selectedReusable.id}-step-${idx}`, ...step }}
+                                            index={idx}
+                                            {...(isEditingReusable && {
+                                                onDelete: (indexToDelete) => {
+                                                    const newSteps = selectedReusableSteps
+                                                        .filter((_, i) => i !== indexToDelete)
+                                                        .map((s, k) => ({ ...s, indexStep: k + 1 }));
+                                                    insertReusableStep(newSteps);
+                                                },
+                                                onUpdate: (indexToUpdate, updatedStep) => {
+                                                    const newSteps = [...selectedReusableSteps];
+                                                    newSteps[indexToUpdate] = {
+                                                        ...newSteps[indexToUpdate],
+                                                        ...updatedStep,
+                                                    };
+                                                    insertReusableStep(newSteps);
+                                                }
+                                            })}
+                                            isDarkMode={darkMode}
+                                            test={test}
+                                        />
+                                    </div>
+                                ))}
+
+                                {!loading && (
+
+                                    <Button
+                                        className={`font-semibold sticky top-0 ${darkMode ? "bg-primary-blue/90 text-white/90 hover:bg-primary-blue/80 hover:text-white" : "bg-primary/80 text-white hover:bg-primary"} shadow-md cursor-pointer px-2 py-1 rounded-md text-sm mt-4 flex items-center gap-1`}
+                                        onClick={() => {
+                                            if (!selectedReusable) return;
+
+                                            const newStep = reusable;
+
+                                            const updatedSteps = [...steps];
+                                            updatedSteps.splice(index + 1, 0, newStep);
+
+                                            const reindexedSteps = updatedSteps.map((step, idx) => ({
+                                                ...step,
+                                                indexStep: idx + 1,
+                                            }));
+
+                                            setResponseTest?.((prev: any) => {
+                                                if (!prev) return prev;
+                                                return { ...prev, stepsData: reindexedSteps };
+                                            });
+
+                                            setTestCasesData?.((prev: any[]) => {
+                                                const updated = [...prev];
+                                                const idxCase = updated.findIndex((tc) => tc.testCaseId === test.testCaseId);
+                                                if (idxCase >= 0) {
+                                                    updated[idxCase] = { ...updated[idxCase], stepsData: reindexedSteps };
+                                                }
+                                                return updated;
+                                            });
+
+                                            setIsModalOpen(false);
+                                            toast.success(`Reusable "${selectedReusable.name}" added`);
+                                        }}
+                                    >
+                                        Add This Reusable
+                                    </Button>
+
+                                )}
+
+                            </div>
+                        )}
+
+
+                    </div>
                 </div>
-
             </ModalCustom>
         </div>
     );

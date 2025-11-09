@@ -69,7 +69,7 @@ const MoreMenu: React.FC<MoreMenuProps> = ({ onDuplicate, onDelete, disabled, cl
 
                     <button
                         role="menuitem"
-                        className={itemBase +"cursor-pointer"+ "text-red-600"}
+                        className={`${itemBase } ${darkMode ? "text-red-400 hover:text-red-600":"text-red-600 hover:text-red-800"}`}
                         onClick={() => {
                             setOpen(false);
                             onDelete?.();

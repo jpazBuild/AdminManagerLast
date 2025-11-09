@@ -86,15 +86,15 @@ const JSONDropzone = ({
   const dzClsBase =
     "self-center max-w-80 border-2 border-dashed rounded-md px-4 py-6 transition-colors cursor-pointer flex flex-col h-full w-full justify-center items-center";
   const dzCls = isDarkMode
-    ? `${dzClsBase} ${isDragging ? "border-blue-400 bg-blue-900/20 text-white" : "border-gray-500 bg-gray-800 text-gray-300 hover:bg-blue-900/10 hover:border-blue-400"}`
+    ? `${dzClsBase} ${isDragging ? "border-text-primary-blue bg-primary-blue/20 text-white" : "border-gray-500 bg-gray-800 text-gray-300 hover:bg-blue-900/10 hover:border-primary-blue"}`
     : `${dzClsBase} text-primary ${isDragging ? "border-primary bg-primary/10" : "border-primary/30 bg-white hover:bg-primary/10 hover:border-primary"}`;
 
   const textCls = isDarkMode ? "text-gray-400" : "text-primary/60";
-  const iconCls = isDarkMode ? "text-blue-400" : "text-primary";
+  const iconCls = isDarkMode ? "text-white" : "text-primary";
   const fileNameCls = isDarkMode ? "text-gray-300" : "text-primary";
   const fileValCls = isDarkMode ? "text-white" : "text-primary/90";
   const removeBtnCls = isDarkMode
-    ? "text-gray-400 self-center flex items-center gap-1 text-xs hover:text-gray-200 p-2 rounded-md border-2 border-gray-500 hover:border-gray-400 transition-colors"
+    ? "text-white/80 self-center flex items-center gap-1 text-xs hover:text-gray-200 p-2 rounded-md border-2 border-gray-500 hover:border-gray-400 transition-colors bg-gray-900"
     : "text-primary/70 self-center flex items-center gap-1 text-xs hover:text-primary/75 p-2 rounded-md border-2 border-primary/80 hover:border-primary transition-colors";
 
   return (
@@ -150,7 +150,7 @@ const JSONDropzone = ({
 
         <button
           type="button"
-          className={isDarkMode ? "underline text-blue-400 text-xs hover:text-blue-300"
+          className={isDarkMode ? "underline text-white/90 text-xs hover:text-white/70"
                                 : "underline text-primary text-xs hover:text-primary/80"}
           onClick={(e) => {
             e.stopPropagation();

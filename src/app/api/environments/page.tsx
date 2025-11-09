@@ -229,7 +229,7 @@ const EnvironmentsPage = () => {
 
           <button
             className={`mr-2 w-1/2 mt-2 flex gap-2 items-center justify-center self-end px-3 py-2.5 rounded-md font-medium transition ${
-              darkMode ? "bg-primary-blue/80 text-white hover:bg-primary/90" : "bg-primary text-white hover:bg-primary/90"
+              darkMode ? "bg-primary-blue/80 text-white hover:bg-primary-blue/90" : "bg-primary text-white hover:bg-primary/90"
             }`}
             onClick={() => {
               setCreateView(true);

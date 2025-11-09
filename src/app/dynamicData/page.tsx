@@ -758,14 +758,13 @@ const DynamicDataCrudPage = () => {
               </div>
 
               <div className="mt-4">
-                <Button
+                <button
                   onClick={handleCreate}
                   disabled={creating}
-                  variant="outline"
-                  className={primaryAction}
+                  className={`px-6 py-3 rounded-full cursor-pointer font-semibold ${darkMode ? "bg-primary-blue hover:bg-primary-blue/90":"bg-primary hover:bg-primary/90"}  focus:outline-none focus:ring-2 focus:ring-offset-2`}
                 >
                   {creating ? "Creating..." : "Create"}
-                </Button>
+                </button>
               </div>
             </div>
           </section>

@@ -1,6 +1,6 @@
 import { ModalTab } from "@/types/types";
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { stackoverflowLight } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { shadesOfPurple, stackoverflowLight } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import ModalCustom from "@/app/components/ModalCustom";
 
 type ModalRenderChipsProps = {
@@ -33,7 +33,7 @@ const ModalRenderChips = ({ chipModal, getApiPiece, stateLabel, setChipModal, cl
                 <div className="max-h-[500px] overflow-y-auto">
                     <SyntaxHighlighter
                         language="javascript"
-                        style={darkMode ? stackoverflowLight : stackoverflowLight}
+                        style={darkMode ? shadesOfPurple : stackoverflowLight}
                         customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem", backgroundColor: `${darkMode ? "#1e2939" : "#F3F6F9"}` }}
                     >
                         {getApiPiece(chipModal.flowId!, chipModal.apiName!)?.[`${chipModal?.stage}Chips`]?.length > 0

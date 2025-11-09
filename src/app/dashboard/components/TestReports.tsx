@@ -13,6 +13,7 @@ import CopyToClipboard from "@/app/components/CopyToClipboard";
 import PaginationResults from "./PaginationResults";
 import { usePagination } from "@/app/hooks/usePagination";
 import EmptyStateSelectAnimation from "./EmptyStateSelectAnimation";
+import LoadingSkeleton from "@/app/components/loadingSkeleton";
 
 type FilterKey = "all" | "success" | "failed" | "pending";
 
@@ -116,7 +117,7 @@ const TestReports = ({
       const pct = getPct(reportId);
 
       console.log("Checking final status for report:", reportId, { action, status, pct });
-      
+
       const isCompleted = action === "test execution completed" && status === "completed";
       const isFailed = action === "test execution failed" && status === "failed";
 
@@ -262,8 +263,8 @@ const TestReports = ({
   };
 
 
-  console.log("loading TestReports render", { selectedTest, filtered, paginatedSelectedTests,loading });
-  
+  console.log("loading TestReports render", { selectedTest, filtered, paginatedSelectedTests, loading });
+
 
   return (
     <div className={`space-y-6 mt-6 flex flex-col overflow-y-auto w-full ${darkMode ? "text-white" : "text-primary"}`}>
@@ -391,7 +392,7 @@ const TestReports = ({
           const finalStatus = latestStep?.ev?.status || latestStep?.ev?.finalStatus || "processing";
           const isFailed = finalStatus === "failed";
           const connectionId = stepMap[reportId]?.connectionId;
-          const isRunning = progressValue > 0 && progressValue < 100 && !stopped[reportId] ;
+          const isRunning = progressValue > 0 && progressValue < 100 && !stopped[reportId];
           const showPlay = (progressValue === 0 || progressValue === 100) || !loading[reportId];
           const showStop = isRunning || loading[reportId];
 
@@ -533,7 +534,13 @@ const TestReports = ({
 
                 </div>
               )}
-              {(isExpanded || showOnlySingletest) && (test?.stepsData || test?.stepsIds) && (
+
+              {(isExpanded || showOnlySingletest) && stepMap[reportId]?.steps === undefined
+               && (
+                  <LoadingSkeleton darkMode={darkMode} />
+                )}
+
+              {(isExpanded || showOnlySingletest) && (test?.stepsData || test?.stepsIds) && stepMap[reportId]?.steps && Object.keys(stepMap[reportId].steps).length > 0 && (
                 <div className="p-1 max-h-[60vh] overflow-y-auto" ref={(el) => { containerRefs.current[reportId] = el; }}>
                   <ReportUI
                     testcaseId={reportId}

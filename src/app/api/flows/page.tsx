@@ -8,7 +8,8 @@ import { useFetchCollection } from "../collections/hooks/useFetchCollection";
 import { httpMethodsStyle } from "../utils/colorMethods";
 import CollectionTree from "../collections/components/CollectionTree";
 import Image from "next/image";
-import Flows from "../../../assets/iconsSides/flows.svg";
+
+import FlowsIcon from "@/assets/iconsSides/flows";
 import CollectionMain from "../collections/components/CollectionMain";
 import { Hash, RefreshCcw } from "lucide-react";
 import axios from "axios";
@@ -172,7 +173,7 @@ const FlowsPage: React.FC = () => {
     };
 
     const renderCollectionTree = useCallback(
-        (colDetail: any, colUid: string, colName: string) => (
+        (colDetail: any, colUid: string, colName: string,darkMode:boolean) => (
             <CollectionTree
                 colDetail={colDetail}
                 colUid={colUid}
@@ -498,7 +499,7 @@ const FlowsPage: React.FC = () => {
                                 <div className="flex w-full p-4 relative">
                                     {flow.length === 0 ? (
                                         <div className="flex w-full h-full items-center justify-center p-4 flex-col gap-2">
-                                            <Image alt="Flows Icon" src={Flows} width={80} height={80} className="text-[#3956E8]" />
+                                            <FlowsIcon darkMode={darkMode} />
                                             <p className={`text-[24px] font-semibold tracking-wider ${darkMode ? "text-white/85" : "text-primary/85"}`}>Select an API to start</p>
                                             <p className={`${darkMode ? "text-gray-400" : "text-gray-500"} text-[14px]`}>Visualize your API flow here</p>
                                         </div>
@@ -613,7 +614,7 @@ const FlowsPage: React.FC = () => {
 
             {loadingFlows != null && !loadingFlows && !createNewFlowOpen && !errorFlows && flows.length === 0 && (
                 <div className="flex w-full h-full items-center justify-center p-4 flex-col gap-2">
-                    <Image alt="Flows Icon" src={Flows} width={80} height={80} className="text-[#3956E8]" />
+                    <FlowsIcon darkMode={darkMode} />
                     <p className={`text-[24px] font-semibold tracking-wider ${darkMode ? "text-white/85" : "text-primary/85"}`}>Flows</p>
                     <p className={`${darkMode ? "text-gray-400" : "text-gray-500"} text-[14px]`}>Get results from custom API flows</p>
                     <button

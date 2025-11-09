@@ -7,6 +7,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import ButtonTab from "./ButtonTab";
 import ModalCustom from "./ModalCustom";
+import { shadesOfPurple } from "react-syntax-highlighter/dist/esm/styles/hljs";
 
 interface Step {
     status?: string;
@@ -81,7 +82,7 @@ const StepScreenshot = ({ step, handleImageClick }: any) => {
 };
 
 
-const StepCard = ({ step, stepData, index, handleImageClick, stopped = false,darkMode=false }: StepCardProps) => {
+const StepCard = ({ step, stepData, index, handleImageClick, stopped = false, darkMode = false }: StepCardProps) => {
     const status = (step?.status ?? "").toLowerCase();
     const [activeTabApi, setActiveTabApi] = useState("request");
     const [openModalApi, setOpenModalApi] = useState(false);
@@ -102,17 +103,21 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false,dar
     return (
         <div
             key={`step-${index}`}
-            className={`relative p-4 flex flex-col rounded-lg shadow-md transition-all ${darkMode ? "!text-white":"text-primary"} border-2 border-l-4 ${isStepSuccess
-                ? "border-emerald-500"
-                : isStepError
-                    ? "border-red-500"
-                    : isStopped
-                        ? "border-primary/50"
+            className={`relative p-4 flex flex-col rounded-lg shadow-md transition-all ${darkMode ? "!text-white" : "text-primary"} border-2 border-l-4 ${isStepSuccess
+
+                    ? "border-emerald-500"
+                    : isStepError
+                        ? "border-red-500"
                         : isProcessing
                             ? "border-yellow-500"
                             : isSkipped
                                 ? "border-blue-500"
-                                : "border-primary/20"
+                                : (isStopped && !darkMode)
+                                    ? "border-primary/50"
+                                    : "border-gray-500"
+
+
+
                 }`}
         >
             <div
@@ -122,7 +127,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false,dar
                 Step {index}
             </div>
 
-            <p className={`${darkMode ? "text-white/90":"text-primary/90"} mt-6 mb-2 whitespace-pre-wrap break-words`}>
+            <p className={`${darkMode ? "text-white/90" : "text-primary/90"} mt-6 mb-2 whitespace-pre-wrap break-words`}>
                 {step?.action ?? stepData?.action}
             </p>
 
@@ -217,7 +222,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false,dar
                                                 <strong>Request Query:</strong>
                                                 <SyntaxHighlighter
                                                     language="graphql"
-                                                    style={oneLight}
+                                                    style={darkMode ? shadesOfPurple : oneLight}
                                                     customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem" }}
                                                 >
                                                     {gqlQuery}
@@ -230,7 +235,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false,dar
                                                     <strong>Raw Request Body:</strong>
                                                     <SyntaxHighlighter
                                                         language="json"
-                                                        style={oneLight}
+                                                        style={darkMode ? shadesOfPurple : oneLight}
                                                         customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem" }}
                                                     >
                                                         {JSON.stringify(raw, null, 2)}
@@ -244,7 +249,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false,dar
                                                 <strong>Variables:</strong>
                                                 <SyntaxHighlighter
                                                     language="json"
-                                                    style={oneLight}
+                                                    style={darkMode ? shadesOfPurple : oneLight}
                                                     customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem" }}
                                                 >
                                                     {JSON.stringify(
@@ -261,7 +266,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false,dar
                                 {activeTabApi === "response" && (
                                     <SyntaxHighlighter
                                         language="json"
-                                        style={oneLight}
+                                        style={darkMode ? shadesOfPurple : oneLight}
                                         customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem" }}
                                     >
                                         {JSON.stringify(
@@ -302,7 +307,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false,dar
                         </div>
                     </div>
                 </ModalCustom>
-               
+
             )}
 
             {step?.result && (
@@ -316,7 +321,7 @@ const StepCard = ({ step, stepData, index, handleImageClick, stopped = false,dar
                 </p>
             )}
             {timeInSeconds && !isProcessing && (
-                <div className={`absolute top-2 right-2 flex items-center ${darkMode ? "text-white/90":"text-primary/90"} text-sm`}>
+                <div className={`absolute top-2 right-2 flex items-center ${darkMode ? "text-white/90" : "text-primary/90"} text-sm`}>
                     <Clock className="w-4 h-4 mr-1" />
                     {timeInSeconds} s
                 </div>

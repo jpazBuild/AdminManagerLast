@@ -585,8 +585,8 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
 
     return (
         <div className=" flex flex-col gap-2">
-            <div className="flex gap-2 items-center justify-center w-full">
-                <button className={`flex gap-1 cursor-pointer font-medium ${isDarkMode ? "bg-gray-800 hover:bg-gray-700":"text-primary/80 bg-gray-200"}  text-[14px] px-4 py-3 rounded-full`} onClick={() => setViewUploadedJSON(true)}>
+            <div className={`flex gap-2 items-center justify-center w-full ${isDarkMode ? "bg-gray-900/50 border border-gray-700" : "bg-gray-100/50 border border-gray-300"} rounded-2xl p-2 mb-2`}>
+                <button className={`flex gap-1 cursor-pointer font-medium ${isDarkMode ? "bg-gray-800 hover:bg-gray-700" : "text-primary/80 bg-gray-200"}  text-[14px] px-4 py-3 rounded-full`} onClick={() => setViewUploadedJSON(true)}>
                     <UploadIcon className="w-4 h-4" /> Upload JSON
                 </button>
                 {viewUploadedJSON && (
@@ -597,7 +597,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                         width="lg:max-w-2xl w-full"
                         isDarkMode={isDarkMode}
                     >
-                        <h2 className="text-center break-words pb-4 font-semibold">Import Dynamic Data from JSON</h2>
+                        <h2 className={`text-center break-words pb-4 font-semibold ${isDarkMode ? "text-white/90":""}`}>Import Dynamic Data from JSON</h2>
                         <JSONDropzone
                             onJSONParsed={handleParsedJSON}
                             onFileInfoChange={({ loaded, name }) => {
@@ -688,7 +688,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                         <button
                             onClick={handleExportAsDataObject}
 
-                            className={`cursor-pointer  text-[14px] ${isDarkMode ?"text-white bg-gray-800 hover:bg-gray-700":"text-primary/80  bg-gray-200 hover:bg-gray-300"} rounded-xl px-3 py-2 flex gap-2 `}
+                            className={`cursor-pointer  text-[14px] ${isDarkMode ? "text-white bg-gray-800 hover:bg-gray-700" : "text-primary/80  bg-gray-200 hover:bg-gray-300"} rounded-xl px-3 py-2 flex gap-2 `}
                         >
                             <DownloadIcon className="w-5 h-5" /> Export Dynamic Values
                         </button>
@@ -705,7 +705,7 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                     width="lg:max-w-3xl w-full"
                     isDarkMode={isDarkMode}
                 >
-                    <h3 className={`text-lg font-semibold ${isDarkMode ? "text-white/90":"text-primary/80"}`}>Choose Dynamic Data</h3>
+                    <h3 className={`text-lg font-semibold ${isDarkMode ? "text-white/90" : "text-primary/80"}`}>Choose Dynamic Data</h3>
 
 
                     <div className="p-4 space-y-3">
@@ -738,22 +738,22 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
                                     >
                                         <div className="min-w-0">
                                             <div className="flex items-center gap-2">
-                                                <p className="font-medium truncate">{h?.name ?? "(No Name)"}</p>
+                                                <p className={`font-medium truncate ${isDarkMode ? "text-white":"text-primary/90"}`}>{h?.name ?? "(No Name)"}</p>
                                                 <CopyToClipboard text={h.name ?? ""} isDarkMode={isDarkMode} />
                                             </div>
 
                                             <div className="mt-1 flex flex-col items-center gap-2 text-xs">
-                                                <span className="opacity-70">ID: {String(h.id)}</span>
+                                                <span className={`font-medium opacity-80 truncate ${isDarkMode ? "text-white":"text-primary/90"}`}>ID: {String(h.id)}</span>
                                                 <div className="self-start flex items-center gap-1 flex-wrap">
                                                     {h.groupName && (
-                                                        <span className="px-2 py-0.5 rounded-2xl bg-primary/90 text-white">
+                                                        <span className={`px-2 py-0.5 rounded-2xl ${isDarkMode ? "bg-gray-500 text-white":"bg-primary/90 text-white"}`}>
                                                             {h.groupName}
                                                         </span>
                                                     )}
                                                     {(h.tagNames ?? []).map((t, i) => (
                                                         <span
                                                             key={i}
-                                                            className="px-2 py-0.5 rounded-2xl bg-primary/60 text-white"
+                                                            className={`px-2 py-0.5 rounded-2xl ${isDarkMode ? "bg-gray-900 text-white":"bg-primary/90 text-white"}`}
                                                         >
                                                             {t}
                                                         </span>
@@ -766,15 +766,14 @@ const TestCaseList: React.FC<TestCaseListProps> = ({
 
                                         </div>
 
-                                        <Button
+                                        <button
                                             type="button"
-                                            variant="outline"
-                                            className="rounded-xl"
+                                            className={`cursor-pointer rounded-xl px-4 py-2 ${isDarkMode ? "bg-gray-900 text-white border-gray-600 hover:bg-gray-700" : "bg-gray-200 text-primary border-gray-300 hover:bg-gray-300"}`}
                                             onClick={() => handlePickDynamicData(h)}
                                             disabled={ddPickLoading === h.id}
                                         >
                                             {ddPickLoading === h.id ? "Importing…" : "Import"}
-                                        </Button>
+                                        </button>
                                     </div>
                                 ))}
                             </div>

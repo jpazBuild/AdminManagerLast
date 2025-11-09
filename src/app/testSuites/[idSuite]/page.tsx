@@ -2,27 +2,30 @@
 import { DashboardHeader } from "@/app/Layouts/main";
 import { URL_API_ALB } from "@/config";
 import axios from "axios";
-import { ArrowLeft, Database, Eye, PlayIcon, Save, X, Loader2, PlusIcon, Check, File, Trash2, Settings, RefreshCcw } from "lucide-react";
+import { ArrowLeft, Save, X, PlusIcon } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState, useCallback, Fragment, useRef } from "react";
-import UnifiedInput from "@/app/components/Unified";
-import InteractionItem from "@/app/components/Interaction";
 import { toast } from "sonner";
 import { updateTest } from "@/utils/DBBUtils";
 import { ExecutionSummary } from "@/app/components/ExecutionSummary";
-import { SearchField } from "@/app/components/SearchField";
-import ModalCustom from "@/app/components/ModalCustom";
-import TextInputWithClearButton from "@/app/components/InputClear";
 import { useTestExecution } from "@/app/hooks/useTestExecution";
-import TestReports from "@/app/dashboard/components/TestReports";
-import StepCard from "@/app/components/StepCard";
 import { ImageModalWithZoom } from "@/app/components/Report";
 import NoData from "@/app/components/NoData";
-import ReusableStepModal from "@/app/dashboard/components/ReusableStepModal";
-import StepActions from "@/app/components/StepActions";
-import CopyToClipboard from "@/app/components/CopyToClipboard";
 import LoadingSkeleton from "@/app/components/loadingSkeleton";
 import Link from "next/link";
+import ModalAddSuite from "./components/ModalAddSuite";
+import ModalDeleteTest from "./components/ModalDeleteTest";
+import FilterTable from "./components/FilterTable";
+import RowTable from "./components/RowTable";
+import ShowData from "./components/ShowData";
+import ShowReport from "./components/ShowReport";
+import ShowSteps from "./components/ShowSteps";
+import { getUiThemeClasses } from "./utils/stylesComponents";
+import DetailSuite from "./components/DetailSuite";
+import { useSuiteMeta } from "./hooks/useSuiteMeta";
+import { useDynamicData } from "./hooks/useDynamicData";
+import { useSuiteSearchModal } from "./hooks/useSuiteSearchModal";
+import { useBulkVisibleSelection } from "./hooks/useBulkVisibleSelection";
 
 type BatchItem = string | { id: string };
 type SuiteResponse = {
@@ -60,22 +63,6 @@ type FullTest = TestHeader & {
 
 const toId = (item: BatchItem) => (typeof item === "string" ? item : item?.id);
 
-const fmtDate = (ts?: number | string) => {
-    if (!ts) return "";
-    const n = typeof ts === "string" ? Number(ts) : ts;
-    if (!Number.isFinite(n)) return "";
-    try {
-        return new Intl.DateTimeFormat("es-ES", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-        }).format(n);
-    } catch {
-        return "";
-    }
-};
 
 const toEditable = (t: FullTest) => {
     const keys = Array.isArray(t.testData) ? t.testData : Object.keys(t.testDataObj || {});
@@ -84,25 +71,6 @@ const toEditable = (t: FullTest) => {
     return { keys, values };
 };
 
-const slug = (s?: string) =>
-    (s || "")
-        .toString()
-        .normalize("NFKD")
-        .replace(/[^\w\s-]/g, "")
-        .trim()
-        .replace(/\s+/g, "-")
-        .toLowerCase();
-
-const ActiveDot = ({ on, isDark }: { on: boolean; isDark: boolean }) =>
-    on ? (
-        <span
-            className={[
-                "absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full",
-                "ring-2",
-                isDark ? "bg-emerald-400 ring-gray-900" : "bg-emerald-500 ring-white",
-            ].join(" ")}
-        />
-    ) : null;
 
 const buildReportCustomName = (suite?: SuiteResponse | null, testId?: string) => {
     const base = suite?.id || "suite";
@@ -119,100 +87,22 @@ const TestSuiteId = () => {
     const [isLoadingSuiteDetails, setIsLoadingSuiteDetails] = useState(false);
     const [errorSuite, setErrorSuite] = useState<string | null>(null);
     const [suiteTests, setSuiteTests] = useState<TestHeader[]>([]);
+    const [dataBufById, setDataBufById] = useState<Record<string, Record<string, any>>>({});
 
     const [expanded, setExpanded] = useState<Record<string, boolean>>({});
     const [loadingTest, setLoadingTest] = useState<Record<string, boolean>>({});
     const [savingTest, setSavingTest] = useState<Record<string, boolean>>({});
-    const [fullById, setFullById] = useState<Record<string, FullTest | null>>({});
-    const [dataBufById, setDataBufById] = useState<Record<string, Record<string, any>>>({});
+    const [fullById, setFullById] = useState<any>({});
     const [stepsBufById, setStepsBufById] = useState<Record<string, Step[]>>({});
     const [showData, setShowData] = useState<Record<string, boolean>>({});
     const [showSteps, setShowSteps] = useState<Record<string, boolean>>({});
-    const [dynamicDataHeaders, setDynamicDataHeaders] = useState<Array<any>>([]);
-    const [selectedDynamicDataId, setSelectedDynamicDataId] = useState<string>("");
-    const surface = isDarkMode
-        ? "bg-gray-800 border border-gray-700 text-white"
-        : "bg-white border border-gray-200 text-primary";
-    const strongText = isDarkMode ? "text-white/90" : "text-primary";
-    const softText = isDarkMode ? "text-white/80" : "text-primary/80";
-    const tableBorder = isDarkMode ? "border-gray-700" : "border-gray-200";
-    const tableHeaderBg = isDarkMode ? "bg-gray-900" : "bg-gray-100";
-    const rowHover = isDarkMode ? "hover:bg-gray-900/60" : "hover:bg-gray-50";
-    const chip = (variant: "a" | "b" | "c") =>
-        variant === "a"
-            ? isDarkMode
-                ? "text-xs bg-gray-900 text-white px-2 py-1 rounded-md"
-                : "text-xs bg-primary/70 text-white px-2 py-1 rounded-md"
-            : variant === "b"
-                ? isDarkMode
-                    ? "text-xs bg-gray-700 text-white px-2 py-1 rounded-md"
-                    : "text-xs bg-primary/50 text-white px-2 py-1 rounded-md"
-                : isDarkMode
-                    ? "text-xs bg-primary/20 text-primary px-2 py-1 rounded-md"
-                    : "text-xs bg-primary/20 text-primary px-2 py-1 rounded-md";
+
 
     const [openAddModal, setOpenAddModal] = useState(false);
 
-    const [tags, setTags] = useState<any[]>([]);
-    const [groups, setGroups] = useState<any[]>([]);
-    const [modules, setModules] = useState<any[]>([]);
-    const [submodules, setSubmodules] = useState<any[]>([]);
-    const [users, setUsers] = useState<any[]>([]);
-
-    const [selectedTag, setSelectedTag] = useState<string>("");
-    const [selectedGroup, setSelectedGroup] = useState<string>("");
-    const [selectedModule, setSelectedModule] = useState<string>("");
-    const [selectedSubmodule, setSelectedSubmodule] = useState<string>("");
-    const [selectedCreatedBy, setSelectedCreatedBy] = useState<string>("");
-
-    const [searchTestCaseName, setSearchTestCaseName] = useState<string>("");
-    const [searchTestCaseId, setSearchTestCaseId] = useState<string>("");
-
-    const [isLoadingTags, setIsLoadingTags] = useState(false);
-    const [isLoadingGroups, setIsLoadingGroups] = useState(false);
-    const [isLoadingModules, setIsLoadingModules] = useState(false);
-    const [isLoadingSubmodules, setIsLoadingSubmodules] = useState(false);
-    const [loadingUsers, setLoadingUsers] = useState(false);
-    const [isSearchingTC, setIsSearchingTC] = useState(false);
-
-    const [searchResults, setSearchResults] = useState<TestHeader[]>([]);
-    const [selectedCaseIdsForAdd, setSelectedCaseIdsForAdd] = useState<string[]>([]);
-
-    const getSelectedTagId = useCallback(() => {
-        if (!selectedTag) return "";
-        const tag: any = tags.find((t: any) => t.name === selectedTag);
-        return tag ? tag.id : selectedTag;
-    }, [selectedTag, tags]);
-
-    const getSelectedGroupId = useCallback(() => {
-        if (!selectedGroup) return "";
-        const group: any = groups.find((g: any) => g.name === selectedGroup);
-        return group ? group.id : selectedGroup;
-    }, [selectedGroup, groups]);
-
-    const getSelectedModuleId = useCallback(() => {
-        if (!selectedModule) return "";
-        const mod: any = modules.find((m: any) => m.name === selectedModule);
-        return mod ? mod.id : selectedModule;
-    }, [selectedModule, modules]);
-
-    const getSelectedSubmoduleId = useCallback(() => {
-        if (!selectedSubmodule) return "";
-        const sub: any = submodules.find((s: any) => s.name === selectedSubmodule);
-        return sub ? sub.id : selectedSubmodule;
-    }, [selectedSubmodule, submodules]);
-
-    const toggleSelectResult = useCallback((id: string) => {
-        setSelectedCaseIdsForAdd(prev =>
-            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-        );
-    }, []);
 
     const [isHeadless, setIsHeadless] = useState<boolean>(true);
 
-    const [testData, setTestData] = useState<{ data?: Record<string, Record<string, any>> }>({});
-
-    const [ddCount, setDdCount] = useState<number>(0);
 
 
     const [showReports, setShowReports] = useState<Record<string, boolean>>({});
@@ -233,7 +123,6 @@ const TestSuiteId = () => {
     const [suiteSummary, setSuiteSummary] = useState({ total: 0, passed: 0, failed: 0, pending: 0 });
     const [summaryTick, setSummaryTick] = useState(0);
     const [statusById, setStatusById] = useState<Record<string, "passed" | "failed" | "pending">>({});
-    const [savingDDById, setSavingDDById] = useState<Record<string, boolean>>({});
 
     const [filterTag, setFilterTag] = useState<string>("");
     const [filterGroup, setFilterGroup] = useState<string>("");
@@ -245,11 +134,49 @@ const TestSuiteId = () => {
     const [selectedStepsForReusableById, setSelectedStepsForReusableById] = useState<Record<string, number[]>>({});
     const [showReusableModalById, setShowReusableModalById] = useState<Record<string, boolean>>({});
 
-    const [editingTitle, setEditingTitle] = useState(false);
-    const [editingDesc, setEditingDesc] = useState(false);
-    const [titleDraft, setTitleDraft] = useState("");
-    const [descDraft, setDescDraft] = useState("");
-    const [savingMeta, setSavingMeta] = useState(false);
+    const {
+        editingTitle, setEditingTitle,
+        editingDesc, setEditingDesc,
+        titleDraft, setTitleDraft,
+        descDraft, setDescDraft,
+        savingMeta,
+        commitTitle, commitDesc,
+    } = useSuiteMeta(suiteDetails);
+
+    const {
+        dynamicDataHeaders,
+        selectedDynamicDataId,
+        setSelectedDynamicDataId,
+        testData,
+        ddCount,
+        handleSaveDynamicData,
+        savingDDById,
+    } = useDynamicData({ dataBufById, setDataBufById });
+
+
+
+    const {
+        tags, groups, modules, submodules, users,
+        selectedTag, setSelectedTag,
+        selectedGroup, setSelectedGroup,
+        selectedModule, setSelectedModule,
+        selectedSubmodule, setSelectedSubmodule,
+        selectedCreatedBy, setSelectedCreatedBy,
+        isLoadingTags, isLoadingGroups, isLoadingModules, isLoadingSubmodules, loadingUsers,
+        searchTestCaseName, setSearchTestCaseName,
+        searchTestCaseId, setSearchTestCaseId,
+        isSearchingTC, handleSearchModal,
+        searchResults,
+        selectedCaseIdsForAdd, setSelectedCaseIdsForAdd,
+        toggleSelectResult,
+        userOptions,
+    } = useSuiteSearchModal(openAddModal);
+
+    const {
+        allVisibleSelected, someVisibleSelected, toggleAllVisible
+    } = useBulkVisibleSelection(searchResults, selectedCaseIdsForAdd, setSelectedCaseIdsForAdd);
+
+
 
     useEffect(() => {
         if (suiteDetails) {
@@ -257,46 +184,6 @@ const TestSuiteId = () => {
             setDescDraft(suiteDetails.description || "");
         }
     }, [suiteDetails?.id]);
-
-    const saveMeta = async (partial: { name?: string; description?: string }) => {
-        if (!suiteDetails?.id) return;
-        setSavingMeta(true);
-        try {
-            await axios.patch(`${URL_API_ALB}testSuite`, {
-                id: suiteDetails.id,
-                ...partial,
-                updatedBy: "jpaz",
-            });
-            setSuiteDetails((prev) => (prev ? { ...prev, ...partial } : prev));
-            toast.success("Suite actualizada.");
-        } catch (e: any) {
-            toast.error(e?.response?.data?.message || "No se pudo actualizar la suite.");
-        } finally {
-            setSavingMeta(false);
-            if (partial.name !== undefined) setEditingTitle(false);
-            if (partial.description !== undefined) setEditingDesc(false);
-        }
-    };
-
-    const commitTitle = () => {
-        const v = titleDraft.trim();
-        if (!v || v === suiteDetails?.name) {
-            setEditingTitle(false);
-            setTitleDraft(suiteDetails?.name || "");
-            return;
-        }
-        saveMeta({ name: v });
-    };
-
-    const commitDesc = () => {
-        const v = descDraft.trim();
-        if ((suiteDetails?.description || "") === v) {
-            setEditingDesc(false);
-            setDescDraft(suiteDetails?.description || "");
-            return;
-        }
-        saveMeta({ description: v });
-    };
 
     const transformedStepsToCopy = useCallback((steps: any[]) => steps, []);
 
@@ -311,6 +198,7 @@ const TestSuiteId = () => {
 
         return undefined;
     }, [dataBufById, testData, fullById]);
+
     const { reports, loading, progress, executeTests, idReports, stopTest, stopped, setLoading, setStopped, runSingleTest, stopAll } =
         useTestExecution();
 
@@ -322,123 +210,6 @@ const TestSuiteId = () => {
     const computingRef = useRef(false);
     const computeRef = useRef<() => Promise<void>>(async () => { });
 
-    useEffect(() => {
-        const loadDD = async () => {
-            if (!selectedDynamicDataId) {
-                setTestData({});
-                setDdCount(0);
-                return;
-            }
-            try {
-                const res = await axios.post(`${URL_API_ALB}dynamicData`, { id: selectedDynamicDataId });
-                const arr = res?.data?.dynamicData;
-                if (!Array.isArray(arr)) {
-                    toast.error("Dynamic data invalid.");
-                    setTestData({});
-                    setDdCount(0);
-                    return;
-                }
-                const byId: Record<string, Record<string, any>> = {};
-                for (const it of arr) {
-                    if (it?.id && it?.input && typeof it.input === "object") {
-                        byId[String(it.id)] = it.input;
-                    }
-                }
-                setTestData({ data: byId });
-                setDdCount(Object.keys(byId).length);
-                toast.success(`Dynamic Data loaded (${Object.keys(byId).length} inputs).`);
-            } catch (e: any) {
-                toast.error(e?.response?.data?.message || "Can't load Dynamic Data.");
-                setTestData({});
-                setDdCount(0);
-            }
-        };
-        loadDD();
-    }, [selectedDynamicDataId]);
-
-    useEffect(() => {
-        if (!openAddModal) return;
-
-        (async () => {
-            try {
-                setIsLoadingTags(true);
-                const tagsRes = await axios.post(`${URL_API_ALB}tags`, {});
-                setTags(Array.isArray(tagsRes.data) ? tagsRes.data : []);
-            } catch {
-                setTags([]);
-            } finally {
-                setIsLoadingTags(false);
-            }
-
-            try {
-                setLoadingUsers(true);
-                const usersRes = await axios.post(`${URL_API_ALB}users`, {});
-                setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
-            } catch {
-                setUsers([]);
-            } finally {
-                setLoadingUsers(false);
-            }
-        })();
-    }, [openAddModal]);
-
-    useEffect(() => {
-        if (!openAddModal) return;
-        (async () => {
-            try {
-                setIsLoadingGroups(true);
-                const tagId = getSelectedTagId();
-                const res = await axios.post(`${URL_API_ALB}groups`, {});
-                setGroups(Array.isArray(res.data) ? res.data : []);
-            } catch {
-                setGroups([]);
-            } finally {
-                setIsLoadingGroups(false);
-            }
-        })();
-    }, [openAddModal, selectedTag, getSelectedTagId]);
-
-    useEffect(() => {
-        if (!openAddModal) return;
-        (async () => {
-            if (!selectedGroup) {
-                setModules([]); setSelectedModule("");
-                setSubmodules([]); setSelectedSubmodule("");
-                return;
-            }
-            try {
-                setIsLoadingModules(true);
-                const groupId = getSelectedGroupId();
-                const res = await axios.post(`${URL_API_ALB}modules`, { groupId });
-                setModules(Array.isArray(res.data) ? res.data : []);
-            } catch {
-                setModules([]);
-            } finally {
-                setIsLoadingModules(false);
-            }
-        })();
-    }, [openAddModal, selectedGroup, getSelectedGroupId]);
-
-    useEffect(() => {
-        if (!openAddModal) return;
-        (async () => {
-            if (!selectedGroup || !selectedModule) {
-                setSubmodules([]); setSelectedSubmodule("");
-                return;
-            }
-            try {
-                setIsLoadingSubmodules(true);
-                const groupId = getSelectedGroupId();
-                const moduleId = getSelectedModuleId();
-                const res = await axios.post(`${URL_API_ALB}subModules`, { groupId, moduleId });
-                setSubmodules(Array.isArray(res.data) ? res.data : []);
-            } catch {
-                setSubmodules([]);
-            } finally {
-                setIsLoadingSubmodules(false);
-            }
-        })();
-    }, [openAddModal, selectedGroup, selectedModule, getSelectedGroupId, getSelectedModuleId]);
 
     useEffect(() => {
         if (!testData?.data) return;
@@ -447,7 +218,7 @@ const TestSuiteId = () => {
             const next = { ...prev };
             Object.entries(fullById).forEach(([id, full]) => {
                 if (!full) return;
-                const baseValues = toEditable(full).values || {};
+                const baseValues = toEditable(full as any).values || {};
                 const overrides = testData.data?.[id] || {};
                 if (Object.keys(overrides).length) {
                     next[id] = { ...baseValues, ...overrides };
@@ -526,21 +297,6 @@ const TestSuiteId = () => {
         };
     }, [idSuite]);
 
-    const fetchEnvironments = useCallback(async () => {
-        try {
-            const list = await axios.post(`${URL_API_ALB}getDynamicDataHeaders`, {});
-            setDynamicDataHeaders(list?.data);
-
-        } catch {
-            return [];
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchEnvironments();
-    }, [fetchEnvironments]);
-
-
 
     const onViewTest = useCallback(
         async (testId: string) => {
@@ -552,7 +308,7 @@ const TestSuiteId = () => {
                 setLoadingTest((p) => ({ ...p, [testId]: true }));
                 const { data } = await axios.post(`${URL_API_ALB}tests`, { id: testId });
                 const payload: FullTest = Array.isArray(data) ? data[0] : data;
-                setFullById((prev) => ({ ...prev, [testId]: payload }));
+                setFullById((prev: any) => ({ ...prev, [testId]: payload }));
                 const { values } = toEditable(payload);
                 const overrides = (testData?.data ?? {})[testId] || {};
                 setDataBufById((prev) => ({ ...prev, [testId]: { ...values, ...overrides } }));
@@ -637,7 +393,7 @@ const TestSuiteId = () => {
                     "jpaz"
                 );
                 await updateTest(await payload.id, await payload.stepsData, payload.updatedBy);
-                setFullById((prev) => ({
+                setFullById((prev: any) => ({
                     ...prev,
                     [testId]: {
                         ...full,
@@ -653,29 +409,6 @@ const TestSuiteId = () => {
             }
         },
         [fullById, stepsBufById, dataBufById]
-    );
-
-    const batchArray = useMemo(
-        () =>
-            (suiteDetails?.batchItems?.array ?? [])
-                .map(toId)
-                .filter((x): x is string => typeof x === "string" && x.length > 0),
-        [suiteDetails?.batchItems?.array]
-    );
-
-    const userOptions = useMemo(
-        () => (users || []).map((u: any) => ({ label: u.name, value: u.name })),
-        [users]
-    );
-
-
-
-    const getUserIdByName = useCallback(
-        (name: string) => {
-            const user = users.find((u: any) => u.name === name);
-            return user ? user.id : null;
-        },
-        [users]
     );
 
     const excelFilterOptions = useMemo(() => {
@@ -725,46 +458,6 @@ const TestSuiteId = () => {
         filterStatus,
     ]);
 
-    const handleSearchModal = useCallback(async () => {
-        try {
-            setIsSearchingTC(true);
-            const params: Record<string, any> = {};
-            const tagId = getSelectedTagId();
-            const groupId = getSelectedGroupId();
-            const moduleId = getSelectedModuleId();
-            const submoduleId = getSelectedSubmoduleId();
-
-            if (searchTestCaseId) params.id = searchTestCaseId;
-            if (tagId) params.tagIds = [tagId];
-            if (groupId) params.groupId = groupId;
-            if (moduleId) params.moduleId = moduleId;
-            if (submoduleId) params.subModuleId = submoduleId;
-            if (searchTestCaseName) params.partialName = searchTestCaseName;
-            if (selectedCreatedBy) params.createdBy = getUserIdByName(selectedCreatedBy);
-
-            const response = await axios.post(`${URL_API_ALB}getTestHeaders`, params);
-
-            if (response?.data?.responseSignedUrl) {
-                const url = response.data.responseSignedUrl as string;
-                const res = await fetch(url, { method: "GET" });
-                const contentType = res.headers.get("content-type") || "";
-                const jsonData = contentType.includes("application/json")
-                    ? await res.json()
-                    : JSON.parse((await res.text()) || "null");
-                setSearchResults(Array.isArray(jsonData) ? jsonData : []);
-            } else {
-                setSearchResults(Array.isArray(response.data) ? response.data : []);
-            }
-        } catch (e) {
-            toast.error("Error fetching test cases");
-            setSearchResults([]);
-        } finally {
-            setIsSearchingTC(false);
-        }
-    }, [
-        searchTestCaseId, searchTestCaseName, selectedCreatedBy,
-        getSelectedTagId, getSelectedGroupId, getSelectedModuleId, getSelectedSubmoduleId, getUserIdByName
-    ]);
 
     const handleAddToSuite = useCallback(async () => {
         if (!selectedCaseIdsForAdd.length) {
@@ -1091,7 +784,7 @@ const TestSuiteId = () => {
             setExpanded((p) => { const n = { ...p }; delete n[toDeleteId]; return n; });
             setLoadingTest((p) => { const n = { ...p }; delete n[toDeleteId]; return n; });
             setSavingTest((p) => { const n = { ...p }; delete n[toDeleteId]; return n; });
-            setFullById((p) => { const n = { ...p }; delete n[toDeleteId]; return n; });
+            setFullById((p: any) => { const n = { ...p }; delete n[toDeleteId]; return n; });
             setDataBufById((p) => { const n = { ...p }; delete n[toDeleteId]; return n; });
             setStepsBufById((p) => { const n = { ...p }; delete n[toDeleteId]; return n; });
             setShowData((p) => { const n = { ...p }; delete n[toDeleteId]; return n; });
@@ -1112,83 +805,6 @@ const TestSuiteId = () => {
             computeSuiteExecutionSummary();
         }
     };
-
-
-    const handleSaveDynamicData = useCallback(
-        async (testId: string, test?: TestHeader) => {
-            if (!selectedDynamicDataId) {
-                toast.error("Select a Dynamic Data set first.");
-                return;
-            }
-
-            try {
-                setSavingDDById(prev => ({ ...prev, [testId]: true }));
-
-                const getRes = await axios.post(`${URL_API_ALB}dynamicData`, { id: selectedDynamicDataId });
-                const current = getRes?.data;
-
-                const ddHeader = {
-                    id: current?.id ?? selectedDynamicDataId,
-                    groupName: current?.groupName ?? undefined,
-                    name: current?.name ?? undefined,
-                    description: current?.description ?? undefined,
-                    tagIds: current?.tagIds ?? [],
-                    tagNames: current?.tagNames ?? [],
-                    dynamicData: Array.isArray(current?.dynamicData) ? current.dynamicData.slice() : [],
-                    updatedBy: current?.createdByName ?? "jpaz",
-                };
-
-                const latestInput = (dataBufById?.[testId]) ? { ...dataBufById[testId] } : {};
-
-                const idx = ddHeader.dynamicData.findIndex((it: any) => String(it?.id) === String(testId));
-                if (idx >= 0) {
-                    ddHeader.dynamicData[idx] = {
-                        ...ddHeader.dynamicData[idx],
-                        id: testId,
-                        input: latestInput,
-                        testCaseName: ddHeader.dynamicData[idx]?.testCaseName ?? test?.name ?? undefined,
-                        createdBy: ddHeader.dynamicData[idx]?.createdBy ?? "jpaz",
-                    };
-                } else {
-                    ddHeader.dynamicData.push({
-                        id: testId,
-                        input: latestInput,
-                        order: ddHeader.dynamicData.length,
-                        testCaseName: test?.name ?? "",
-                        createdBy: ddHeader?.updatedBy ?? "jpaz",
-                    });
-                }
-
-                await axios.patch(`${URL_API_ALB}dynamicData`, ddHeader);
-
-                toast.success("Dynamic Data guardado.");
-
-                try {
-                    const res = await axios.post(`${URL_API_ALB}dynamicData`, { id: selectedDynamicDataId });
-                    const arr = res?.data?.dynamicData;
-                    const byId: Record<string, Record<string, any>> = {};
-                    if (Array.isArray(arr)) {
-                        for (const it of arr) {
-                            if (it?.id && it?.input && typeof it.input === "object") {
-                                byId[String(it.id)] = it.input;
-                            }
-                        }
-                    }
-                    setTestData({ data: byId });
-                    setDdCount(Object.keys(byId).length);
-
-                    setDataBufById(prev => ({ ...prev, [testId]: latestInput }));
-                } catch {
-                    toast.error("Cant refresh Dynamic Data after save.");
-                }
-            } catch (e: any) {
-                toast.error(e?.response?.data?.message || "Can't save Dynamic Data.");
-            } finally {
-                setSavingDDById(prev => ({ ...prev, [testId]: false }));
-            }
-        },
-        [selectedDynamicDataId, dataBufById, URL_API_ALB]
-    );
 
     const progressByTestId = useMemo<Record<string, number>>(() => {
         if (!Array.isArray(progress)) return {};
@@ -1293,34 +909,9 @@ const TestSuiteId = () => {
     }, [reports, idReports, progress]);
 
 
-    const visibleIds = useMemo(
-        () => (searchResults || []).map(r => String(r.id)),
-        [searchResults]
-    );
+    const { surface, strongText, softText, tableBorder, tableHeaderBg, rowHover } =
+        getUiThemeClasses(isDarkMode);
 
-    const allVisibleSelected = useMemo(() => {
-        if (!visibleIds.length) return false;
-        return visibleIds.every(id => selectedCaseIdsForAdd.includes(id));
-    }, [visibleIds, selectedCaseIdsForAdd]);
-
-    const someVisibleSelected = useMemo(() => {
-        if (!visibleIds.length) return false;
-        const count = visibleIds.filter(id => selectedCaseIdsForAdd.includes(id)).length;
-        return count > 0 && count < visibleIds.length;
-    }, [visibleIds, selectedCaseIdsForAdd]);
-
-    const toggleAllVisible = useCallback(() => {
-        if (!visibleIds.length) return;
-        if (allVisibleSelected) {
-            setSelectedCaseIdsForAdd(prev => prev.filter(id => !visibleIds.includes(id)));
-        } else {
-            setSelectedCaseIdsForAdd(prev => {
-                const set = new Set(prev);
-                visibleIds.forEach(id => set.add(id));
-                return Array.from(set);
-            });
-        }
-    }, [visibleIds, allVisibleSelected, setSelectedCaseIdsForAdd]);
 
     return (
         <DashboardHeader onDarkModeChange={setIsDarkMode} hiddenSide={openAddModal || openDeleteModal || isModalOpen}>
@@ -1344,117 +935,28 @@ const TestSuiteId = () => {
 
                 {suiteDetails && !isLoadingSuiteDetails && (
                     <div className={`w-full mt-6 p-4 rounded-md ${surface}`}>
+                        <DetailSuite
+                            suiteDetails={suiteDetails}
+                            isDarkMode={isDarkMode}
+                            editingTitle={editingTitle}
+                            setEditingTitle={setEditingTitle}
+                            titleDraft={titleDraft}
+                            setTitleDraft={setTitleDraft}
+                            commitTitle={commitTitle}
+                            editingDesc={editingDesc}
+                            setEditingDesc={setEditingDesc}
+                            descDraft={descDraft}
+                            setDescDraft={setDescDraft}
+                            commitDesc={commitDesc}
+                            savingMeta={savingMeta}
+                            isLoadingComputedData={isLoadingComputedData}
+                            computeSuiteExecutionSummary={computeSuiteExecutionSummary}
+                            dynamicDataHeaders={dynamicDataHeaders}
+                            selectedDynamicDataId={selectedDynamicDataId}
+                            setSelectedDynamicDataId={setSelectedDynamicDataId}
+                            ddCount={ddCount}
 
-                        <div className="flex items-center justify-between w-full">
-                            <div className="flex flex-col gap-1 min-w-0">
-                                {editingTitle ? (
-                                    <input
-                                        value={titleDraft}
-                                        onChange={(e) => setTitleDraft(e.target.value)}
-                                        onBlur={commitTitle}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter") commitTitle();
-                                            if (e.key === "Escape") {
-                                                setTitleDraft(suiteDetails?.name || "");
-                                                setEditingTitle(false);
-                                            }
-                                        }}
-                                        disabled={savingMeta}
-                                        className={[
-                                            "text-2xl font-bold rounded-md px-2 py-1 w-full",
-                                            isDarkMode
-                                                ? "bg-gray-900 border border-gray-700 focus:ring-0 text-white placeholder-white/40"
-                                                : "bg-white border border-gray-300 text-primary placeholder-primary/50",
-                                        ].join(" ")}
-                                        placeholder="Nombre de la suite"
-                                        autoFocus
-                                    />
-
-
-                                ) : (
-                                    <h2
-                                        className={`text-2xl font-bold truncate ${strongText} cursor-text`}
-                                        title="Doble click para editar"
-                                        onDoubleClick={() => !savingMeta && setEditingTitle(true)}
-                                    >
-                                        {suiteDetails.name}
-                                    </h2>
-                                )}
-
-                                {editingDesc ? (
-                                    <textarea
-                                        value={descDraft}
-                                        onChange={(e) => setDescDraft(e.target.value)}
-                                        onBlur={commitDesc}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) commitDesc();
-                                            if (e.key === "Escape") {
-                                                setDescDraft(suiteDetails?.description || "");
-                                                setEditingDesc(false);
-                                            }
-                                        }}
-                                        disabled={savingMeta}
-                                        rows={2}
-                                        className={[
-                                            "rounded-md px-2 py-1 w-full resize-y",
-                                            isDarkMode
-                                                ? "bg-gray-900 border border-gray-700 text-white placeholder-white/40"
-                                                : "bg-white border border-gray-300 text-primary placeholder-primary/50",
-                                        ].join(" ")}
-                                        placeholder="Añade una descripción"
-                                        autoFocus
-                                    />
-                                ) : (
-                                    <p
-                                        className={`mt-1 break-words ${softText} cursor-text`}
-                                        title="Doble click para editar"
-                                        onDoubleClick={() => !savingMeta && setEditingDesc(true)}
-                                    >
-                                        {suiteDetails.description || <span className="opacity-60">Sin descripción</span>}
-                                    </p>
-                                )}
-                            </div>
-
-                            <button
-                                className={`${isLoadingComputedData ? "animate-spin" : ""}`}
-                                onClick={computeSuiteExecutionSummary}
-                                disabled={savingMeta}
-                                title={savingMeta ? "Guardando..." : "Actualizar resumen"}
-                            >
-                                <RefreshCcw className="w-5 h-5" />
-                            </button>
-                        </div>
-
-                        <div className="mt-3 flex flex-wrap gap-2 items-center mb-4">
-                            {suiteDetails.tagNames?.map((t) => (
-                                <span key={t} className={chip("a")}>
-                                    {t}
-                                </span>
-                            ))}
-                            {suiteDetails.createdByName && <span className={chip("b")}>By: {suiteDetails.createdByName}</span>}
-                            {suiteDetails.createdAt && <span className={chip("b")}>{fmtDate(suiteDetails.createdAt)}</span>}
-                        </div>
-                        <div className="flex self-end w-full justify-end mb-4">
-                            <div className="flex items-center gap-3">
-                                <SearchField
-                                    label="Dynamic Data"
-                                    darkMode={isDarkMode}
-                                    placeholder=""
-                                    onChange={setSelectedDynamicDataId}
-                                    value={selectedDynamicDataId}
-                                    options={dynamicDataHeaders.map((env: any) => ({ label: env.name, value: env.id }))}
-                                    customDarkColor="bg-gray-900/60"
-                                    className="!w-90 self-end"
-                                    widthComponent="w-90"
-                                />
-                                {selectedDynamicDataId && (
-                                    <span className={`text-xs ${softText}`}>
-                                        {ddCount} assigned inputs
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-
+                        />
 
                         {suiteSummary.failed === 0 && suiteSummary.passed === 0 && suiteSummary.pending === 0 ? (
                             <div className={`h-48 flex items-center justify-center border rounded-md mt-6 ${isDarkMode ? "border-gray-700" : "border-gray-300"}`}>
@@ -1466,8 +968,7 @@ const TestSuiteId = () => {
                                 totalFailed={suiteSummary.failed}
                                 totalSuccess={suiteSummary.passed}
                                 totalPending={suiteSummary.pending}
-                                darkMode={isDarkMode}
-                            />
+                                darkMode={isDarkMode} />
                         )}
 
                         {suiteTests.length > 0 && (
@@ -1477,121 +978,20 @@ const TestSuiteId = () => {
 
                                 </div>
 
-                                <div
-                                    className={[
-                                        "sticky top-0 z-20",
-                                        "w-full",
-                                        isDarkMode ? "bg-gray-900/95 backdrop-blur border-y border-gray-800" : "bg-white/95 backdrop-blur border-y border-gray-200",
-                                    ].join(" ")}
-                                >
-                                    <div className="px-4 py-3">
-                                        <div className="flex items-center justify-between gap-3 mb-2">
-                                            <h4 className={isDarkMode ? "text-white/80 text-sm font-semibold" : "text-primary/80 text-sm font-semibold"}>
-                                                Filters
-                                            </h4>
-                                            <div className="flex items-center gap-2">
-                                                {(filterTag || filterGroup || filterModule || filterSubmodule || filterStatus) && (
-                                                    <span className={isDarkMode ? "text-xs text-white/50" : "text-xs text-primary/60"}>
-                                                        Active: {[
-                                                            filterTag && `Tag: ${filterTag}`,
-                                                            filterGroup && `Group: ${filterGroup}`,
-                                                            filterModule && `Module: ${filterModule}`,
-                                                            filterSubmodule && `Submodule: ${filterSubmodule}`,
-                                                            filterStatus && `Status: ${String(filterStatus).charAt(0).toUpperCase() + String(filterStatus).slice(1)}`,
-                                                        ].filter(Boolean).join(" • ")}
-                                                    </span>
-                                                )}
-                                                <button
-                                                    onClick={() => {
-                                                        setFilterTag("");
-                                                        setFilterGroup("");
-                                                        setFilterModule("");
-                                                        setFilterSubmodule("");
-                                                        setFilterStatus("");
-                                                    }}
-                                                    className={[
-                                                        "px-3 py-1.5 rounded-md text-xs font-medium",
-                                                        isDarkMode ? "bg-gray-800 hover:bg-gray-700 text-white" : "bg-gray-200 hover:bg-gray-300 text-primary",
-                                                        "transition"
-                                                    ].join(" ")}
-                                                    title="Reset filters"
-                                                >
-                                                    Reset
-                                                </button>
-                                            </div>
-                                        </div>
+                                <FilterTable
+                                    isDarkMode={isDarkMode}
+                                    filterTag={filterTag}
+                                    setFilterTag={setFilterTag}
+                                    filterGroup={filterGroup}
+                                    setFilterGroup={setFilterGroup}
+                                    filterModule={filterModule}
+                                    setFilterModule={setFilterModule}
+                                    filterSubmodule={filterSubmodule}
+                                    setFilterSubmodule={setFilterSubmodule}
+                                    filterStatus={filterStatus}
+                                    excelFilterOptions={excelFilterOptions}
+                                    setFilterStatus={setFilterStatus} />
 
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
-                                            <div className="relative">
-                                                <SearchField
-                                                    darkMode={isDarkMode}
-                                                    placeholder="Filter by tag"
-                                                    onChange={(val: any) => setFilterTag(val)}
-                                                    value={filterTag}
-                                                    options={excelFilterOptions.tags.map((t) => ({ label: t, value: t }))}
-                                                    customDarkColor="bg-gray-800"
-                                                    className="!w-full !h-10"
-                                                    widthComponent="w-full"
-                                                />
-                                            </div>
-
-                                            <div className="relative">
-                                                <SearchField
-                                                    darkMode={isDarkMode}
-                                                    placeholder="Group"
-                                                    onChange={(val: any) => setFilterGroup(val)}
-                                                    value={filterGroup}
-                                                    options={excelFilterOptions.groups.map((g) => ({ label: g, value: g }))}
-                                                    customDarkColor="bg-gray-800"
-                                                    className="!w-full !h-10"
-                                                    widthComponent="w-full"
-                                                />
-                                            </div>
-
-                                            <div className="relative">
-                                                <SearchField
-                                                    darkMode={isDarkMode}
-                                                    placeholder="Filter by module"
-                                                    onChange={(val: any) => setFilterModule(val)}
-                                                    value={filterModule}
-                                                    options={excelFilterOptions.modules.map((m) => ({ label: m, value: m }))}
-                                                    customDarkColor="bg-gray-800"
-                                                    className="!w-full !h-10"
-                                                    widthComponent="w-full"
-                                                />
-                                            </div>
-
-                                            <div className="relative">
-                                                <SearchField
-                                                    darkMode={isDarkMode}
-                                                    placeholder="Filter by submodule"
-                                                    onChange={(val: any) => setFilterSubmodule(val)}
-                                                    value={filterSubmodule}
-                                                    options={excelFilterOptions.submodules.map((s) => ({ label: s, value: s }))}
-                                                    customDarkColor="bg-gray-800"
-                                                    className="!w-full !h-10"
-                                                    widthComponent="w-full"
-                                                />
-                                            </div>
-
-                                            <div className="relative">
-                                                <SearchField
-                                                    darkMode={isDarkMode}
-                                                    placeholder="Filter by status"
-                                                    onChange={(val: any) => setFilterStatus(val)}
-                                                    value={filterStatus}
-                                                    options={excelFilterOptions.statuses.map((s) => ({
-                                                        label: s.charAt(0).toUpperCase() + s.slice(1),
-                                                        value: s
-                                                    }))}
-                                                    customDarkColor="bg-gray-800"
-                                                    className="!w-full !h-10"
-                                                    widthComponent="w-full"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
                                 <div className={`mt-3 overflow-x-auto min-h-[400px] rounded-lg border ${tableBorder}`}>
                                     <table className="min-w-full text-sm">
                                         <thead className={tableHeaderBg}>
@@ -1614,7 +1014,7 @@ const TestSuiteId = () => {
                                             {filteredSuiteTests.map((test) => {
                                                 const testId = test.id;
                                                 const isOpen = !!expanded[testId];
-                                                const isLoading = !!loadingTest[testId];
+                                                const isLoading = !!loading[testId];
                                                 const isSaving = !!savingTest[testId];
                                                 const full = fullById[testId];
                                                 const showD = !!showData[testId];
@@ -1632,170 +1032,28 @@ const TestSuiteId = () => {
 
                                                 return (
                                                     <Fragment key={testId}>
-                                                        <tr key={test.id} className={`${rowHover} ${isDarkMode ? "border-gray-800" : "border-gray-600 bg-gray-200"}`}>
-                                                            <td className={`px-4 py-3 align-top ${strongText}`}>
-                                                                <div className="font-medium">{test.name || "Unnamed Test Case"}</div>
-                                                                <div className={`text-xs ${softText}`}>ID: {test.id}</div>
-                                                            </td>
 
-                                                            <td className={`px-4 py-3 align-top ${softText}`}>
-                                                                {test.description ? test.description : <span className="opacity-60">—</span>}
-                                                            </td>
-
-                                                            <td className="px-4 py-3 align-top">
-                                                                <div className="flex flex-wrap gap-1">
-                                                                    {Array.isArray(test.tagNames) && test.tagNames.length > 0 ? (
-                                                                        test.tagNames.map((tag) => (
-                                                                            <span key={tag} className={chip("a")}>
-                                                                                {tag}
-                                                                            </span>
-                                                                        ))
-                                                                    ) : (
-                                                                        <span className={`text-xs ${softText} opacity-70`}>—</span>
-                                                                    )}
-                                                                </div>
-                                                            </td>
-
-                                                            <td className="px-4 py-3 align-top">
-                                                                {test.groupName ? (
-                                                                    <span className={chip("b")}>{test.groupName}</span>
-                                                                ) : (
-                                                                    <span className={`text-xs ${softText} opacity-70`}>—</span>
-                                                                )}
-                                                            </td>
-
-                                                            <td className="px-4 py-3 align-top">
-                                                                {test.moduleName ? (
-                                                                    <span className={chip("b")}>{test.moduleName}</span>
-                                                                ) : (
-                                                                    <span className={`text-xs ${softText} opacity-70`}>—</span>
-                                                                )}
-                                                            </td>
-
-                                                            <td className="px-4 py-3 align-top">
-                                                                {test.subModuleName ? (
-                                                                    <span className={chip("b")}>{test.subModuleName}</span>
-                                                                ) : (
-                                                                    <span className={`text-xs ${softText} opacity-70`}>—</span>
-                                                                )}
-                                                            </td>
-
-                                                            <td className="px-4 py-3 align-top">
-                                                                {(() => {
-                                                                    const s = statusById[testId] || "pending";
-                                                                    const label = s.charAt(0).toUpperCase() + s.slice(1);
-                                                                    const style =
-                                                                        s === "passed"
-                                                                            ? (isDarkMode ? "bg-green-700 text-white" : "bg-green-100 text-green-700")
-                                                                            : s === "failed"
-                                                                                ? (isDarkMode ? "bg-red-700 text-white" : "bg-red-100 text-red-700")
-                                                                                : (isDarkMode ? "bg-yellow-800 text-white" : "bg-yellow-100 text-yellow-700");
-                                                                    return <span className={`text-xs px-2 py-1 rounded-md font-medium ${style}`}>{label}</span>;
-                                                                })()}
-                                                            </td>
-
-                                                            <td className="px-4 py-3 align-top">
-                                                                <div className="flex items-center gap-2">
-                                                                    {/* Run */}
-                                                                    <button
-                                                                        title={isRunningNow ? `Running... ${pForThisTest}%` : "Run"}
-                                                                        className={[
-                                                                            "relative cursor-pointer rounded-md p-2 border transition",
-                                                                            isDarkMode
-                                                                                ? "border-gray-700 hover:bg-primary-blue/70 bg-primary-blue/60"
-                                                                                : "border-gray-200 hover:bg-primary/90 text-white bg-primary/70",
-                                                                        ].join(" ")}
-                                                                        onClick={() => handlePlaySingle(test)}
-                                                                        disabled={loading[testId]}
-                                                                    >
-                                                                        {loading[testId]? (
-                                                                            <Loader2 className="w-4 h-4 animate-spin text-white" />
-                                                                        ) : (
-                                                                            <PlayIcon className="w-4 h-4 text-white" />
-                                                                        )}
-                                                                    </button>
-
-                                                                    <button
-                                                                        title="Data"
-                                                                        className={[
-                                                                            "relative cursor-pointer rounded-md p-2 border transition",
-                                                                            isDarkMode
-                                                                                ? showD
-                                                                                    ? "border-emerald-400 bg-gray-900"
-                                                                                    : "border-gray-700 hover:bg-gray-900"
-                                                                                : showD
-                                                                                    ? "border-emerald-500 bg-gray-100"
-                                                                                    : "border-gray-200 hover:bg-gray-50",
-                                                                        ].join(" ")}
-                                                                        onClick={() => openDataView(testId)}
-                                                                        disabled={isLoading || isSaving}
-                                                                    >
-                                                                        <Database className={isDarkMode ? "w-4 h-4 text-white" : "w-4 h-4 text-primary"} />
-                                                                        <ActiveDot on={showD} isDark={isDarkMode} />
-                                                                    </button>
-
-                                                                    <button
-                                                                        title="Steps"
-                                                                        className={[
-                                                                            "relative cursor-pointer rounded-md p-2 border transition",
-                                                                            isDarkMode
-                                                                                ? showS
-                                                                                    ? "border-emerald-400 bg-gray-900"
-                                                                                    : "border-gray-700 hover:bg-gray-900"
-                                                                                : showS
-                                                                                    ? "border-emerald-500 bg-gray-100"
-                                                                                    : "border-gray-200 hover:bg-gray-50",
-                                                                        ].join(" ")}
-                                                                        onClick={() => openStepsView(testId)}
-                                                                        disabled={isLoading || isSaving}
-                                                                    >
-                                                                        <Eye className={isDarkMode ? "w-4 h-4 text-white" : "w-4 h-4 text-primary"} />
-                                                                        <ActiveDot on={showS} isDark={isDarkMode} />
-                                                                    </button>
-
-                                                                    <button
-                                                                        className={[
-                                                                            "relative cursor-pointer rounded-md p-2 border transition",
-                                                                            isDarkMode
-                                                                                ? showR
-                                                                                    ? "border-emerald-400 bg-gray-900"
-                                                                                    : "border-gray-700 hover:bg-gray-900"
-                                                                                : showR
-                                                                                    ? "border-emerald-500 bg-gray-100"
-                                                                                    : "border-gray-200 hover:bg-gray-50",
-                                                                        ].join(" ")}
-                                                                        title="View Reports"
-                                                                        onClick={() => handleViewReports(test)}
-                                                                    >
-                                                                        <File className={isDarkMode ? "w-4 h-4 text-white" : "w-4 h-4 text-primary"} />
-                                                                        <ActiveDot on={showR} isDark={isDarkMode} />
-                                                                    </button>
-
-                                                                    <button
-                                                                        className={`cursor-pointer rounded-md p-2 border transition ${isDarkMode ? "border-gray-700 hover:bg-gray-900" : "border-gray-200 hover:bg-gray-50"
-                                                                            }`}
-                                                                        title="Delete from Suite"
-                                                                        onClick={() => openDeleteFor(testId)}
-                                                                    >
-                                                                        <Trash2 className={isDarkMode ? "text-white w-4 h-4" : "text-primary w-4 h-4"} />
-                                                                    </button>
-                                                                </div>
-
-                                                                <div className="mt-2 text-xs min-h-5">
-                                                                    {isLoading && (
-                                                                        <span className={softText}>
-                                                                            <Loader2 className="inline-block w-3 h-3 mr-1 animate-spin" /> Loading test…
-                                                                        </span>
-                                                                    )}
-                                                                    {isSaving && (
-                                                                        <span className={softText}>
-                                                                            <Loader2 className="inline-block w-3 h-3 mr-1 animate-spin" /> Saving…
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            </td>
-
-                                                        </tr>
+                                                        <RowTable
+                                                            test={test}
+                                                            testId={testId}
+                                                            statusById={statusById}
+                                                            isRunningNow={isRunningNow}
+                                                            pForThisTest={pForThisTest}
+                                                            isDarkMode={isDarkMode}
+                                                            loading={loading}
+                                                            showD={showD}
+                                                            showS={showS}
+                                                            showR={showR}
+                                                            handleViewReports={handleViewReports}
+                                                            handlePlaySingle={handlePlaySingle}
+                                                            openDataView={openDataView}
+                                                            openStepsView={openStepsView}
+                                                            openDeleteFor={openDeleteFor}
+                                                            isLoading={isLoading}
+                                                            isSaving={isSaving}
+                                                            rowHover={rowHover}
+                                                            strongText={strongText}
+                                                            softText={softText} />
 
                                                         {isOpen && (showD || showS || showReports[testId]) && (
                                                             <tr>
@@ -1833,171 +1091,39 @@ const TestSuiteId = () => {
                                                                             </div>
 
                                                                             {showD && (
-                                                                                <div className="w-full">
-                                                                                    <h3 className={`${isDarkMode ? "text-white/70" : "text-primary/70"} text-center mb-2 font-semibold text-lg`}>Dynamic Data</h3>
-                                                                                    <div className={`rounded-md border p-4 grid grid-cols-1 md:grid-cols-2 gap-4 ${isDarkMode ? "border-white/5" : "border-slate-200"}`}>
 
-                                                                                        {(() => {
-                                                                                            const { keys } = toEditable(full);
-                                                                                            const values = dataBufById[testId] || {};
-                                                                                            return keys.map((k) => (
-                                                                                                <div key={k} className="flex flex-col gap-6">
-                                                                                                    <UnifiedInput
-                                                                                                        id={`${testId}-${k}`}
-                                                                                                        value={values[k] ?? ""}
-                                                                                                        placeholder={`Enter ${k}`}
-                                                                                                        label={`Enter ${k}`}
-                                                                                                        isDarkMode={isDarkMode}
-                                                                                                        enableFaker
-                                                                                                        onChange={(val) =>
-                                                                                                            setDataBufById((prev) => ({
-                                                                                                                ...prev,
-                                                                                                                [testId]: { ...(prev[testId] || {}), [k]: val },
-                                                                                                            }))
-                                                                                                        }
-                                                                                                    />
-                                                                                                </div>
-                                                                                            ));
-                                                                                        })()}
+                                                                                <ShowData
 
-
-                                                                                    </div>
-                                                                                    <div className="flex justify-end mt-4">
-                                                                                        <button
-                                                                                            onClick={() => handleSaveDynamicData(testId, test)}
-                                                                                            disabled={!!savingDDById[testId]}
-                                                                                            className={`px-4 py-2 flex items-center font-semibold gap-2 cursor-pointer rounded-md text-white ${isDarkMode ? "bg-primary-blue/70 hover:bg-primary-blue/80" : "hover:bg-primary/85 bg-primary/80"}`}
-                                                                                        >
-                                                                                            {savingDDById[testId] ? (
-                                                                                                <>
-                                                                                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                                                                                    Guardando...
-                                                                                                </>
-                                                                                            ) : (
-                                                                                                <>Save</>
-                                                                                            )}
-                                                                                        </button>
-                                                                                    </div>
-
-
-                                                                                </div>
+                                                                                    isDarkMode={isDarkMode}
+                                                                                    testId={testId}
+                                                                                    test={test}
+                                                                                    full={full}
+                                                                                    dataBufById={dataBufById}
+                                                                                    setDataBufById={setDataBufById}
+                                                                                    handleSaveDynamicData={handleSaveDynamicData}
+                                                                                    savingDDById={savingDDById} />
 
                                                                             )}
 
                                                                             {showS && (
-                                                                                <div className="rounded-md p-3 space-y-3 max-h-[800px] overflow-y-auto">
-                                                                                    <div className={[
-                                                                                        "sticky top-0 z-10 px-2 py-2",
-                                                                                        isDarkMode ? "bg-gray-900/80 backdrop-blur border-b border-white/10" : "bg-white/80 backdrop-blur border-b border-slate-200"
-                                                                                    ].join(" ")}>
-                                                                                        <div className="flex flex-wrap items-center gap-4 justify-between">
-                                                                                            <div className="flex items-center gap-2 font-semibold">
-                                                                                                <button
-                                                                                                    onClick={() => toggleSelectionModeFor(testId)}
-                                                                                                    className={[
-                                                                                                        "border shadow-md cursor-pointer flex items-center px-4 py-1.5 rounded-md",
-                                                                                                        isDarkMode ? "bg-gray-800 text-white border-white/40" : "bg-gray-200 text-gray-900 border-primary/40",
-                                                                                                    ].join(" ")}
-                                                                                                >
-                                                                                                    <Settings className="w-4 h-4 mr-1" />
-                                                                                                    {selectionModeById[testId] ? "Cancel Selection" : "Select Steps for Reusable"}
-                                                                                                </button>
 
-                                                                                                {selectionModeById[testId] && (selectedStepsForReusableById[testId]?.length || 0) > 0 && (
-                                                                                                    <button
-                                                                                                        onClick={() => setShowReusableModalFor(testId, true)}
-                                                                                                        className={`${isDarkMode ? "bg-primary-blue/60" : "bg-primary/90"} px-4 py-1.5 text-white cursor-pointer flex items-center rounded-md`}
-                                                                                                    >
-                                                                                                        <PlusIcon className="w-4 h-4 mr-1" />
-                                                                                                        Create Reusable ({selectedStepsForReusableById[testId]?.length || 0})
-                                                                                                    </button>
-                                                                                                )}
-                                                                                            </div>
-
-                                                                                            <div className="flex items-center gap-2">
-                                                                                                <div className={[
-                                                                                                    "rounded-md flex items-center gap-2 border-dashed border p-1",
-                                                                                                    isDarkMode ? "border-gray-600 text-white" : "border-primary/40 text-primary/90",
-                                                                                                ].join(" ")}>
-                                                                                                    <span>Copy All steps</span>
-                                                                                                    <CopyToClipboard
-                                                                                                        text={JSON.stringify(transformedStepsToCopy(stepsBufById[testId] || []), null, 2)}
-                                                                                                        isDarkMode={isDarkMode}
-                                                                                                    />
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                    {(stepsBufById[testId] || []).map((step, i) => (
-                                                                                        <div key={i} className="flex flex-col gap-2">
-                                                                                            <div
-                                                                                                className={getStepSelectionClasses(testId, i)}
-                                                                                                onClick={() => selectionModeById[testId] && handleStepSelection(testId, i)}
-                                                                                            >
-                                                                                                <InteractionItem
-                                                                                                    data={{ id: `${testId}-step-${i}`, ...step }}
-                                                                                                    index={i}
-                                                                                                    isDarkMode={isDarkMode}
-                                                                                                    test={full as any}
-                                                                                                    setTestCasesData={() => { }}
-                                                                                                    setResponseTest={() => { }}
-                                                                                                    onUpdate={(idx, newStep) => {
-                                                                                                        setStepsBufById(prev => {
-                                                                                                            const arr = [...(prev[testId] || [])];
-                                                                                                            if (newStep?.type?.startsWith?.("STEPS") && Array.isArray(newStep?.stepsData)) {
-                                                                                                                arr[idx] = { ...newStep };
-                                                                                                            } else {
-                                                                                                                arr[idx] = { ...arr[idx], ...newStep };
-                                                                                                            }
-                                                                                                            const next = arr.map((s: any, k: number) => ({ ...s, indexStep: k + 1 }));
-                                                                                                            return { ...prev, [testId]: next };
-                                                                                                        });
-                                                                                                    }}
-                                                                                                    onDelete={(idx) => {
-                                                                                                        setStepsBufById(prev => {
-                                                                                                            const next = (prev[testId] || [])
-                                                                                                                .filter((_, j) => j !== idx)
-                                                                                                                .map((s: any, k: number) => ({ ...s, indexStep: k + 1 }));
-                                                                                                            setSelectedStepsForReusableById(selPrev => {
-                                                                                                                const cur = selPrev[testId] || [];
-                                                                                                                const fixed = cur
-                                                                                                                    .filter(n => n !== idx)
-                                                                                                                    .map(n => (n > idx ? n - 1 : n));
-                                                                                                                return { ...selPrev, [testId]: fixed };
-                                                                                                            });
-                                                                                                            return { ...prev, [testId]: next };
-                                                                                                        });
-                                                                                                    }}
-                                                                                                />
-                                                                                            </div>
-
-                                                                                            <StepActions
-                                                                                                index={i}
-                                                                                                steps={stepsBufById[testId] || []}
-                                                                                                test={{ ...(full || {}), id: testId }}
-                                                                                                setTestCasesData={() => { }}
-                                                                                                setResponseTest={(updater: any) => setResponseStepsCompat(testId, updater)}
-                                                                                                darkMode={isDarkMode}
-                                                                                            />
-                                                                                        </div>
-                                                                                    ))}
-
-                                                                                    <ReusableStepModal
-                                                                                        isOpen={!!showReusableModalById[testId]}
-                                                                                        onClose={() => setShowReusableModalFor(testId, false)}
-                                                                                        selectedSteps={selectedStepsForReusableById[testId] || []}
-                                                                                        steps={stepsBufById[testId] || []}
-                                                                                        onCreateReusable={(payload: { selectedIndexes?: number[] }) => {
-                                                                                            handleCreateReusableStep(testId, payload?.selectedIndexes || (selectedStepsForReusableById[testId] || []));
-                                                                                        }}
-                                                                                        isDarkMode={isDarkMode}
-                                                                                        responseTest={{ stepsData: stepsBufById[testId] || [] }}
-                                                                                        onSetResponseData={(next: any) =>
-                                                                                            setStepsBufById(prev => ({ ...prev, [testId]: Array.isArray(next?.stepsData) ? next.stepsData : (prev[testId] || []) }))
-                                                                                        }
-
-                                                                                    />
-                                                                                </div>
+                                                                                <ShowSteps
+                                                                                    isDarkMode={isDarkMode}
+                                                                                    testId={testId}
+                                                                                    full={full}
+                                                                                    stepsBufById={stepsBufById}
+                                                                                    setStepsBufById={setStepsBufById}
+                                                                                    selectionModeById={selectionModeById}
+                                                                                    toggleSelectionModeFor={toggleSelectionModeFor}
+                                                                                    selectedStepsForReusableById={selectedStepsForReusableById}
+                                                                                    setSelectedStepsForReusableById={setSelectedStepsForReusableById}
+                                                                                    showReusableModalById={showReusableModalById}
+                                                                                    setShowReusableModalFor={setShowReusableModalFor}
+                                                                                    handleCreateReusableStep={handleCreateReusableStep}
+                                                                                    setResponseStepsCompat={setResponseStepsCompat}
+                                                                                    transformedStepsToCopy={transformedStepsToCopy}
+                                                                                    getStepSelectionClasses={getStepSelectionClasses}
+                                                                                    handleStepSelection={handleStepSelection} />
                                                                             )}
 
 
@@ -2006,113 +1132,38 @@ const TestSuiteId = () => {
 
 
                                                                     {showR && (
-                                                                        <div className={`rounded-md border p-3 space-y-3 mt-4 ${isDarkMode ? "border-white/5" : "border-slate-200"}`}>
-                                                                            <h3 className={`${isDarkMode ? "text-white/70" : "text-primary/70"} text-center mb-2 font-semibold text-lg`}></h3>
 
-                                                                            <div className="flex gap-2 justify-between items-center">
-                                                                                <div className="flex gap-2">
-                                                                                    {hasLiveFor(testId) && (
-                                                                                        <button
-                                                                                            className={`px-3 py-1.5 rounded-md text-sm font-semibold border ${(reportsTabById[testId] ?? "live") === "live"
-                                                                                                ? (isDarkMode ? "bg-primary-blue/70 text-white border-transparent" : "bg-primary text-white border-primary")
-                                                                                                : (isDarkMode ? "border-white/15 text-white/80" : "border-slate-300 text-primary/70")}`}
-                                                                                            onClick={() => setReportsTabById(prev => ({ ...prev, [testId]: "live" }))}
-                                                                                        >
-                                                                                            Live
-                                                                                        </button>
-                                                                                    )}
-
-                                                                                    <button
-                                                                                        className={`px-3 py-1.5 rounded-md text-sm font-semibold border ${(reportsTabById[testId] ?? (hasLiveFor(testId) ? "live" : "saved")) === "saved"
-                                                                                            ? (isDarkMode ? "bg-primary-blue/70 text-white border-transparent" : "bg-primary text-white border-primary")
-                                                                                            : (isDarkMode ? "border-white/15 text-white/80" : "border-slate-300 text-primary/70")}`}
-                                                                                        onClick={() => {
-                                                                                            setReportsTabById((prev) => ({ ...prev, [testId]: "saved" }));
-                                                                                            const meta = historicMetaById[testId];
-                                                                                            if (!meta?.fetched || meta?.empty) {
-                                                                                                const t = suiteTests.find((x) => String(x.id) === testId);
-                                                                                                if (t) fetchHistoricFor(t, { force: true });
-                                                                                            }
-                                                                                        }}
-                                                                                    >
-                                                                                        Saved
-                                                                                    </button>
-                                                                                </div>
-
-                                                                                <button
-                                                                                    className={`inline-flex items-center gap-1 px-3 py-1.5 rounded border ${isDarkMode ? "border-gray-700 hover:bg-gray-900" : "border-gray-300 hover:bg-gray-100"}`}
-                                                                                    onClick={() => {
-                                                                                        setShowData((prev) => ({ ...prev, [testId]: false }));
-                                                                                        setShowSteps((prev) => ({ ...prev, [testId]: false }));
-                                                                                        setShowReports((prev) => ({ ...prev, [testId]: false }));
-                                                                                    }}
-                                                                                >
-                                                                                    <X className="w-4 h-4" />
-                                                                                </button>
-                                                                            </div>
-
-                                                                            {(() => {
-                                                                                const activeTab = reportsTabById[testId] ?? (hasLiveFor(testId) ? "live" : "saved");
-                                                                                if (activeTab === "live" && hasLiveFor(testId)) {
-                                                                                    return (
-                                                                                        <TestReports
-                                                                                            stopped={stopped}
-                                                                                            setStopped={setStopped}
-                                                                                            setLoading={setLoading}
-                                                                                            loading={loading}
-                                                                                            testData={computedTestDataFor}
-                                                                                            reports={reports}
-                                                                                            idReports={idReports}
-                                                                                            progress={progress}
-                                                                                            selectedCases={[test]}
-                                                                                            selectedTest={[test]}
-                                                                                            darkMode={isDarkMode}
-                                                                                            onPlayTest={handlePlaySingle}
-                                                                                            stopAll={stopAll}
-                                                                                            showOnlySingletest={true}
-                                                                                            onFinalStatus={handleTestFinalStatus}
-                                                                                        />
-                                                                                    );
-                                                                                }
-                                                                                return (
-                                                                                    <div className="space-y-3">
-                                                                                        {loadingHistoric[testId] && (
-                                                                                            <LoadingSkeleton darkMode={isDarkMode} />
-                                                                                        )}
-                                                                                        {!!errorHistoric[testId] && (
-                                                                                            <div className={isDarkMode ? "text-red-300" : "text-red-600"}>{errorHistoric[testId]}</div>
-                                                                                        )}
-                                                                                        {!loadingHistoric[testId] && !errorHistoric[testId] && (
-                                                                                            (() => {
-                                                                                                const evs = (historicById[testId] || []).slice().sort((a, b) => (a.indexStep ?? 0) - (b.indexStep ?? 0));
-                                                                                                if (evs.length === 0) {
-                                                                                                    return <NoData darkMode={isDarkMode} text="No historical reports found for this test." />;
-                                                                                                }
-                                                                                                return (
-                                                                                                    <div className={`rounded-md border ${isDarkMode ? "border-white/5" : "border-slate-200"}`}>
-                                                                                                        <div className={isDarkMode ? "bg-gray-900/40 p-2" : "bg-slate-50 p-2"}>
-                                                                                                            <div className="text-lg opacity-80 text-center">Report</div>
-                                                                                                        </div>
-                                                                                                        <div className="max-h-[60vh] overflow-y-auto flex flex-col gap-2 px-4">
-                                                                                                            {evs.map((e, i) => (
-                                                                                                                <StepCard
-                                                                                                                    key={i}
-                                                                                                                    step={e}
-                                                                                                                    index={e.indexStep || i + 1}
-                                                                                                                    darkMode={isDarkMode}
-                                                                                                                    stepData={e.stepData}
-                                                                                                                    handleImageClick={() => handleImageClick(e?.screenshot)}
-                                                                                                                />
-                                                                                                            ))}
-                                                                                                        </div>
-                                                                                                    </div>
-                                                                                                );
-                                                                                            })()
-                                                                                        )}
-                                                                                    </div>
-                                                                                );
-                                                                            })()}
-                                                                        </div>
+                                                                        <ShowReport
+                                                                            isDarkMode={isDarkMode}
+                                                                            testId={testId}
+                                                                            showReports={showReports}
+                                                                            setShowReports={setShowReports}
+                                                                            showSteps={showSteps}
+                                                                            setShowSteps={setShowSteps}
+                                                                            showData={showData}
+                                                                            setShowData={setShowData}
+                                                                            historicById={historicById}
+                                                                            historicMetaById={historicMetaById}
+                                                                            fetchHistoricFor={fetchHistoricFor}
+                                                                            suiteTests={suiteTests}
+                                                                            test={test}
+                                                                            computedTestDataFor={computedTestDataFor}
+                                                                            reports={reports}
+                                                                            idReports={idReports}
+                                                                            progress={progress}
+                                                                            loadingHistoric={loadingHistoric}
+                                                                            errorHistoric={errorHistoric}
+                                                                            handlePlaySingle={handlePlaySingle}
+                                                                            handleTestFinalStatus={handleTestFinalStatus}
+                                                                            stopped={stopped}
+                                                                            setStopped={setStopped}
+                                                                            setLoading={setLoading}
+                                                                            loading={loading}
+                                                                            handleImageClick={handleImageClick}
+                                                                            stopAll={stopAll}
+                                                                            hasLiveFor={hasLiveFor}
+                                                                            reportsTabById={reportsTabById}
+                                                                            setReportsTabById={setReportsTabById} />
                                                                     )}
 
                                                                 </td>
@@ -2125,8 +1176,7 @@ const TestSuiteId = () => {
                                     </table>
                                     <button
                                         onClick={() => setOpenAddModal(true)}
-                                        className={`mt-4 mb-2 px-4 py-2 rounded-md font-semibold ${isDarkMode ? "bg-primary-blue/70 hover:bg-primary-blue/80 text-white" : "bg-primary/90 hover:bg-primary/85 text-white"
-                                            }`}
+                                        className={`mt-4 mb-2 px-4 py-2 rounded-md font-semibold ${isDarkMode ? "bg-primary-blue/70 hover:bg-primary-blue/80 text-white" : "bg-primary/90 hover:bg-primary/85 text-white"}`}
                                     >
                                         <PlusIcon className="w-5 h-5 mr-2 inline-block" /> Add Test Case
                                     </button>
@@ -2143,8 +1193,7 @@ const TestSuiteId = () => {
                                 <div className="flex justify-center mt-4">
                                     <button
                                         onClick={() => setOpenAddModal(true)}
-                                        className={`px-4 py-2 rounded-md font-semibold ${isDarkMode ? "bg-primary-blue/70 hover:bg-primary-blue/80 text-white" : "bg-primary/90 hover:bg-primary/85 text-white"
-                                            }`}
+                                        className={`px-4 py-2 rounded-md font-semibold ${isDarkMode ? "bg-primary-blue/70 hover:bg-primary-blue/80 text-white" : "bg-primary/90 hover:bg-primary/85 text-white"}`}
                                     >
                                         <PlusIcon className="w-5 h-5 mr-2 inline-block" /> Add Test Case
                                     </button>
@@ -2156,266 +1205,53 @@ const TestSuiteId = () => {
                 )}
             </div>
 
-            <ModalCustom
-                open={openDeleteModal}
-                onClose={() => setOpenDeleteModal(false)}
+            <ModalDeleteTest
+                openDeleteModal={openDeleteModal}
+                setOpenDeleteModal={setOpenDeleteModal}
+                toDeleteId={toDeleteId as string}
+                confirmDelete={confirmDelete}
                 isDarkMode={isDarkMode}
-                width="max-w-md"
-            >
-                <div className={`p-4 ${isDarkMode ? "text-white" : "text-primary"}`}>
-                    <h3 className="text-lg font-semibold mb-2">Remove test from suite</h3>
-                    <p className="mb-4 text-sm opacity-80">
-                        Are you sure you want to remove <span className="font-medium">{toDeleteId}</span> from this suite?
-                    </p>
-                    <div className="flex justify-end gap-2">
-                        <button
-                            className={`px-4 py-2 rounded-md border ${isDarkMode ? "border-gray-600" : "border-gray-300"}`}
-                            onClick={() => setOpenDeleteModal(false)}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            className={`px-4 py-2 rounded-md font-semibold ${isDarkMode ? "bg-red-700 hover:bg-red-800 text-white" : "bg-red-600 hover:bg-red-700 text-white"}`}
-                            onClick={confirmDelete}
-                        >
-                            Delete
-                        </button>
-                    </div>
-                </div>
-            </ModalCustom>
+            />
 
-            <ModalCustom
-                open={openAddModal}
-                onClose={() => setOpenAddModal(false)}
+            <ModalAddSuite
+                openAddModal={openAddModal}
+                setOpenAddModal={setOpenAddModal}
                 isDarkMode={isDarkMode}
-                width="max-w-3xl"
-            >
-                <div className={`max-h-[80vh] p-4 ${isDarkMode ? "text-white" : "text-primary"}`}>
-                    <h3 className="text-lg font-semibold mb-3">Add Test Case to Suite</h3>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {isLoadingTags ? (
-                            <div className={`h-10 rounded-md animate-pulse ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`} />
-                        ) : (
-                            <SearchField
-                                label="Tags"
-                                value={selectedTag}
-                                onChange={setSelectedTag}
-                                options={tags.map((t: any) => ({ label: t.name, value: t.name }))}
-                                darkMode={isDarkMode}
-                                className="w-full"
-                            />
-                        )}
-
-                        {isLoadingGroups ? (
-                            <div className={`h-10 rounded-md animate-pulse ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`} />
-                        ) : (
-                            <SearchField
-                                label="Groups"
-                                value={selectedGroup}
-                                onChange={setSelectedGroup}
-                                options={groups.map((g: any) => ({ label: g.name, value: g.name }))}
-                                darkMode={isDarkMode}
-                                className="w-full"
-                                disabled={groups.length === 0}
-                            />
-                        )}
-
-                        {isLoadingModules ? (
-                            <div className={`h-10 rounded-md animate-pulse ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`} />
-                        ) : (
-                            <SearchField
-                                label="Modules"
-                                value={selectedModule}
-                                onChange={setSelectedModule}
-                                options={modules.map((m: any) => ({ label: m.name, value: m.name }))}
-                                darkMode={isDarkMode}
-                                className="w-full"
-                                disabled={!selectedGroup || modules.length === 0}
-                            />
-                        )}
-
-                        {isLoadingSubmodules ? (
-                            <div className={`h-10 rounded-md animate-pulse ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`} />
-                        ) : (
-                            <SearchField
-                                label="Submodules"
-                                value={selectedSubmodule}
-                                onChange={setSelectedSubmodule}
-                                options={submodules.map((s: any) => ({ label: s.name, value: s.id }))}
-                                darkMode={isDarkMode}
-                                className="w-full"
-                                disabled={!selectedModule || submodules.length === 0}
-                            />
-                        )}
-
-                        {loadingUsers ? (
-                            <div className={`h-10 rounded-md animate-pulse ${isDarkMode ? "bg-gray-700" : "bg-gray-200"}`} />
-                        ) : (
-                            <SearchField
-                                label="Created by"
-                                value={selectedCreatedBy}
-                                onChange={setSelectedCreatedBy}
-                                options={userOptions}
-                                darkMode={isDarkMode}
-                                className="w-full"
-                            />
-                        )}
-                        <TextInputWithClearButton
-                            id="modal-search-name"
-                            label="Name"
-                            value={searchTestCaseName}
-                            onChangeHandler={(e) => setSearchTestCaseName(e.target.value)}
-                            placeholder="Search by name..."
-                            className="w-full"
-                            isSearch
-                            isDarkMode={isDarkMode}
-                        />
-
-                        <TextInputWithClearButton
-                            id="modal-search-id"
-                            label="Test Case ID"
-                            value={searchTestCaseId}
-                            onChangeHandler={(e) => setSearchTestCaseId(e.target.value)}
-                            placeholder="Search by id..."
-                            className="w-full"
-                            isSearch
-                            isDarkMode={isDarkMode}
-                        />
-                    </div>
-
-                    <div className="mt-3 flex items-center gap-2">
-                        <button
-                            className={`px-4 py-2 rounded-md font-semibold ${isDarkMode ? "bg-primary-blue/70 hover:bg-primary-blue/80 text-white" : "bg-primary/90 hover:bg-primary/85 text-white"
-                                }`}
-                            onClick={handleSearchModal}
-                            disabled={isSearchingTC}
-                        >
-                            {isSearchingTC ? "Searching..." : "Search"}
-                        </button>
-
-                        <button
-                            className={`px-4 py-2 rounded-md border ${isDarkMode ? "border-gray-600" : "border-gray-300"
-                                }`}
-                            onClick={() => {
-                                setSelectedTag(""); setSelectedGroup(""); setSelectedModule("");
-                                setSelectedSubmodule(""); setSelectedCreatedBy("");
-                                setSearchTestCaseName(""); setSearchTestCaseId("");
-                                setSelectedCaseIdsForAdd([]);
-
-                            }}
-                        >
-                            Clear
-                        </button>
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <label className="inline-flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={allVisibleSelected}
-                                    ref={el => {
-                                        if (el) el.indeterminate = someVisibleSelected && !allVisibleSelected;
-                                    }}
-                                    onChange={toggleAllVisible}
-                                    className={`${isDarkMode ? "accent-primary-blue" : "accent-primary"} h-4 w-4`}
-                                    title={allVisibleSelected ? "Unselect all" : "Select all"}
-                                />
-                                <span className={isDarkMode ? "text-white/80" : "text-primary/80"}>
-                                    {allVisibleSelected ? "Unselect all (visible)" : "Select all (visible)"}
-                                </span>
-                            </label>
-
-                            <span className={isDarkMode ? "text-xs text-white/60" : "text-xs text-primary/60"}>
-                                Selected: {selectedCaseIdsForAdd.length}
-                            </span>
-                        </div>
-
-                        {selectedCaseIdsForAdd.length > 0 && (
-                            <button
-                                onClick={() => setSelectedCaseIdsForAdd([])}
-                                className={[
-                                    "px-3 py-1.5 rounded-md text-xs font-medium",
-                                    isDarkMode ? "bg-gray-800 hover:bg-gray-700 text-white" : "bg-gray-200 hover:bg-gray-300 text-primary",
-                                    "transition"
-                                ].join(" ")}
-                                title="Clear selection"
-                            >
-                                Clear selection
-                            </button>
-                        )}
-                    </div>
-
-                    <div className="mt-4 max-h-[45vh] overflow-y-auto rounded-md p-2">
-                        {searchResults.length === 0 ? (
-                            <NoData text="No test cases found." darkMode={isDarkMode} />
-                        ) : (
-                            <ul className="space-y-2">
-                                {searchResults.map((r) => (
-                                    <li
-                                        key={r.id}
-                                        onClick={() => toggleSelectResult(r.id)}
-                                        className={[
-                                            "p-2 rounded-md cursor-pointer transition",
-                                            isDarkMode ? "bg-gray-800 hover:bg-gray-700" : "hover:bg-gray-100",
-                                            selectedCaseIdsForAdd.includes(r.id)
-                                                ? (isDarkMode ? "ring-1 ring-primary-blue/60 bg-gray-700" : "ring-1 ring-primary/40 bg-gray-100")
-                                                : ""
-                                        ].join(" ")}
-                                    >
-                                        <div className="flex items-start gap-2">
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedCaseIdsForAdd.includes(r.id)}
-                                                onChange={() => toggleSelectResult(r.id)}
-                                                onClick={(e) => e.stopPropagation()}
-                                                className={`mt-1 ${isDarkMode ? "accent-primary-blue" : "accent-primary"} h-4 w-4`}
-                                            />
-                                            <div className="flex-1">
-                                                <div className="font-medium">{r.name || "Unnamed"}</div>
-                                                <div className="text-xs opacity-75">ID: {r.id}</div>
-                                                {Array.isArray(r.tagNames) && r.tagNames.length > 0 && (
-                                                    <div className="mt-1 flex flex-wrap gap-1">
-                                                        {r.tagNames.map((t) => (
-                                                            <span key={t} className={`text-[10px] ${isDarkMode ? "bg-gray-600" : "bg-primary/20 text-primary"} px-2 py-0.5 rounded`}>
-                                                                {t}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                                {selectedCaseIdsForAdd.includes(r.id) && (
-                                                    <div className={`mt-2 text-sm font-bold ${isDarkMode ? "text-white" : "text-primary"}`}>
-                                                        <Check className="w-4 h-4 inline-block mr-1" /> Selected
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </li>
-
-                                ))}
-                            </ul>
-                        )}
-                    </div>
-
-                    <div className="mt-4 flex justify-end gap-2">
-                        <button
-                            className={`px-4 py-2 rounded-md border ${isDarkMode ? "border-gray-600" : "border-gray-300"}`}
-                            onClick={() => setOpenAddModal(false)}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            className={`cursor-pointer px-4 py-2 rounded-md font-semibold ${isDarkMode ? "bg-primary-blue/70 hover:bg-primary-blue/80 text-white" : "bg-primary/90 hover:bg-primary/85 text-white"
-                                }`}
-                            onClick={handleAddToSuite}
-                            disabled={selectedCaseIdsForAdd.length === 0}
-                        >
-                            Add {selectedCaseIdsForAdd.length > 0 ? `(${selectedCaseIdsForAdd.length})` : ""} to Suite
-                        </button>
-                    </div>
-                </div>
-            </ModalCustom>
+                isLoadingTags={isLoadingTags}
+                tags={tags}
+                isLoadingGroups={isLoadingGroups}
+                groups={groups}
+                isLoadingModules={isLoadingModules}
+                modules={modules}
+                isLoadingSubmodules={isLoadingSubmodules}
+                submodules={submodules}
+                loadingUsers={loadingUsers}
+                userOptions={userOptions}
+                handleSearchModal={handleSearchModal}
+                isSearchingTC={isSearchingTC}
+                searchResults={searchResults}
+                selectedCaseIdsForAdd={selectedCaseIdsForAdd}
+                toggleSelectResult={toggleSelectResult}
+                allVisibleSelected={allVisibleSelected}
+                someVisibleSelected={someVisibleSelected}
+                toggleAllVisible={toggleAllVisible}
+                handleAddToSuite={handleAddToSuite}
+                selectedTag={selectedTag}
+                setSelectedTag={setSelectedTag}
+                selectedGroup={selectedGroup}
+                setSelectedGroup={setSelectedGroup}
+                selectedModule={selectedModule}
+                setSelectedModule={setSelectedModule}
+                selectedSubmodule={selectedSubmodule}
+                setSelectedSubmodule={setSelectedSubmodule}
+                selectedCreatedBy={selectedCreatedBy}
+                setSelectedCreatedBy={setSelectedCreatedBy}
+                searchTestCaseName={searchTestCaseName}
+                setSearchTestCaseName={setSearchTestCaseName}
+                searchTestCaseId={searchTestCaseId}
+                setSearchTestCaseId={setSearchTestCaseId}
+                setSelectedCaseIdsForAdd={setSelectedCaseIdsForAdd}
+            />
 
             {isModalOpen && (
                 <ImageModalWithZoom isOpen={isModalOpen} imageUrl={selectedImage} onClose={handleCloseModal} />

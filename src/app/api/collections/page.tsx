@@ -14,12 +14,13 @@ import { useFetchCollection } from "./hooks/useFetchCollection";
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { TbBrandGraphql, TbCodeVariablePlus, TbJson } from "react-icons/tb";
 import { RiErrorWarningLine } from "react-icons/ri";
-import { nightOwl, stackoverflowLight, tomorrow, vs } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { nightOwl, shadesOfPurple, stackoverflowLight, tomorrow, vs } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import { VscJson } from "react-icons/vsc";
 import ButtonTab from "@/app/components/ButtonTab";
 import { useFlowRunner } from "../flows/hooks/useFlowRunner";
 import { toast } from "sonner";
 import { vsDark } from "react-syntax-highlighter/dist/cjs/styles/prism";
+import { darkula } from "react-syntax-highlighter/dist/cjs/styles/hljs";
 
 
 
@@ -447,7 +448,7 @@ const CollectionsPage = () => {
         return (
             <div key={reqKey} className="flex items-center gap-2">
                 <span
-                    className={`text-[10px] px-2 py-0.5 rounded ${httpMethodsStyle(method)}`}
+                    className={`text-[10px] px-2 py-0.5 rounded ${httpMethodsStyle(method,darkMode)}`}
                     title={method}
                 >
                     {method}
@@ -884,7 +885,7 @@ const CollectionsPage = () => {
                                                 <div className="max-h-[400px] overflow-y-auto">
                                                     <SyntaxHighlighter
                                                         language="json"
-                                                        style={vs}
+                                                        style={darkMode ? shadesOfPurple : stackoverflowLight}
                                                         customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem", backgroundColor: `${darkMode ? "#1e2939" : "#F3F6F9"}`, marginTop: "1rem" }}
                                                     >
                                                         {selectedRequest?.node?.request?.body?.raw ?? "// Request body"}
@@ -901,8 +902,8 @@ const CollectionsPage = () => {
                                                                     language={selectedRequest?.node?.request?.body?.mode === "graphql" ? "graphql" : "json"}
                                                                     style={
                                                                         selectedRequest?.node?.request?.body?.mode === "graphql"
-                                                                            ? (darkMode ? nightOwl : stackoverflowLight)
-                                                                            : (darkMode ? tomorrow : stackoverflowLight)
+                                                                            ? (darkMode ? shadesOfPurple : stackoverflowLight)
+                                                                            : (darkMode ? shadesOfPurple : stackoverflowLight)
                                                                     }
                                                                     customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem", backgroundColor: `${darkMode ? "#1e2939" : "#F3F6F9"}`, marginTop: "1rem" }}
                                                                 >
@@ -1051,7 +1052,7 @@ const CollectionsPage = () => {
                                             <div className="max-h-[400px] overflow-y-auto">
                                                 <SyntaxHighlighter
                                                     language="javascript"
-                                                    style={darkMode ? nightOwl : stackoverflowLight}
+                                                    style={darkMode ? shadesOfPurple : stackoverflowLight}
                                                     customStyle={{ borderRadius: "0.5rem", padding: "1rem", fontSize: "0.875rem", backgroundColor: `${darkMode ? "#1e2939" : "#F3F6F9"}`, marginTop: "1rem" }}
                                                 >
                                                     {selectedRequest?.node?.event?.find((e: any) => e.listen === "test")?.script?.exec?.join("\n") ?? "// Test script"}
@@ -1133,7 +1134,7 @@ const CollectionsPage = () => {
                                             <div className="max-h-[60vh] overflow-auto rounded-md">
                                                 <SyntaxHighlighter
                                                     language="json"
-                                                    style={stackoverflowLight}
+                                                    style={darkMode ? shadesOfPurple : stackoverflowLight}
                                                     showLineNumbers
                                                     wrapLongLines
                                                     customStyle={{

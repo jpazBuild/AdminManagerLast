@@ -142,7 +142,9 @@ const ReusableStepModal: React.FC<ReusableStepModalProps> = ({
         <ModalCustom
             open={isOpen}
             onClose={onClose}
-            width="max-w-2/3"
+            width="max-w-2/3 max-h-screen"
+
+            backArrow={true}
         >
               <div className="py-4 flex flex-col gap-4 overflow-x-hidden">
                     <p className="text-[22px] font-semibold text-start pb-3">Create Reusable Step</p>

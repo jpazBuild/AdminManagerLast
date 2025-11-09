@@ -4,7 +4,7 @@ import safeJsonParse from "@/utils/safeJsonParse";
 import { ChevronDown } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
-import { stackoverflowLight } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { shadesOfPurple, stackoverflowLight } from "react-syntax-highlighter/dist/esm/styles/hljs";
 import IterationTabBtn from "./IterationTabBtn";
 
 type Stage = "pre" | "request" | "post";
@@ -362,7 +362,7 @@ const CollectionMain = ({ response, children, envEditorOpen, darkMode = false }:
     const J = ({ obj }: { obj: any }) => (
       <SyntaxHighlighter
         language="json"
-        style={stackoverflowLight}
+        style={darkMode ? shadesOfPurple : stackoverflowLight}
         customStyle={{
           backgroundColor: "transparent",
           padding: 0,
@@ -497,7 +497,7 @@ const CollectionMain = ({ response, children, envEditorOpen, darkMode = false }:
               ) : typeof response === "string" ? (
                 <SyntaxHighlighter
                   language="json"
-                  style={stackoverflowLight}
+                  style={darkMode ? shadesOfPurple : stackoverflowLight}
                   showLineNumbers
                   wrapLongLines
                   customStyle={{

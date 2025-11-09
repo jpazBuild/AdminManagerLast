@@ -21,6 +21,7 @@ import { updateTest } from "@/utils/DBBUtils";
 import EditLocationPanel from "./EditLocationPanel";
 import TabsUnderline from "./TabsLine";
 import ModalCustom from "@/app/components/ModalCustom";
+import LoadingSkeleton from "@/app/components/loadingSkeleton";
 
 const useScrollPosition = (dependencies: any[]) => {
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -371,8 +372,8 @@ const SortableTestCaseItem: React.FC<Props> = ({
             ? "flex justify-between px-2 text-[11px] text-gray-400"
             : "flex justify-between px-2 text-[11px] text-primary/80",
         scrollContainer: isDarkMode
-            ? "flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 mt-4 p-2"
-            : "flex flex-col gap-4 max-h-[60vh] overflow-y-auto px-1 mt-4 p-2 overflow-x-hidden",
+            ? "flex flex-col gap-4 max-h-[80vh] overflow-y-auto px-1 mt-4 p-2 overflow-x-hidden"
+            : "flex flex-col gap-4 max-h-[80vh] overflow-y-auto px-1 mt-4 p-2 overflow-x-hidden",
         stepsScrollContainer: isDarkMode
             ? "flex flex-col gap-4 max-h-[100vh] overflow-y-auto px-1 bg-gray-800"
             : "flex flex-col gap-4 h-full w-full overflow-y-auto px-1 py-2",
@@ -664,15 +665,15 @@ const SortableTestCaseItem: React.FC<Props> = ({
                     onClose={handleAccordionToggle}
                     width="max-w-2/3"
                     isDarkMode={isDarkMode}
-                    height="h-full max-h-[90vh]"
+                    height="h-full min-h-screen !max-h-[90vh] pt-4 pb-4"
                 >
-                    <div className={`flex flex-col max-h-[80vh] overflow-y-auto w-full px-6 pb-6 pt-2 ${isDarkMode ? ' text-white' : 'bg-white text-primary'}`}>
+                    <div className={`flex flex-col max-h-screen w-full px-6 pb-6 pt-2 ${isDarkMode ? ' text-white' : 'bg-white text-primary'}`}>
                         <TabsUnderline isDarkMode={isDarkMode} value={viewMode} setValue={handleViewModeChange} defaultValue="data" tabs={[
                             {
                                 name: 'Data', value: 'Data', icon: <File className="ml-1 h-5 w-5" />,
                                 content: (
-                                    <div className="flex flex-col w-full h-full overflow-y-auto">
-                                        <div className="self-end flex gap-2 border rounded-md px-3 py-2 mb-4">
+                                    <div className="flex flex-col w-full h-full max-h-screen overflow-y-auto">
+                                        <div className={`self-end flex gap-2 rounded-md px-3 py-2 mb-4 ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-gray-200 text-primary/90'}`}>
                                             <CopyToClipboard text={JSON.stringify(dynamicValueForThisTest)} isDarkMode={isDarkMode} />
                                             Copy dynamic values
                                         </div>
@@ -722,9 +723,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                             ))}
 
                                             {isLoadingTest && (
-                                                <div className="flex justify-center items-center h-32">
-                                                    <span className="text-gray-500">Loading data...</span>
-                                                </div>
+                                                <LoadingSkeleton darkMode={isDarkMode} />
                                             )}
                                         </div>
                                     </div>
@@ -733,139 +732,153 @@ const SortableTestCaseItem: React.FC<Props> = ({
                             {
                                 name: 'Steps', value: 'Steps', icon: <Eye className="ml-1 h-5 w-5" />,
                                 content: (
-                                    <div className="w-full text-primary/80 max-h-[80vh] flex flex-col">
-                                        <div className={styleClasses.stepsStickyHeader}>
-                                            <div className="flex flex-wrap items-center gap-4 justify-between">
-                                                <div className="flex items-center gap-2 font-semibold">
-                                                    <button onClick={() => {
-                                                        setSelectionMode(!selectionMode);
-                                                        setSelectedStepsForReusable([]);
-                                                    }} className={`${isDarkMode
-                                                        ? 'bg-gray-800 text-white border-white/40'
-                                                        : 'bg-gray-200 text-gray-900 border-primary/40'
-                                                        } border shadow-md cursor-pointer flex items-center px-4 py-1.5 rounded-md`}>
-                                                        <Settings className="w-4 h-4 mr-1" />
-                                                        {selectionMode ? 'Cancel Selection' : 'Select Steps for Reusable'}
-                                                    </button>
+                                    <div className="w-full text-primary/80 h-full max-h-[90vh] flex flex-col overflow-y-auto">
+                                        <div className="flex-1 overflow-y-auto">
+                                            <div className="w-full flex flex-col gap-4 p-2">
+                                                <div className={styleClasses.stepsStickyHeader}>
+                                                    <div className="flex flex-wrap items-center gap-4 justify-between">
+                                                        <div className="flex items-center gap-2 font-semibold">
+                                                            <button onClick={() => {
+                                                                setSelectionMode(!selectionMode);
+                                                                setSelectedStepsForReusable([]);
+                                                            }} className={`${isDarkMode
+                                                                ? 'bg-gray-800 text-white border-white/40'
+                                                                : 'bg-gray-200 text-gray-900 border-primary/40'
+                                                                } border shadow-md cursor-pointer flex items-center px-4 py-1.5 rounded-md`}>
+                                                                <Settings className="w-4 h-4 mr-1" />
+                                                                {selectionMode ? 'Cancel Selection' : 'Select Steps for Reusable'}
+                                                            </button>
 
-                                                    {selectionMode && selectedStepsForReusable.length > 0 && (
-                                                        <button
-                                                            onClick={() => setShowReusableModal(true)}
-                                                            className={`${isDarkMode ? "bg-primary-blue/60" : "bg-primary/90"} px-4 py-1.5 text-white cursor-pointer flex items-center rounded-md`}
-                                                        >
-                                                            <Plus className="w-4 h-4 mr-1" />
-                                                            Create Reusable ({selectedStepsForReusable.length})
-                                                        </button>
+                                                            {selectionMode && selectedStepsForReusable.length > 0 && (
+                                                                <button
+                                                                    onClick={() => setShowReusableModal(true)}
+                                                                    className={`${isDarkMode ? "bg-primary-blue/60" : "bg-primary/90"} px-4 py-1.5 text-white cursor-pointer flex items-center rounded-md`}
+                                                                >
+                                                                    <Plus className="w-4 h-4 mr-1" />
+                                                                    Create Reusable ({selectedStepsForReusable.length})
+                                                                </button>
 
-                                                    )}
-                                                </div>
-
-                                                <div className="flex items-center gap-2">
-                                                    <div className={`rounded-md flex items-center gap-2 border-dashed border p-1 ${isDarkMode ? 'border-gray-600 text-white' : 'border-primary/40 text-primary/90'}`}>
-                                                        <span>Copy All steps</span>
-                                                        <CopyToClipboard
-                                                            text={JSON.stringify(transformedStepsToCopy(responseTest?.stepsData || []), null, 2)}
-                                                            isDarkMode={isDarkMode}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="w-full max-h-[60vh] flex flex-col gap-2 overflow-y-auto" >
-                                            {!isLoadingTest && responseTest?.stepsData?.map((step: any, i: number) => (
-                                                <div key={i} className="flex flex-col gap-2 max-h-[60vh] ">
-                                                    <>
-                                                        <div
-                                                            className={getStepSelectionClasses(i)}
-                                                            onClick={() => handleStepSelection(i)}
-                                                        >
-
-                                                            <InteractionItem
-                                                                data={{ id: `${test.testCaseId || test.id}-step-${i}`, ...step }}
-                                                                index={i}
-                                                                onDelete={(idx) => {
-                                                                    setResponseTest((prev: any) => {
-                                                                        if (!prev) return prev;
-                                                                        const updatedSteps = prev.stepsData.filter((_: any, j: number) => j !== idx)
-                                                                            .map((s: any, k: number) => ({ ...s, indexStep: k + 1 }));
-                                                                        return { ...prev, stepsData: updatedSteps };
-                                                                    });
-
-                                                                    setTestCasesData(prev => {
-                                                                        const newData = [...prev];
-                                                                        const tc = { ...newData[index] };
-                                                                        tc.stepsData = tc.stepsData?.filter((_, j) => j !== idx) || [];
-                                                                        newData[index] = tc;
-                                                                        return newData;
-                                                                    });
-
-                                                                    setSelectedStepsForReusable(prev =>
-                                                                        prev.filter(stepIdx => stepIdx !== idx)
-                                                                            .map(stepIdx => stepIdx > idx ? stepIdx - 1 : stepIdx)
-                                                                    );
-                                                                }}
-                                                                onUpdate={(idx, newStep) => {
-                                                                    if (newStep.type?.startsWith('STEPS') && Array.isArray(newStep.stepsData)) {
-                                                                        handleUpdateReusableStep(idx, newStep);
-                                                                        return;
-                                                                    }
-
-                                                                    setResponseTest((prev: any) => {
-                                                                        if (!prev) return prev;
-                                                                        const updatedSteps = [...prev.stepsData];
-                                                                        updatedSteps[idx] = { ...updatedSteps[idx], ...newStep };
-                                                                        return { ...prev, stepsData: updatedSteps };
-                                                                    });
-
-                                                                    setTestCasesData(prev => {
-                                                                        const newData = [...prev];
-                                                                        const tc = { ...newData[index] };
-                                                                        const stepsData = [...(tc.stepsData || [])];
-                                                                        stepsData[idx] = { ...stepsData[idx], ...newStep };
-                                                                        tc.stepsData = stepsData;
-                                                                        newData[index] = tc;
-                                                                        return newData;
-                                                                    });
-                                                                }}
-                                                                isDarkMode={isDarkMode}
-                                                                test={test}
-                                                                setTestCasesData={setTestCasesData}
-                                                                setResponseTest={setResponseTest}
-                                                            />
+                                                            )}
                                                         </div>
 
-                                                        <StepActions
-                                                            index={i}
-                                                            steps={responseTest?.stepsData || []}
-                                                            test={{ ...test }}
-                                                            setTestCasesData={setTestCasesData}
-                                                            setResponseTest={setResponseTest}
-                                                            darkMode={isDarkMode}
-                                                        />
-                                                    </>
+                                                        <div className="flex items-center gap-2">
+                                                            <div className={`rounded-md flex items-center gap-2 border-dashed border p-1 ${isDarkMode ? 'border-gray-600 text-white' : 'border-primary/40 text-primary/90'}`}>
+                                                                <span>Copy All steps</span>
+                                                                <CopyToClipboard
+                                                                    text={JSON.stringify(transformedStepsToCopy(responseTest?.stepsData || []), null, 2)}
+                                                                    isDarkMode={isDarkMode}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            ))}
+                                                
 
-                                            <TestCaseActions
-                                                test={currentTestCase}
-                                                onDelete={handleDelete}
-                                                onUpdate={handleUpdateConfirm}
-                                                isLoadingUpdate={isLoadingUpdate}
-                                                isDarkMode={isDarkMode}
-                                            />
+                                                {isLoadingTest && (
+                                                    <LoadingSkeleton darkMode={isDarkMode} />
+                                                )}
 
-                                            <ReusableStepModal
-                                                isOpen={showReusableModal}
-                                                onClose={() => setShowReusableModal(false)}
-                                                selectedSteps={selectedStepsForReusable}
-                                                steps={responseTest?.stepsData || []}
-                                                onCreateReusable={handleCreateReusableStep}
-                                                isDarkMode={isDarkMode}
-                                                responseTest={responseTest}
-                                                onSetResponseData={handleResponseCreateReusedStep}
+                                                {!isLoadingTest && responseTest?.stepsData?.map((step: any, i: number) => (
+                                                    <div key={i} className="flex flex-col gap-2 overflow-y-auto">
+                                                        <>
+                                                            <div
+                                                                className={`flex flex-col gap-2`}
+                                                                onClick={() => handleStepSelection(i)}
+                                                            >
 
-                                            />
+                                                                <InteractionItem
+                                                                    data={{ id: `${test.testCaseId || test.id}-step-${i}`, ...step }}
+                                                                    index={i}
+                                                                    onDelete={(idx) => {
+                                                                        setResponseTest((prev: any) => {
+                                                                            if (!prev) return prev;
+                                                                            const updatedSteps = prev.stepsData.filter((_: any, j: number) => j !== idx)
+                                                                                .map((s: any, k: number) => ({ ...s, indexStep: k + 1 }));
+                                                                            return { ...prev, stepsData: updatedSteps };
+                                                                        });
+
+                                                                        setTestCasesData(prev => {
+                                                                            const newData = [...prev];
+                                                                            const tc = { ...newData[index] };
+                                                                            tc.stepsData = tc.stepsData?.filter((_, j) => j !== idx) || [];
+                                                                            newData[index] = tc;
+                                                                            return newData;
+                                                                        });
+
+                                                                        setSelectedStepsForReusable(prev =>
+                                                                            prev.filter(stepIdx => stepIdx !== idx)
+                                                                                .map(stepIdx => stepIdx > idx ? stepIdx - 1 : stepIdx)
+                                                                        );
+                                                                    }}
+                                                                    onUpdate={(idx, newStep) => {
+                                                                        if (newStep.type?.startsWith('STEPS') && Array.isArray(newStep.stepsData)) {
+                                                                            handleUpdateReusableStep(idx, newStep);
+                                                                            return;
+                                                                        }
+
+                                                                        setResponseTest((prev: any) => {
+                                                                            if (!prev) return prev;
+                                                                            const updatedSteps = [...prev.stepsData];
+                                                                            updatedSteps[idx] = { ...updatedSteps[idx], ...newStep };
+                                                                            return { ...prev, stepsData: updatedSteps };
+                                                                        });
+
+                                                                        setTestCasesData(prev => {
+                                                                            const newData = [...prev];
+                                                                            const tc = { ...newData[index] };
+                                                                            const stepsData = [...(tc.stepsData || [])];
+                                                                            stepsData[idx] = { ...stepsData[idx], ...newStep };
+                                                                            tc.stepsData = stepsData;
+                                                                            newData[index] = tc;
+                                                                            return newData;
+                                                                        });
+                                                                    }}
+                                                                    isDarkMode={isDarkMode}
+                                                                    test={test}
+                                                                    setTestCasesData={setTestCasesData}
+                                                                    setResponseTest={setResponseTest}
+                                                                />
+                                                            </div>
+
+                                                            <StepActions
+                                                                index={i}
+                                                                steps={responseTest?.stepsData || []}
+                                                                test={{ ...test }}
+                                                                setTestCasesData={setTestCasesData}
+                                                                setResponseTest={setResponseTest}
+                                                                darkMode={isDarkMode}
+                                                            />
+                                                        </>
+                                                    </div>
+                                                ))}
+
+                                                
+                                                    
+
+                                                <ReusableStepModal
+                                                    isOpen={showReusableModal}
+                                                    onClose={() => setShowReusableModal(false)}
+                                                    selectedSteps={selectedStepsForReusable}
+                                                    steps={responseTest?.stepsData || []}
+                                                    onCreateReusable={handleCreateReusableStep}
+                                                    isDarkMode={isDarkMode}
+                                                    responseTest={responseTest}
+                                                    onSetResponseData={handleResponseCreateReusedStep}
+
+                                                />
+                                            </div>
                                         </div>
+                                        
+                                        {!isLoadingTest && responseTest?.stepsData?.length && (
+                                            <TestCaseActions
+                                            test={currentTestCase}
+                                            onDelete={handleDelete}
+                                            onUpdate={handleUpdateConfirm}
+                                            isLoadingUpdate={isLoadingUpdate}
+                                            isDarkMode={isDarkMode}
+                                        />
+                                        )}
+                                        
                                     </div>
 
                                 )

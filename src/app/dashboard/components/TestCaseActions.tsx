@@ -141,7 +141,7 @@ const TestCaseActions = ({
                 )}
 
                 <button
-                    className={`flex items-center p-1 px-3 rounded-md cursor-pointer gap-1 hover:bg-primary/5   ${isDarkMode ? "text-white hover:text-white/80" : "text-red-600 hover:text-red-700"
+                    className={`flex items-center p-1 px-3 rounded-md cursor-pointer gap-1 hover:bg-primary/5   ${isDarkMode ? "text-red-400 hover:text-red-700" : "text-red-600 hover:text-red-700"
                         } font-normal text-sm`}
                     onClick={() => setOpenDeleteDialog(true)}
                 >

@@ -21,7 +21,7 @@ const CopyToClipboard = ({ text,isDarkMode=false }: { text: string,isDarkMode?: 
             title="Copy ID"
         >
             {copied ? (
-                <Check className={`w-4 h-4 ${isDarkMode ? "text-white/90":"text-primary/90"}`} />
+                <Check className={`w-4 h-4 ${isDarkMode ? "text-white/90 hover:text-white/80":"text-primary/90"}`} />
             ) : (
                 <Copy className={`w-4 h-4 ${isDarkMode ? "text-white/90 hover:text-white/80":"text-primary/70 hover:text-primary/80"}`} />
             )}

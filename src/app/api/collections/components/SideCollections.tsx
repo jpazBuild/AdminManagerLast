@@ -42,7 +42,7 @@ interface CollectionsAsideProps {
 
     dataDetailByUid: Record<string, any>;
 
-    renderCollectionTree: (colDetail: any, colUid: string, colName: string) => React.ReactNode;
+    renderCollectionTree: (colDetail: any, colUid: string, colName: string,darkMode:boolean) => React.ReactNode;
     loadingElements: boolean;
     darkMode?: boolean;
 }
@@ -159,7 +159,7 @@ const CollectionsAside: React.FC<CollectionsAsideProps> = ({
 
                                             {isOpen && (
                                                 <div className={`ml-6 mt-2 text-sm ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
-                                                    {!collectionError && dataDetailByUid?.[uid] && renderCollectionTree(dataDetailByUid[uid], uid, String(collection.name))}
+                                                    {!collectionError && dataDetailByUid?.[uid] && renderCollectionTree(dataDetailByUid[uid], uid, String(collection.name),darkMode as boolean)}
 
                                                     {isLoading && (
                                                         <div className={`flex items-center gap-2 ${darkMode ? "text-white/70" : "text-primary/70"}`}>

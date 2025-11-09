@@ -8,10 +8,12 @@ import { usePathname } from "next/navigation";
 import { TbAutomation, TbReportSearch } from "react-icons/tb";
 import { ChevronRight, DatabaseZapIcon, Locate, User } from "lucide-react";
 import { RiFunctionLine } from "react-icons/ri";
-import iconCollection from "../../assets/iconsSides/collections.svg";
-import iconEnvironment from "../../assets/iconsSides/environment.svg";
-import iconIterationData from "../../assets/iconsSides/iterationData.svg";
-import iconFlows from "../../assets/iconsSides/flows.svg";
+import CollectionsIcon from "@/assets/iconsSides/collections";
+import EnvironmentIcon from "@/assets/iconsSides/environment";
+import IterationDataIcon from "@/assets/iconsSides/iterationData";
+import FlowsIcon from "@/assets/iconsSides/flows";
+
+
 import { FaSuitcase } from "react-icons/fa";
 
 export const DashboardSidebar = ({
@@ -48,10 +50,10 @@ export const DashboardSidebar = ({
   const menuItems =
     pageType === "api"
       ? [
-        { name: "Collections", path: "/api/collections", icon: <Image src={iconCollection} alt="Collections" className="w-5 h-5" /> },
-        { name: "Environments", path: "/api/environments", icon: <Image src={iconEnvironment} alt="Environments" className="w-5 h-5" /> },
-        { name: "Iteration data", path: "/api/iterationData", icon: <Image src={iconIterationData} alt="Iteration data" className="w-5 h-5" /> },
-        { name: "Flows", path: "/api/flows", icon: <Image src={iconFlows} alt="Flows" className="w-5 h-5" /> },
+        { name: "Collections", path: "/api/collections", icon: <CollectionsIcon darkMode={darkMode} />},
+        { name: "Environments", path: "/api/environments", icon: <EnvironmentIcon darkMode={darkMode} /> },
+        { name: "Iteration data", path: "/api/iterationData", icon: <IterationDataIcon darkMode={darkMode} /> },
+        { name: "Flows", path: "/api/flows", icon: <FlowsIcon darkMode={darkMode} /> },
       ]
       : [
         { name: "Runner", path: "/dashboard", icon: <TbAutomation className="w-5 h-5" /> },

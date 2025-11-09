@@ -131,7 +131,7 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
 
   const getDropdownHeaderClasses = () =>
     isDarkMode
-      ? "w-full h-full flex justify-between items-center bg-gray-800 cursor-pointer rounded-md p-2 hover:bg-gray-700 transition-colors duration-200 w-full"
+      ? "w-full h-full flex justify-between items-center bg-gray-900 cursor-pointer rounded-md p-2 hover:bg-gray-950 border-primary-blue/60 border-l-4 p-2 transition-colors duration-200 w-full"
       : "w-full h-full flex justify-between items-center  bg-gray-200 cursor-pointer rounded-md border-l-4 border-primary/90 p-2 hover:bg-gray-300 transition-colors";
 
   const getDropdownHeaderTextClasses = () => (isDarkMode ? "text-gray-100 font-semibold" : "text-gray-700 font-semibold");
@@ -299,7 +299,9 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
     return <div className={noDataClasses}>No data available</div>;
   }
 
-  const containerClasses = isDarkMode ? "rounded-lg shadow-lg bg-gray-800 border border-gray-700 overflow-hidden px-2" : "rounded-lg shadow-lg bg-white overflow-hidden";
+  const containerClasses = isDarkMode
+    ? "rounded-lg shadow-lg bg-gray-800 border border-gray-700 overflow-hidden"
+    : "rounded-lg shadow-lg bg-white overflow-hidden";
 
   const actualData = value.stepData || value;
   const apis = Array.isArray(actualData?.apisData?.apis) ? actualData.apisData.apis : [];
@@ -484,7 +486,7 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
                 {openPanels.selectors ? <FaChevronUp className={getDropdownHeaderIconClasses()} /> : <FaChevronDown className={getDropdownHeaderIconClasses()} />}
               </div>
               {openPanels.selectors && (
-                <div className="p-4 space-y-3">
+                <div className={`p-4 space-y-3 ${isDarkMode ? "" : ""}`}>
                   {actualData.data.selectors.map((selector: any, idx: number) => (
                     <FieldEditor
                       key={idx}
@@ -764,7 +766,7 @@ const JSONBox: React.FC<JSONBoxProps> = React.memo(({ value, onChange, isDarkMod
               {openPanels.jsonPreview ? <FaChevronUp className={getDropdownHeaderIconClasses()} /> : <FaChevronDown className={getDropdownHeaderIconClasses()} />}
             </div>
             {openPanels.jsonPreview && (
-              <div className="pt-2 w-full h-full flex flex-col items-start break-words min-h-0">
+              <div className="pt-2 w-full flex flex-col items-start break-words min-h-0">
                 {!editingJson ? (
                   <div key="preview" className={`w-full flex flex-col min-h-0 gap-2 relative ${isDarkMode ? "" : "bg-gray-50"}`}>
                     <SyntaxHighlighter language="json" style={isDarkMode ? atomOneDark : atomOneLight} className={`${getJSONPreviewClasses()} max-h-[50vh] overflow-auto w-full rounded-md`} customStyle={{ padding: "1rem", fontSize: "12px", lineHeight: "1.4", backgroundColor: isDarkMode ? "transparent" : "inherit" }}>
@@ -913,7 +915,7 @@ const ReusableStepsBlock = ({ data, isDarkMode = true, onUpdate, onDelete, test 
 
   const getReusableContainerClasses = () =>
     isDarkMode
-      ? "relative max-h[480px] max-h-[480px] overflow-y-auto flex flex-col gap-3 py-4 px-3 text-gray-100 rounded-lg border-2 border-dashed border-amber-400 shadow-lg bg-gray-800"
+      ? "relative max-h[480px] max-h-[70vh] overflow-y-auto flex flex-col gap-3 py-4 px-3 text-gray-100 rounded-lg border-2 border-dashed border-amber-400 shadow-lg bg-gray-800"
       : "relative max-h-[480px] overflow-y-auto flex flex-col gap-3 py-4 px-3 text-gray-700 rounded-lg border-2 border-dashed border-amber-400 bg-gradient-to-r from-amber-50 to-orange-50 shadow-lg";
 
   const getReusableHeaderClasses = () =>
@@ -963,6 +965,7 @@ const ReusableStepsBlock = ({ data, isDarkMode = true, onUpdate, onDelete, test 
   );
 };
 
+
 const InteractionItem: React.FC<InteractionItemProps> = React.memo(({ data, index, onDelete, onUpdate, isDarkMode = false, showDelete = true }) => {
   const isReusableStep = data.type?.startsWith("STEPS") && Array.isArray(data.stepsData);
   if (isReusableStep) {
@@ -977,14 +980,14 @@ const InteractionItem: React.FC<InteractionItemProps> = React.memo(({ data, inde
       : `relative flex flex-col gap-2 py-2 px-1 text-gray-800 rounded-md border-l-4 border-primary/90 border bg-white shadow-lg transition-all duration-300`;
 
   const getStepNumberClasses = () =>
-    isDarkMode ? "absolute top-0 left-0 bg-gray-700 text-white px-3 py-1 text-sm font-semibold rounded-tl-xl rounded-br-full shadow-md" : "absolute top-0 left-0 bg-gray-800 text-white px-3 py-1 text-sm font-semibold rounded-tl-xl rounded-br-full shadow-md font-bold";
+    isDarkMode ? "absolute -top-2 -left-1 bg-gray-950 text-white px-3 py-1 text-sm font-semibold rounded-tl-xl rounded-br-full shadow-md" : "absolute -top-2 -left-1 bg-gray-800 text-white px-3 py-1 text-sm font-semibold rounded-tl-xl rounded-br-full shadow-md font-bold";
 
   const getPageIndexClasses = () => (isDarkMode ? "text-xs text-gray-300" : "text-xs text-gray-600");
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 mb-4">
       <div className={getMainContainerClasses(actualStepData.action)}>
-        <div className="flex justify-center items-center w-full">
+        <div className="flex justify-center items-center w-full relative min-h-[60px]">
           <div className={`flex flex-col ${isDarkMode ? "text-gray-200" : "text-gray-700"} gap-1`}>
             <p className="font-semibold text-center">{actualStepData.action}</p>
             <p className="font-normal text-center">
@@ -993,12 +996,11 @@ const InteractionItem: React.FC<InteractionItemProps> = React.memo(({ data, inde
           </div>
           <div className={getStepNumberClasses()}>{actualStepData.indexStep || data.indexStep}</div>
 
-          <div className={`absolute top-0 right-0 flex gap-2 items-center ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
+          <div className={`absolute top-2 right-2 flex gap-2 items-center ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
             {onDelete && showDelete && onDelete != undefined && <DeleteButton onClick={() => onDelete(index)} isDarkMode={isDarkMode} />}
             <CopyToClipboard text={JSON.stringify(data)} isDarkMode={isDarkMode} />
           </div>
         </div>
-
         <JSONBox
           value={data}
           onChange={(edited) => {

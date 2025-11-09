@@ -746,7 +746,7 @@ const Reusables = () => {
                                                             {Array.isArray(detail.stepsData) && detail.stepsData.length > 0 ? (
                                                                 <div className="flex flex-col gap-3 overflow-y-auto max-h-[440px]">
                                                                     {detail.stepsData.map((step, idx) => (
-                                                                        <div key={`${reusable.id}-step-${idx}`} className="border rounded p-2">
+                                                                        <div key={`${reusable.id}-step-${idx}`} className=" rounded p-2">
                                                                             <InteractionItem
                                                                                 data={{ id: `${reusable.id}-step-${idx}`, ...step }}
                                                                                 index={idx}
