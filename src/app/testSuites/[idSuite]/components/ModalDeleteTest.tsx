@@ -26,8 +26,8 @@ const ModalDeleteTest = ({
         >
             <div className={`p-4 ${isDarkMode ? "text-white" : "text-primary"}`}>
                 <h3 className="text-lg font-semibold mb-2">Remove test from suite</h3>
-                <p className="mb-4 text-sm opacity-80">
-                    Are you sure you want to remove <span className="font-medium">{toDeleteId}</span> from this suite?
+                <p className="mb-4 text-sm opacity-80 font-semibold">
+                    Are you sure you want to remove <span className="font-bold">{toDeleteId}</span> from this suite?
                 </p>
                 <div className="flex justify-end gap-2">
                     <button

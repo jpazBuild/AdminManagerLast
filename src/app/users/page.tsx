@@ -12,6 +12,7 @@ import PaginationResults from "../dashboard/components/PaginationResults";
 import { usePagination } from "../hooks/usePagination";
 import ModalCustom from "../components/ModalCustom";
 import { RiInformation2Line } from "react-icons/ri";
+import NoData from "../components/NoData";
 
 type User = {
     id: string | number;
@@ -63,7 +64,7 @@ const UsersPage = () => {
 
     const createUser = async () => {
         if (!form.name.trim() || !form.passwordHash.trim()) {
-            alert("Completa nombre y passwordHash.");
+            toast.warning("Complete name and password")
             return;
         }
         try {
@@ -145,8 +146,8 @@ const UsersPage = () => {
                             id="name"
                             type="text"
                             inputMode="text"
-                            placeholder="Nombre"
-                            label="Nombre"
+                            placeholder="Name"
+                            label="Name"
                             onChangeHandler={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                             value={form.name}
                             isDarkMode={darkMode}
@@ -164,9 +165,9 @@ const UsersPage = () => {
                         <button
                             onClick={createUser}
                             disabled={creating}
-                            className={`self-center cursor-pointer rounded-2xl w-48 px-4 py-2 shadow-sm disabled:opacity-50 ${primaryBtn}`}
+                            className={`self-center cursor-pointer font-semibold rounded-2xl w-48 px-4 py-2 shadow-sm disabled:opacity-50 ${primaryBtn}`}
                         >
-                            {creating ? "Creando..." : "Crear"}
+                            {creating ? "Creating..." : "Create"}
                         </button>
                     </div>
                 </section>
@@ -176,8 +177,8 @@ const UsersPage = () => {
                         id="search"
                         type="text"
                         inputMode="text"
-                        placeholder="Buscar por nombre..."
-                        label="Buscar por nombre..."
+                        placeholder="Search by name..."
+                        label="Search by name..."
                         className="max-w-[400px]"
                         onChangeHandler={(e) => setQ(e.target.value)}
                         value={q}
@@ -321,7 +322,7 @@ const UsersPage = () => {
                         ))}
 
                         {!loading && filtered.length === 0 && (
-                            <div className={`p-6 text-center text-sm ${softText}`}>No results</div>
+                            <NoData darkMode={darkMode} text="No users found"/>
                         )}
                     </div>
                 </section>

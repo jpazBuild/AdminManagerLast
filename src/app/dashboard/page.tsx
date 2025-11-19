@@ -399,7 +399,7 @@ const DashboardPage = () => {
     return (
         <DashboardHeader typeFixed={false} onDarkModeChange={handleDarkModeChange}>
             <div
-                className={`p-4 flex justify-center items-center w-full h-full flex-col gap-4 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-primary"
+                className={`p-4 flex justify-center items-center w-full h-full flex-col gap-4 ${isDarkMode ? "bg-gray-900 text-white" : " text-primary"
                     } transition-colors duration-300`}
             >
                 <div className="w-full lg:w-2/3 flex flex-col gap-4 mb-4 mt-2 justify-center items-center">

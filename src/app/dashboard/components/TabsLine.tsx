@@ -23,12 +23,12 @@ const TabsUnderline = ({ tabs, value, setValue, className, defaultValue,isDarkMo
     <div className={`w-full h-full overflow-hidden ${className ?? ""}`}>
       <Tabs value={value} onValueChange={setValue} className="gap-4 w-full h-full">
         <TabsList defaultValue={value === undefined ? initial : undefined}
-          className={`w-full flex justify-start rounded-none border-b ${isDarkMode ? "border-gray-600":"border-primary/20"} p-0 sticky top-0 bg-transparent z-10 h-12`}>
+          className={`w-full flex justify-start rounded-none border-b ${isDarkMode ? "border-gray-600 text-white":"border-primary/20 text-primary/90"} p-0 sticky top-0 bg-transparent z-10 h-12`}>
           {tabs.map((tab) => (
             <TabsTrigger
               key={tab.value}
               value={tab.value}
-              className={`cursor-pointer data-[state=active]:border-primary-blue font-semibold flex gap-1 items-center dark:data-[state=active]:border-primary-blue h-full rounded-none border-0 border-b-2 ${isDarkMode ? "border-transparent":"border-transparent"} data-[state=active]:shadow-none`}
+              className={`cursor-pointer data-[state=active]:border-primary-blue font-semibold flex gap-1 items-center dark:data-[state=active]:border-primary-blue h-full rounded-none border-0 border-b-2 ${isDarkMode ? "border-transparent ":"border-transparent"} data-[state=active]:shadow-none`}
             >
               {tab.icon} {tab.name}
             </TabsTrigger>

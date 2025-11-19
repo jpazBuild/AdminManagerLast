@@ -1,3 +1,4 @@
+
 "use client";
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
@@ -12,9 +13,19 @@ import CollectionsIcon from "@/assets/iconsSides/collections";
 import EnvironmentIcon from "@/assets/iconsSides/environment";
 import IterationDataIcon from "@/assets/iconsSides/iterationData";
 import FlowsIcon from "@/assets/iconsSides/flows";
-
-
 import { FaSuitcase } from "react-icons/fa";
+
+const getInitialDarkMode = () => {
+  if (typeof window === "undefined") return false;
+  const saved = localStorage.getItem("darkMode");
+  if (saved !== null) return saved === "true";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+};
+
+const getInitialSidebarCollapsed = () => {
+  if (typeof window === "undefined") return true;
+  return localStorage.getItem("sidebarCollapsed") === "true";
+};
 
 export const DashboardSidebar = ({
   darkMode,
@@ -31,9 +42,8 @@ export const DashboardSidebar = ({
 }) => {
   const pathname = usePathname();
 
-
   const getSidebarLinkClasses = (path: string) => {
-    const starts = (p: string) => pathname === p || pathname.startsWith(`${p}/`);
+    const starts = (p: string) => pathname === p;
     const isActive = starts(path);
 
     if (isActive) {
@@ -50,7 +60,7 @@ export const DashboardSidebar = ({
   const menuItems =
     pageType === "api"
       ? [
-        { name: "Collections", path: "/api/collections", icon: <CollectionsIcon darkMode={darkMode} />},
+        { name: "Collections", path: "/api/collections", icon: <CollectionsIcon darkMode={darkMode} /> },
         { name: "Environments", path: "/api/environments", icon: <EnvironmentIcon darkMode={darkMode} /> },
         { name: "Iteration data", path: "/api/iterationData", icon: <IterationDataIcon darkMode={darkMode} /> },
         { name: "Flows", path: "/api/flows", icon: <FlowsIcon darkMode={darkMode} /> },
@@ -114,23 +124,16 @@ export const DashboardHeader = ({
   typeFixed?: boolean;
   hiddenSide?: boolean;
 }) => {
-  const [darkMode, setDarkMode] = useState<boolean>(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(true);
+  const [darkMode, setDarkMode] = useState<boolean>(() => getInitialDarkMode());
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => getInitialSidebarCollapsed());
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
   const pathname = usePathname();
-
-  // const applyDarkModeClass = (enabled: boolean) => {
-  //   if (enabled) document.documentElement.classList.add("dark");
-  //   else document.documentElement.classList.remove("dark");
-  // };
 
   const handleToggleDarkMode = () => {
     const newMode = !darkMode;
     setDarkMode(newMode);
     localStorage.setItem("darkMode", String(newMode));
-    // applyDarkModeClass(newMode);
     window.dispatchEvent(new Event("darkmode-changed"));
-
     onDarkModeChange?.(newMode);
   };
 
@@ -150,7 +153,8 @@ export const DashboardHeader = ({
           pathname === "/create" ||
           pathname === "/reports" ||
           pathname === "/users" ||
-          pathname === "/dynamicData" || pathname.startsWith("/testSuites"))) ||
+          pathname === "/dynamicData" ||
+          pathname.startsWith("/testSuites"))) ||
       pathname === path ||
       pathname.startsWith(path + "/");
 
@@ -163,20 +167,18 @@ export const DashboardHeader = ({
   };
 
   useEffect(() => {
-    const savedDarkMode = localStorage.getItem("darkMode") === "true";
-    const savedSidebarCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
-    setDarkMode(savedDarkMode);
-    // applyDarkModeClass(savedDarkMode);
-    onDarkModeChange?.(savedDarkMode);
-    setSidebarCollapsed(savedSidebarCollapsed);
-  }, [onDarkModeChange]);
+    onDarkModeChange?.(darkMode);
+  }, [darkMode, onDarkModeChange]);
 
   useEffect(() => {
     callback?.(mobileSidebarOpen);
   }, [mobileSidebarOpen, callback]);
 
   return (
-    <div className={`min-h-screen flex flex-col top-0 w-full ${overflow}`}>
+    <div
+      className={`min-h-screen flex flex-col top-0 w-full ${overflow} transition-colors duration-300 ${darkMode ? "bg-gray-900" : "bg-gray-50"
+        }`}
+    >
       <header className={`fixed top-0 left-0 w-full shadow-md px-4 py-2 z-20 transition-colors duration-300 ${darkMode ? "bg-gray-900 text-gray-100 border-b border-gray-800" : "bg-gray-50 text-gray-900"}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center">
@@ -190,16 +192,10 @@ export const DashboardHeader = ({
             </button>
 
             {darkMode ? (
-              <>
-                <Image src={LogoDark} alt="Blossom Logo Dark" className="h-12 w-auto rounded-md p-2" />
-              </>
+              <Image src={LogoDark} alt="Blossom Logo Dark" className="h-12 w-auto rounded-md p-2" />
             ) : (
-              <>
-                <Image src={Logo} alt="Blossom Logo" className="h-12 w-auto rounded-md p-2" />
-              </>
-
+              <Image src={Logo} alt="Blossom Logo" className="h-12 w-auto rounded-md p-2" />
             )}
-
           </div>
 
           <div className="hidden lg:block">

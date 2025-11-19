@@ -492,7 +492,7 @@ const Reusables = () => {
 
     return (
         <DashboardHeader hiddenSide={deleteOpen} onDarkModeChange={handleDarkModeChange}>
-            <div className={`p-4 flex justify-center items-center w-full flex-col gap-4 ${isDarkMode ? "bg-gray-900 text-white" : "bg-white text-primary"} transition-colors duration-300`}>
+            <div className={`p-4 flex justify-center items-center w-full flex-col gap-4 ${isDarkMode ? "bg-gray-900 text-white" : " text-primary"} transition-colors duration-300`}>
                 <div className="w-full max-w-5xl flex flex-col gap-4 mb-4 mt-2">
 
                     <div className="flex items-center justify-between">

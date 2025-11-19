@@ -218,11 +218,6 @@ const RowTable = ({
                 </div>
 
                 <div className="mt-2 text-xs min-h-5">
-                    {/* {isLoading && (
-                        <span className={softText}>
-                            <Loader2 className="inline-block w-3 h-3 mr-1 animate-spin" /> Loading test…
-                        </span>
-                    )} */}
                     {isSaving && (
                         <span className={softText}>
                             <Loader2 className="inline-block w-3 h-3 mr-1 animate-spin" /> Saving…

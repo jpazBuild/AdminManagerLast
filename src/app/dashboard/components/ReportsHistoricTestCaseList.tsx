@@ -10,6 +10,7 @@ import { ExecutionSummary } from "../../components/ExecutionSummary";
 import { DownloadIcon } from "lucide-react";
 import { buildStandaloneHtml } from "@/utils/buildHtmlreport";
 import NoData from "@/app/components/NoData";
+import LoadingSkeleton from "@/app/components/loadingSkeleton";
 
 interface Props {
   visible: boolean;
@@ -391,7 +392,7 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode, darkMode
 
   return (
     <>
-      <div className="w-full max-h-[90vh] flex flex-col overflow-y-auto gap-2">
+      <div className="w-full flex flex-col overflow-y-auto gap-2 px-4">
         <div className="px-4 pt-4">
           <ExecutionSummary
             totalSuccess={items.filter((it) => it.status === "passed").length}
@@ -401,36 +402,47 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode, darkMode
           />
         </div>
 
-        <Tabs key={"Tabs list test"} value={activeUrl ?? undefined} onValueChange={setActiveUrl}>
-          <TabsList className="w-full flex flex-wrap gap-2 pb-1 mb-16 px-4 py-3">
+
+        <div key="Tabs list test" className="w-full flex flex-col gap-2 ">
+          <div className="mt-4 w-full flex gap-2 pb-1 mb-2 px-4 py-3 overflow-x-auto">
             {items.map((it) => {
               const label = `${new Date(it.timestamp).toLocaleString()}`;
+              const isActive = activeUrl === it.urlReport;
               return (
                 <div key={it.urlReport} className="flex flex-col gap-2 justify-center items-center">
-                  <TabsTrigger
-                    key={it.urlReport}
-                    value={it.urlReport}
-                    className={`whitespace-nowrap px-4 py-3 ${darkMode ? "bg-gray-800 data-[state=active]:bg-primary-blue/70 data-[state=active]:text-white" : "bg-white data-[state=active]:bg-primary/90 data-[state=active]:text-white"} shadow-md max-w-md`}
+                  <button
+                    onClick={() => setActiveUrl(it.urlReport)}
+                    className={`whitespace-nowrap px-4 py-3 shadow-md max-w-md transition-colors duration-200 rounded-md ${isActive
+                        ? darkMode
+                          ? "bg-primary-blue/70 text-white"
+                          : "bg-primary/90 text-white"
+                        : darkMode
+                          ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                          : "bg-white text-gray-700 hover:bg-gray-100"
+                      }`}
                   >
                     {label}
-                  </TabsTrigger>
+                  </button>
                   <span className={`text-center h-1 w-10 rounded-full ${it.status === "passed" ? "bg-green-500" : "bg-red-500"}`}></span>
                 </div>
               );
             })}
-          </TabsList>
+          </div>
 
-          <div className="flex flex-col mt-20">
+          <div className="flex flex-col mt-4">
             {!isLoadingIndividualReport && items?.map((it) => {
               const file = reportsByUrl[it?.urlReport];
+              const isActive = activeUrl === it.urlReport;
+
+              if (!isActive) return null;
 
               return (
-                <TabsContent key={it?.urlReport} value={it?.urlReport} className="mt-10">
+                <div key={it?.urlReport} className="mt-10">
                   {file?.events && file?.events?.length > 0 && (
                     <div className="flex justify-end px-4 mt-5">
                       <button
                         onClick={() => downloadRenderedHtml(it.urlReport, file, containerRefs)}
-                        className={`mb-4 flex cursor-pointer items-center gap-2 text-xs ${darkMode ? "text-white bg-gray-800" : "border-primary/60 border-2 text-primary/60 "} font-semibold px-3 py-1 rounded hover:shadow-md`}
+                        className={`mb-4 flex cursor-pointer items-center gap-2 text-xs ${darkMode ? "text-white bg-gray-800" : "border-primary/60 border-2 text-primary/60"} font-semibold px-3 py-1 rounded hover:shadow-md`}
                       >
                         <DownloadIcon size={16} /> HTML Report (Rendered)
                       </button>
@@ -474,21 +486,15 @@ const ReportTestCaseList: React.FC<Props> = ({ test, visible, viewMode, darkMode
                       <div className="rounded-md border p-3 bg-muted/30 text-sm text-muted-foreground">No events in this report.</div>
                     )}
                   </div>
-                </TabsContent>
+                </div>
               );
             })}
 
             {isLoadingIndividualReport && (
-              <div className="flex flex-col w-full gap-2">
-                <div className={`w-full h-20 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
-                <div className={`w-full h-20 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
-                <div className={`w-full h-20 rounded-md ${darkMode ? "bg-gray-800" : "bg-gray-200"}`}></div>
-
-              </div>
+             <LoadingSkeleton darkMode={darkMode ?? false} />
             )}
-
           </div>
-        </Tabs>
+        </div>
       </div>
 
       {isModalOpen && (

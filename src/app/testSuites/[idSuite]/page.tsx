@@ -1011,7 +1011,8 @@ const TestSuiteId = () => {
 
 
                                         <tbody key={suiteDetails?.id} className={`${isDarkMode ? "divide-y-2 divide-white/90" : "divide-y divide-gray-200"} max-h-[900px]`}>
-                                            {filteredSuiteTests.map((test) => {
+                                            {filteredSuiteTests.length > 0 &&
+                                            filteredSuiteTests.map((test) => {
                                                 const testId = test.id;
                                                 const isOpen = !!expanded[testId];
                                                 const isLoading = !!loading[testId];
@@ -1172,11 +1173,19 @@ const TestSuiteId = () => {
                                                     </Fragment>
                                                 );
                                             })}
+
+                                            {filteredSuiteTests.length === 0 && (
+                                                <td colSpan={8}>
+                                                    <NoData darkMode={isDarkMode} text="No test filter found"/>
+                                                </td>
+                                                
+                                            )}
                                         </tbody>
                                     </table>
+
                                     <button
                                         onClick={() => setOpenAddModal(true)}
-                                        className={`mt-4 mb-2 px-4 py-2 rounded-md font-semibold ${isDarkMode ? "bg-primary-blue/70 hover:bg-primary-blue/80 text-white" : "bg-primary/90 hover:bg-primary/85 text-white"}`}
+                                        className={`mt-4 mb-2 px-4 py-2 ml-2 rounded-md font-semibold ${isDarkMode ? "bg-primary-blue/70 hover:bg-primary-blue/80 text-white" : "bg-primary/90 hover:bg-primary/85 text-white"}`}
                                     >
                                         <PlusIcon className="w-5 h-5 mr-2 inline-block" /> Add Test Case
                                     </button>

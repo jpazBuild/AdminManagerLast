@@ -429,7 +429,7 @@ const Reports = () => {
   const pageBg = darkMode ? "bg-gray-900 text-gray-100" : "";
   const titleCls = darkMode ? "text-gray-100" : "text-primary/80";
   const cardBase = "rounded-lg shadow-sm border transition-colors";
-  const card = darkMode ? `${cardBase} bg-gray-900 border-gray-700` : `${cardBase} bg-white border-gray-200`;
+  const card = darkMode ? `${cardBase} bg-gray-900 border-gray-700` : `${cardBase} border-gray-200`;
   const cardHeader = darkMode ? "px-6 py-4 border-b border-gray-700" : "px-6 py-4 border-b border-gray-200";
   const toggleFiltersBtn =
     "flex items-center gap-2 cursor-pointer font-medium transition " +

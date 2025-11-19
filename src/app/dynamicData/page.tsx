@@ -965,7 +965,7 @@ const DynamicDataCrudPage = () => {
 
                                     return (
                                       <div key={`${key}-obj-${objId}`} className={fieldCard}>
-                                        <div className="text-white/90 absolute top-0 left-0 bg-primary/90 p-2 rounded-l-md rounded-br-full text-[12px] font-semibold">
+                                        <div className={`${darkMode ? "bg-primary-blue/70":" bg-primary/90"} text-white/90 absolute top-0 left-0  p-2 rounded-l-md rounded-br-full text-[12px] font-semibold`}>
                                           {obj.order}
                                         </div>
                                         <button

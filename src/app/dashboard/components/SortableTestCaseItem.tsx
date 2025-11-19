@@ -665,13 +665,14 @@ const SortableTestCaseItem: React.FC<Props> = ({
                     onClose={handleAccordionToggle}
                     width="max-w-2/3"
                     isDarkMode={isDarkMode}
-                    height="h-full min-h-screen !max-h-[90vh] pt-4 pb-4"
+                    height="h-full min-h-screen !max-h-[90vh] pt-4 pb-4 px-4"
                 >
-                    <div className={`flex flex-col max-h-screen w-full px-6 pb-6 pt-2 ${isDarkMode ? ' text-white' : 'bg-white text-primary'}`}>
-                        <TabsUnderline isDarkMode={isDarkMode} value={viewMode} setValue={handleViewModeChange} defaultValue="data" tabs={[
-                            {
-                                name: 'Data', value: 'Data', icon: <File className="ml-1 h-5 w-5" />,
-                                content: (
+                    <TabsUnderline isDarkMode={isDarkMode} value={viewMode} setValue={handleViewModeChange} defaultValue="data" tabs={[
+                        {
+                            name: 'Data', value: 'Data', icon: <File className="ml-1 h-5 w-5" />,
+                            content: (
+                                <div className={`flex flex-col max-h-screen w-full px-6 pb-6 pt-2 ${isDarkMode ? ' text-white' : 'bg-white text-primary'}`}>
+
                                     <div className="flex flex-col w-full h-full max-h-screen overflow-y-auto">
                                         <div className={`self-end flex gap-2 rounded-md px-3 py-2 mb-4 ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-gray-200 text-primary/90'}`}>
                                             <CopyToClipboard text={JSON.stringify(dynamicValueForThisTest)} isDarkMode={isDarkMode} />
@@ -727,11 +728,14 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                             )}
                                         </div>
                                     </div>
-                                )
-                            },
-                            {
-                                name: 'Steps', value: 'Steps', icon: <Eye className="ml-1 h-5 w-5" />,
-                                content: (
+                                </div>
+                            )
+                        },
+                        {
+                            name: 'Steps', value: 'Steps', icon: <Eye className="ml-1 h-5 w-5" />,
+                            content: (
+                                <div className={`flex flex-col max-h-[90vh] w-full px-6 pb-6 pt-2 ${isDarkMode ? ' text-white' : 'bg-white text-primary'}`}>
+
                                     <div className="w-full text-primary/80 h-full max-h-[90vh] flex flex-col overflow-y-auto">
                                         <div className="flex-1 overflow-y-auto">
                                             <div className="w-full flex flex-col gap-4 p-2">
@@ -772,7 +776,7 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                                         </div>
                                                     </div>
                                                 </div>
-                                                
+
 
                                                 {isLoadingTest && (
                                                     <LoadingSkeleton darkMode={isDarkMode} />
@@ -852,8 +856,8 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                                     </div>
                                                 ))}
 
-                                                
-                                                    
+
+
 
                                                 <ReusableStepModal
                                                     isOpen={showReusableModal}
@@ -868,25 +872,28 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                                 />
                                             </div>
                                         </div>
-                                        
+
                                         {!isLoadingTest && responseTest?.stepsData?.length && (
                                             <TestCaseActions
-                                            test={currentTestCase}
-                                            onDelete={handleDelete}
-                                            onUpdate={handleUpdateConfirm}
-                                            isLoadingUpdate={isLoadingUpdate}
-                                            isDarkMode={isDarkMode}
-                                        />
+                                                test={currentTestCase}
+                                                onDelete={handleDelete}
+                                                onUpdate={handleUpdateConfirm}
+                                                isLoadingUpdate={isLoadingUpdate}
+                                                isDarkMode={isDarkMode}
+                                            />
                                         )}
-                                        
-                                    </div>
 
-                                )
-                            },
-                            {
-                                name: 'Historic reports', value: 'Historic reports', icon: <FileChartColumn className="h-5 w-5" />,
-                                content: (
-                                    <div className="w-full p-1 pt-2 min-h-[480px] flex flex-col gap-2">
+                                    </div>
+                                </div>
+
+                            )
+                        },
+                        {
+                            name: 'Historic reports', value: 'Historic reports', icon: <FileChartColumn className="h-5 w-5" />,
+                            content: (
+                                <div className={`flex flex-col overflow-y-hidden max-h-[90vh] w-full px-2 pb-6 pt-2 ${isDarkMode ? ' text-white' : 'bg-white text-primary'}`}>
+
+                                    <div className="w-full h-full overflow-y-hidden pt-2 min-h-[480px] flex flex-col gap-2 px-4">
                                         <ReportTestCaseList
                                             test={{ ...test, testCaseId: test.id }}
                                             visible={true}
@@ -894,12 +901,15 @@ const SortableTestCaseItem: React.FC<Props> = ({
                                             darkMode={isDarkMode}
                                         />
                                     </div>
+                                </div>
 
-                                )
-                            },
-                            {
-                                name: 'Edit Location', value: 'editLocation', icon: <Locate className="ml-1 h-5 w-5" />,
-                                content: (
+                            )
+                        },
+                        {
+                            name: 'Edit Location', value: 'editLocation', icon: <Locate className="ml-1 h-5 w-5" />,
+                            content: (
+                                <div className={`flex flex-col max-h-screen w-full px-6 pb-6 pt-2 ${isDarkMode ? ' text-white' : 'bg-white text-primary'}`}>
+
                                     <div className="w-full p-1 pt-2 min-h-[480px] flex flex-col gap-2">
                                         <h3 className={`text-center font-semibold text-lg ${isDarkMode ? "text-white/90" : "text-primary/90"} mb-4`}>Edit test case Information</h3>
                                         <EditLocationPanel
@@ -913,10 +923,11 @@ const SortableTestCaseItem: React.FC<Props> = ({
 
                                         />
                                     </div>
-                                )
-                            }
-                        ]} />
-                    </div>
+                                </div>
+                            )
+                        }
+                    ]} />
+
                 </ModalCustom>
             </AccordionItem>
         </div>

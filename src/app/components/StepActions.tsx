@@ -195,28 +195,23 @@ const StepActions: React.FC<StepActionsProps> = ({
                             setShowWait(!showWait);
                             setShowCustom(false);
                         }}
-                        className={`flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded ${darkMode ? "text-white/90 bg-gray-800 hover:bg-gray-700" : "text-primary hover:bg-primary/10"}`}
+                        className={`flex gap-2 items-center px-4 py-2 rounded-md cursor-pointer font-semibold ${darkMode ? "text-white/90 bg-gray-800 hover:bg-gray-700" : "text-primary bg-gray-200 hover:bg-gray-300"} text-xs w-fit cursor-pointer`}
+
                     >
                         <Clock className="mr-1 h-3 w-3" /> Add Wait
 
                     </button>
 
                     <button
+                        className={`flex gap-2 items-center px-4 py-2 rounded-md cursor-pointer font-semibold ${darkMode ? "text-white/90 bg-gray-800 hover:bg-gray-700" : "text-primary bg-gray-200 hover:bg-gray-300"} text-xs w-fit cursor-pointer`}
 
-                    >
-
-                    </button>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        className={`flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded ${darkMode ? "text-white/90 bg-gray-800 hover:bg-gray-700" : "text-primary hover:bg-primary/10"}`}
                         onClick={() => {
                             setShowCustom(!showCustom);
                             setShowWait(false);
                         }}
                     >
                         <Wand2 className="mr-1 h-3 w-3" /> Add Custom Step
-                    </Button>
+                    </button>
                 </div>
 
                 {showWait && (
@@ -280,22 +275,19 @@ const StepActions: React.FC<StepActionsProps> = ({
     return (
         <div className="ml-2 mt-2 flex flex-col gap-4 items-start">
             <div className="flex gap-2">
-                <Button
-                    size="sm"
-                    variant="outline"
-                    className={`${darkMode ? "text-white/90 bg-gray-800 hover:bg-gray-700" : "text-primary hover:bg-primary/10"} text-xs w-fit cursor-pointer`}
+
+                <button
+                    className={`flex gap-2 items-center px-4 py-2 rounded-md cursor-pointer font-semibold ${darkMode ? "text-white/90 bg-gray-700 hover:bg-gray-800" : "text-primary bg-gray-200 hover:bg-gray-300"} text-xs w-fit cursor-pointer`}
                     onClick={() => {
                         setViewActionStep((prev) => (prev === "wait" ? "none" : "wait"));
                         setWaitInputs((prev) => ({ ...prev, [index]: "1000" }));
                     }}
                 >
                     <Clock className="mr-1 h-3 w-3" /> Add Wait
-                </Button>
+                </button>
 
-                <Button
-                    size="sm"
-                    variant="outline"
-                    className={`${darkMode ? "text-white/90 bg-gray-800 hover:bg-gray-700" : "text-primary hover:bg-primary/10"} text-xs w-fit cursor-pointer`}
+                <button
+                    className={`flex gap-2 items-center px-4 py-2 rounded-md cursor-pointer font-semibold ${darkMode ? "text-white/90 bg-gray-700 hover:bg-gray-800" : "text-primary bg-gray-200 hover:bg-gray-300"} text-xs w-fit cursor-pointer`}
                     onClick={() => {
                         setViewActionStep((prev) =>
                             prev === "customStep" ? "none" : "customStep"
@@ -303,13 +295,12 @@ const StepActions: React.FC<StepActionsProps> = ({
                     }}
                 >
                     <Wand2 className="mr-1 h-3 w-3" /> Add Custom Step
-                </Button>
+                </button>
+
 
                 {showReusable && (
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        className={`${darkMode ? "text-white/90 bg-gray-800 hover:bg-gray-700" : "text-primary hover:bg-primary/10"} text-xs w-fit cursor-pointer`}
+                    <button
+                        className={`flex gap-2 items-center px-4 py-2 rounded-md cursor-pointer font-semibold ${darkMode ? "text-white/90 bg-gray-700 hover:bg-gray-800" : "text-primary bg-gray-200 hover:bg-gray-300"} text-xs w-fit cursor-pointer`}
                         onClick={() => {
                             setIsModalOpen(true);
                             setSelectedReusable(null);
@@ -318,7 +309,7 @@ const StepActions: React.FC<StepActionsProps> = ({
                         }}
                     >
                         <Layers className="mr-1 h-3 w-3" /> Add Reusable Step
-                    </Button>
+                    </button>
                 )}
 
             </div>
@@ -459,7 +450,7 @@ const StepActions: React.FC<StepActionsProps> = ({
                                     <div className="flex gap-2 mb-2 h-full max-h-[60vh] overflow-y-auto">
 
                                         <button
-                                            className={`${darkMode ? `flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md rounded text-white ${isEditingReusable ? "bg-gray-700 hover:bg-gray-600" : "bg-primary-blue/80 hover:bg-primary-blue/90"}` : "flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded bg-primary/90 text-white hover:bg-primary/95"}`}
+                                            className={`${darkMode ? `flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md rounded text-white  font-semibold ${isEditingReusable ? "bg-gray-700 hover:bg-gray-600" : "bg-primary-blue/60 hover:bg-primary-blue/70"}` : "flex items-center px-3 py-2 text-xs w-fit cursor-pointer shadow-md border rounded bg-primary/90 text-white hover:bg-primary/95"}`}
                                             onClick={() => setIsEditingReusable(!isEditingReusable)}
                                         >
                                             <Edit className="mr-1 h-3 w-3" />{" "}
@@ -485,7 +476,7 @@ const StepActions: React.FC<StepActionsProps> = ({
                                 )}
 
                                 {!loading && selectedReusableSteps?.map((step, idx) => (
-                                    <div key={idx} className="flex flex-col gap-2 border rounded p-2">
+                                    <div key={idx} className="flex flex-col gap-2 rounded p-2">
                                         <ReusableStepActions darkMode={darkMode} idx={idx - 1} />
 
                                         <InteractionItem
@@ -515,8 +506,8 @@ const StepActions: React.FC<StepActionsProps> = ({
 
                                 {!loading && (
 
-                                    <Button
-                                        className={`font-semibold sticky top-0 ${darkMode ? "bg-primary-blue/90 text-white/90 hover:bg-primary-blue/80 hover:text-white" : "bg-primary/80 text-white hover:bg-primary"} shadow-md cursor-pointer px-2 py-1 rounded-md text-sm mt-4 flex items-center gap-1`}
+                                    <button
+                                        className={`font-semibold sticky top-0 flex justify-center py-2 w-1/2 self-center ${darkMode ? "bg-primary-blue/90 text-white/90 hover:bg-primary-blue/80 hover:text-white" : "bg-primary/80 text-white hover:bg-primary"} shadow-md cursor-pointer px-2 py-1 rounded-md text-sm mt-4 flex items-center gap-1`}
                                         onClick={() => {
                                             if (!selectedReusable) return;
 
@@ -549,7 +540,7 @@ const StepActions: React.FC<StepActionsProps> = ({
                                         }}
                                     >
                                         Add This Reusable
-                                    </Button>
+                                    </button>
 
                                 )}
 
